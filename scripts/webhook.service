@@ -1,0 +1,26 @@
+[Unit]
+Description=TestPark Webhook Server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/testpark
+ExecStart=/usr/bin/node /var/www/testpark/scripts/webhook-server.js
+Restart=always
+RestartSec=5
+
+# 환경 변수
+Environment=NODE_ENV=production
+Environment=WEBHOOK_PORT=8080
+Environment=WEBHOOK_SECRET=testpark-webhook-secret
+Environment=DEPLOY_SCRIPT=/var/www/testpark/scripts/deploy.sh
+
+# 로그 설정
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=testpark-webhook
+
+[Install]
+WantedBy=multi-user.target
