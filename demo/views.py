@@ -8,7 +8,7 @@ def home(request):
     데모 홈페이지 뷰
     """
     context = {
-        'title': 'TestPark Django 데모',
+        'title': '🚀 TestPark Django 테스트 환경',
         'message': '안녕하세요! 카페24 실서버에서 실행되는 Django 5.1.1 애플리케이션입니다.',
         'current_time': timezone.now(),
         'python_version': platform.python_version(),
