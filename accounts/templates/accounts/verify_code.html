@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인증번호 입력 - TestPark</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .verify-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 60px 50px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .logo {
+            font-size: 36px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        .user-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .user-email {
+            font-weight: bold;
+            color: #03C75A;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .auth-code-input {
+            width: 100%;
+            padding: 18px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 24px;
+            text-align: center;
+            letter-spacing: 8px;
+            font-weight: bold;
+            transition: border-color 0.3s ease;
+        }
+
+        .auth-code-input:focus {
+            outline: none;
+            border-color: #03C75A;
+            box-shadow: 0 0 0 3px rgba(3, 199, 90, 0.1);
+        }
+
+        .verify-btn {
+            background: #03C75A;
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .verify-btn:hover {
+            background: #02b151;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(3, 199, 90, 0.3);
+        }
+
+        .verify-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .resend-btn {
+            background: none;
+            border: 2px solid #03C75A;
+            color: #03C75A;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .resend-btn:hover {
+            background: #03C75A;
+            color: white;
+        }
+
+        .resend-btn:disabled {
+            border-color: #ccc;
+            color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .back-btn {
+            background: none;
+            border: 2px solid #666;
+            color: #666;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: #666;
+            color: white;
+        }
+
+        .info-text {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .timer {
+            font-size: 16px;
+            color: #ff6b6b;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .messages {
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        @media (max-width: 768px) {
+            .verify-container {
+                padding: 40px 30px;
+                margin: 20px;
+            }
+
+            .auth-code-input {
+                font-size: 20px;
+                letter-spacing: 4px;
+            }
+
+            .verify-btn, .resend-btn, .back-btn {
+                font-size: 16px;
+                padding: 14px 20px;
+                margin-bottom: 10px;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="verify-container">
+        <div class="logo">🔐 인증번호 입력</div>
+        <div class="title">TestPark</div>
+        <div class="subtitle">잔디 메신저에서 받은 인증번호를 입력해주세요</div>
+
+        <div class="user-info">
+            <div>📧 인증번호 발송 대상</div>
+            <div class="user-email">{{ user_email }}</div>
+        </div>
+
+        <!-- 메시지 표시 -->
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message|linebreaks }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- 타이머 표시 -->
+        <div class="timer" id="timer">
+            ⏰ 인증번호 유효시간: <span id="countdown">05:00</span>
+        </div>
+
+        <!-- 인증번호 입력 폼 -->
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="auth_code" class="form-label">6자리 인증번호</label>
+                <input
+                    type="text"
+                    id="auth_code"
+                    name="auth_code"
+                    class="auth-code-input"
+                    maxlength="6"
+                    placeholder="000000"
+                    pattern="[0-9]{6}"
+                    required
+                    autocomplete="off"
+                >
+            </div>
+
+            <button type="submit" class="verify-btn" id="verifyBtn">
+                ✅ 인증번호 확인
+            </button>
+        </form>
+
+        <div class="info-text">
+            잔디 메신저에서 6자리 숫자 인증번호를 확인하세요.<br>
+            인증번호는 <strong>5분간</strong> 유효합니다.
+        </div>
+
+        <!-- 액션 버튼들 -->
+        <div>
+            <button type="button" class="resend-btn" id="resendBtn" onclick="resendCode()">
+                📨 인증번호 재발송
+            </button>
+            <a href="{% url 'accounts:login' %}" class="back-btn">
+                ← 로그인 화면으로
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // 5분 타이머 (300초)
+        let timeLeft = 300;
+        const countdownElement = document.getElementById('countdown');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const resendBtn = document.getElementById('resendBtn');
+        const authCodeInput = document.getElementById('auth_code');
+
+        function updateTimer() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            countdownElement.textContent =
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            if (timeLeft <= 0) {
+                countdownElement.textContent = '00:00';
+                verifyBtn.disabled = true;
+                verifyBtn.textContent = '⏰ 시간 만료';
+                authCodeInput.disabled = true;
+                return;
+            }
+
+            timeLeft--;
+        }
+
+        // 1초마다 타이머 업데이트
+        const timerInterval = setInterval(updateTimer, 1000);
+        updateTimer(); // 즉시 실행
+
+        // 인증번호 입력 시 자동 포맷팅
+        authCodeInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^0-9]/g, '');
+            e.target.value = value;
+
+            // 6자리 입력 시 자동 제출 (옵션)
+            if (value.length === 6) {
+                // 잠시 후 자동 제출 (사용자가 확인할 시간)
+                setTimeout(() => {
+                    document.querySelector('form').submit();
+                }, 500);
+            }
+        });
+
+        // 인증번호 재발송 함수
+        async function resendCode() {
+            resendBtn.disabled = true;
+            resendBtn.textContent = '📨 발송 중...';
+
+            try {
+                const response = await fetch('{% url "accounts:resend_auth_code" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    // 타이머 리셋
+                    timeLeft = 300;
+                    verifyBtn.disabled = false;
+                    verifyBtn.textContent = '✅ 인증번호 확인';
+                    authCodeInput.disabled = false;
+                    authCodeInput.value = '';
+                    authCodeInput.focus();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (error) {
+                alert('❌ 재발송 요청 중 오류가 발생했습니다.');
+                console.error('Error:', error);
+            } finally {
+                resendBtn.disabled = false;
+                resendBtn.textContent = '📨 인증번호 재발송';
+            }
+        }
+
+        // 페이지 로드 시 인증번호 입력 필드에 포커스
+        window.addEventListener('load', function() {
+            authCodeInput.focus();
+        });
+
+        // 메시지 자동 사라지기
+        setTimeout(function() {
+            const messages = document.querySelector('.messages');
+            if (messages) {
+                messages.style.opacity = '0';
+                messages.style.transition = 'opacity 0.5s ease';
+                setTimeout(function() {
+                    messages.style.display = 'none';
+                }, 500);
+            }
+        }, 3000);
+    </script>
+</body>
+</html>

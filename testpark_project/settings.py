@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'demo',
+    'accounts',
 ]
 
 MIDDLEWARE = [
@@ -123,3 +124,14 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Custom User Model
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+# 네이버 소셜 로그인 설정
+NAVER_CLIENT_ID = '_mw6kojqJVXoWEBqYBKv'
+NAVER_CLIENT_SECRET = 'hHKrIfKoMA'
+NAVER_REDIRECT_URI = 'http://localhost:8001/auth/naver/callback/'
+
+# 잔디 웹훅 설정
+JANDI_WEBHOOK_URL = 'https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265'
