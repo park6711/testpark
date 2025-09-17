@@ -126,7 +126,31 @@
             <a href="/admin/" class="btn">
                 <span class="emoji">⚙️</span>Django Admin
             </a>
+            {% if user.is_authenticated %}
+                <a href="/auth/logout/" class="btn">
+                    <span class="emoji">🚪</span>로그아웃
+                </a>
+            {% else %}
+                <a href="/auth/login/" class="btn">
+                    <span class="emoji">🔐</span>로그인
+                </a>
+            {% endif %}
         </div>
+
+        {% if user.is_authenticated %}
+        <div class="info-card" style="margin-bottom: 20px; background: rgba(40, 167, 69, 0.3);">
+            <h3><span class="emoji">👤</span>로그인 정보</h3>
+            <p><strong>사용자:</strong> {{ user.name|default:user.username }} ({{ user.email }})</p>
+            <p><strong>권한:</strong>
+                {% if user.is_superuser %}슈퍼유저{% elif user.is_staff %}스태프{% else %}일반사용자{% endif %}
+            </p>
+            {% if user.is_naver_linked %}
+                <p><strong>네이버 연동:</strong> ✅ 연동됨</p>
+            {% else %}
+                <p><strong>네이버 연동:</strong> ❌ 미연동</p>
+            {% endif %}
+        </div>
+        {% endif %}
 
         <div class="info-card" style="margin-top: 30px;">
             <h3><span class="emoji">🔄</span>개발 워크플로우</h3>
