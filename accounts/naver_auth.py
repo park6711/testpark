@@ -139,11 +139,27 @@ class NaverAuthManager:
         if not user_info:
             return False, None, "사용자 정보 조회에 실패했습니다."
 
-        # 3. 필요한 필드 검증
-        required_fields = ['id', 'email', 'name']
-        for field in required_fields:
-            if not user_info.get(field):
-                return False, None, f"네이버에서 {field} 정보를 제공하지 않습니다."
+        # 3. 필수 필드 검증 (email만 필수)
+        if not user_info.get('email'):
+            return False, None, "네이버에서 email 정보를 제공하지 않습니다."
+
+        # 4. id 필드 처리 (선택사항)
+        if not user_info.get('id'):
+            # email에서 @ 앞부분을 id로 사용
+            email_prefix = user_info['email'].split('@')[0]
+            user_info['id'] = email_prefix
+            print(f"id 필드 없음, 이메일 prefix 사용: {user_info['id']}")
+
+        # 5. name 필드 처리 (선택사항)
+        if not user_info.get('name'):
+            if user_info.get('nickname'):
+                user_info['name'] = user_info['nickname']
+                print(f"name 필드 없음, nickname 사용: {user_info['name']}")
+            else:
+                # 이메일에서 @ 앞부분을 name으로 사용
+                email_prefix = user_info['email'].split('@')[0]
+                user_info['name'] = email_prefix
+                print(f"name/nickname 필드 없음, 이메일 prefix 사용: {user_info['name']}")
 
         return True, user_info, None
 

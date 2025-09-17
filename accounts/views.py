@@ -19,7 +19,7 @@ class LoginView(View):
     def get(self, request):
         # 이미 로그인된 경우 메인 페이지로 리다이렉트
         if request.user.is_authenticated:
-            return redirect('demo:index')  # 메인 페이지 URL
+            return redirect('demo:home')  # 메인 페이지 URL
 
         return render(request, 'accounts/login.html')
 
@@ -85,7 +85,7 @@ class NaverCallbackView(View):
                 # 잔디 알림 발송
                 jandi_webhook.send_login_success(existing_user.name, existing_user.email)
 
-                return redirect('demo:index')
+                return redirect('demo:home')
 
             # 이메일로 기존 사용자 찾기
             existing_email_user = CustomUser.objects.filter(email=naver_email).first()
@@ -138,7 +138,7 @@ class VerifyCodeView(View):
     def get(self, request):
         # 로그인된 경우 메인으로
         if request.user.is_authenticated:
-            return redirect('demo:index')
+            return redirect('demo:home')
 
         # 인증 세션 확인
         session_key = request.session.session_key
@@ -213,7 +213,7 @@ class VerifyCodeView(View):
             # 잔디 알림 발송
             jandi_webhook.send_login_success(user.name, user.email)
 
-            return redirect('demo:index')
+            return redirect('demo:home')
 
         except Exception as e:
             messages.error(request, f"인증 처리 중 오류가 발생했습니다: {str(e)}")
