@@ -9,13 +9,12 @@ echo "🚀 TestPark 배포를 시작합니다..."
 
 # 환경 변수 설정
 CONTAINER_NAME="testpark"
-IMAGE_NAME="testpark_app:latest"  # 로컬 테스트용 이미지
+IMAGE_NAME="7171man/testpark:latest"
 PORT="3000"
 
-# Docker Hub에서 최신 이미지 가져오기 (로컬 테스트용 주석 처리)
+# Docker Hub에서 최신 이미지 가져오기
 echo "📥 최신 Docker 이미지를 가져옵니다..."
-# docker pull $IMAGE_NAME  # 실제 환경에서는 주석 해제
-echo "ℹ️ 로컬 테스트 모드: Docker pull 건너뜀"
+docker pull $IMAGE_NAME
 
 # 기존 컨테이너 중지 및 제거
 echo "🔄 기존 컨테이너를 중지합니다..."
