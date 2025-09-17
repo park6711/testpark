@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    networks:
+      - testpark_network
+
+  # 데이터베이스 (필요시 주석 해제)
+  # db:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_DB: testpark
+  #     POSTGRES_USER: testpark
+  #     POSTGRES_PASSWORD: password
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - testpark_network
+
+networks:
+  testpark_network:
+    driver: bridge
+
+# volumes:
+#   postgres_data:
