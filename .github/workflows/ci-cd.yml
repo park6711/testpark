@@ -24,6 +24,7 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build and push Docker image
+      id: build
       uses: docker/build-push-action@v4
       with:
         context: .
@@ -36,23 +37,35 @@ jobs:
         cache-to: type=gha,mode=max
 
 
-    - name: Notify GitHub build status to Jandi
-      if: always()
+    - name: Notify build success to Jandi
+      if: success()
       run: |
-        if [ "${{ job.status }}" == "success" ]; then
-          curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "body": "🏗️ GitHub Actions 빌드 성공!\n프로젝트: testpark\n커밋: ${{ github.sha }}\n브랜치: ${{ github.ref_name }}\n이미지: 7171man/testpark:latest\n상태: Docker Hub 푸시 완료",
-              "connectColor": "#00C851"
-            }'
-          echo "🎉 빌드 및 푸시가 성공적으로 완료되었습니다!"
+        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "body": "🎉 GitHub Actions 빌드 성공!\n프로젝트: testpark\n커밋: ${{ github.sha }}\n브랜치: ${{ github.ref_name }}\n이미지: 7171man/testpark:latest, 7171man/testpark:${{ github.sha }}\n플랫폼: linux/amd64, linux/arm64\n상태: Docker Hub 멀티플랫폼 푸시 완료\n🌐 배포 준비 완료",
+            "connectColor": "#00C851"
+          }'
+        echo "🎉 빌드 및 푸시가 성공적으로 완료되었습니다!"
+
+    - name: Notify build failure to Jandi
+      if: failure()
+      run: |
+        # Get workflow run details
+        WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+        # Extract potential error info
+        ERROR_STEP=""
+        if [ "${{ steps.build.outcome }}" == "failure" ]; then
+          ERROR_STEP="Docker 이미지 빌드/푸시 실패"
         else
-          curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "body": "❌ GitHub Actions 빌드 실패!\n프로젝트: testpark\n커밋: ${{ github.sha }}\n브랜치: ${{ github.ref_name }}\n오류를 확인해주세요.",
-              "connectColor": "#FF4444"
-            }'
-          echo "❌ 빌드 중 오류가 발생했습니다."
+          ERROR_STEP="워크플로우 실행 중 오류 발생"
         fi
+
+        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"body\": \"❌ GitHub Actions 빌드 실패!\\n프로젝트: testpark\\n커밋: ${{ github.sha }}\\n브랜치: ${{ github.ref_name }}\\n실패 단계: ${ERROR_STEP}\\n로그 확인: ${WORKFLOW_URL}\\n\\n⚠️ 실서버 배포가 중단되었습니다.\",
+            \"connectColor\": \"#FF4444\"
+          }"
+        echo "❌ 빌드 중 오류가 발생했습니다: ${ERROR_STEP}"
