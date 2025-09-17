@@ -27,6 +27,7 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         context: .
+        platforms: linux/amd64,linux/arm64
         push: true
         tags: |
           7171man/testpark:latest
@@ -38,7 +39,7 @@ jobs:
     - name: Notify GitHub build status to Jandi
       if: always()
       run: |
-        if [ ${{ job.status }} == 'success' ]; then
+        if [ "${{ job.status }}" == "success" ]; then
           curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
             -H "Content-Type: application/json" \
             -d '{
