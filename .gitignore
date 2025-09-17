@@ -33,4 +33,4 @@ Thumbs.db
 # Build output
 dist/
 build/
-public/build/
+public/build/db.sqlite3
