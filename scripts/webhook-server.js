@@ -12,44 +12,44 @@ const DEPLOY_SCRIPT = process.env.DEPLOY_SCRIPT || '/var/www/testpark/scripts/de
 
 app.use(express.raw({ type: 'application/json' }));
 
-// GitHub Webhook 핸들러
-app.post('/webhook/github', (req, res) => {
-    const signature = req.get('X-Hub-Signature-256');
-    const body = req.body;
+// GitHub Webhook 핸들러 (비활성화 - GitHub Actions가 빌드만 담당)
+// app.post('/webhook/github', (req, res) => {
+//     const signature = req.get('X-Hub-Signature-256');
+//     const body = req.body;
 
-    // 서명 검증
-    const expectedSignature = 'sha256=' + crypto
-        .createHmac('sha256', SECRET)
-        .update(body)
-        .digest('hex');
+//     // 서명 검증
+//     const expectedSignature = 'sha256=' + crypto
+//         .createHmac('sha256', SECRET)
+//         .update(body)
+//         .digest('hex');
 
-    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
-        console.log('❌ GitHub Webhook 서명 검증 실패');
-        return res.status(401).send('Unauthorized');
-    }
+//     if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+//         console.log('❌ GitHub Webhook 서명 검증 실패');
+//         return res.status(401).send('Unauthorized');
+//     }
 
-    const payload = JSON.parse(body.toString());
+//     const payload = JSON.parse(body.toString());
 
-    // push 이벤트만 처리
-    if (payload.ref === 'refs/heads/master' || payload.ref === 'refs/heads/main') {
-        console.log('🚀 GitHub push 이벤트 감지 - 배포를 시작합니다...');
-        console.log(`📝 커밋: ${payload.head_commit.message}`);
-        console.log(`👤 작성자: ${payload.head_commit.author.name}`);
+//     // push 이벤트만 처리
+//     if (payload.ref === 'refs/heads/master' || payload.ref === 'refs/heads/main') {
+//         console.log('🚀 GitHub push 이벤트 감지 - 배포를 시작합니다...');
+//         console.log(`📝 커밋: ${payload.head_commit.message}`);
+//         console.log(`👤 작성자: ${payload.head_commit.author.name}`);
 
-        try {
-            // 배포 스크립트 실행
-            const output = execSync(`bash ${DEPLOY_SCRIPT}`, { encoding: 'utf8' });
-            console.log('✅ 배포 완료:', output);
-            res.status(200).send('Deployment successful');
-        } catch (error) {
-            console.error('❌ 배포 실패:', error.message);
-            res.status(500).send('Deployment failed');
-        }
-    } else {
-        console.log('ℹ️ 무시된 브랜치:', payload.ref);
-        res.status(200).send('Ignored branch');
-    }
-});
+//         try {
+//             // 배포 스크립트 실행
+//             const output = execSync(`bash ${DEPLOY_SCRIPT}`, { encoding: 'utf8' });
+//             console.log('✅ 배포 완료:', output);
+//             res.status(200).send('Deployment successful');
+//         } catch (error) {
+//             console.error('❌ 배포 실패:', error.message);
+//             res.status(500).send('Deployment failed');
+//         }
+//     } else {
+//         console.log('ℹ️ 무시된 브랜치:', payload.ref);
+//         res.status(200).send('Ignored branch');
+//     }
+// });
 
 // Docker Hub Webhook 핸들러
 app.post('/webhook/dockerhub', (req, res) => {
@@ -112,7 +112,7 @@ app.get('/health', (req, res) => {
 // 서버 시작
 app.listen(PORT, () => {
     console.log(`🔗 TestPark Webhook 서버가 포트 ${PORT}에서 실행중입니다`);
-    console.log(`📡 GitHub Webhook URL: http://your-server:${PORT}/webhook/github`);
+    console.log(`📡 GitHub Webhook: 비활성화됨 (GitHub Actions가 빌드 담당)`);
     console.log(`🐳 Docker Hub Webhook URL: http://your-server:${PORT}/webhook/dockerhub`);
     console.log(`🔄 수동 배포 URL: http://your-server:${PORT}/deploy`);
 });
