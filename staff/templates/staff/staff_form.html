@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        input[type="text"],
+        input[type="email"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+        .form-actions {
+            margin-top: 30px;
+            text-align: right;
+        }
+        .messages {
+            margin: 20px 0;
+        }
+        .alert {
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ title }}</h1>
+
+        <!-- 에러 메시지 표시 -->
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="sNaverID0">네이버 ID</label>
+                <input type="text"
+                       id="sNaverID0"
+                       name="sNaverID0"
+                       value="{{ staff.sNaverID0|default:'' }}"
+                       readonly
+                       style="background-color: #f8f9fa; cursor: not-allowed;">
+            </div>
+
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox"
+                           id="bApproval"
+                           name="bApproval"
+                           {% if staff.bApproval %}checked{% endif %}>
+                    <label for="bApproval">승인 여부</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="sNaverID">로그인 이메일 *</label>
+                <input type="text"
+                       id="sNaverID"
+                       name="sNaverID"
+                       value="{{ staff.sNaverID|default:'' }}"
+                       required>
+            </div>
+
+            <div class="form-group">
+                <label for="sName">성명 *</label>
+                <input type="text"
+                       id="sName"
+                       name="sName"
+                       value="{{ staff.sName|default:'' }}"
+                       required>
+            </div>
+
+            <div class="form-group">
+                <label for="sTeam">팀</label>
+                <input type="text"
+                       id="sTeam"
+                       name="sTeam"
+                       value="{{ staff.sTeam|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="sTitle">직급</label>
+                <input type="text"
+                       id="sTitle"
+                       name="sTitle"
+                       value="{{ staff.sTitle|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="sNick">별명</label>
+                <input type="text"
+                       id="sNick"
+                       name="sNick"
+                       value="{{ staff.sNick|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="sGoogleID">구글 ID</label>
+                <input type="text"
+                       id="sGoogleID"
+                       name="sGoogleID"
+                       value="{{ staff.sGoogleID|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="sPhone1">업체 핸드폰</label>
+                <input type="text"
+                       id="sPhone1"
+                       name="sPhone1"
+                       value="{{ staff.sPhone1|default:'' }}"
+                       placeholder="010-0000-0000">
+            </div>
+
+            <div class="form-group">
+                <label for="sPhone2">개인 핸드폰</label>
+                <input type="text"
+                       id="sPhone2"
+                       name="sPhone2"
+                       value="{{ staff.sPhone2|default:'' }}"
+                       placeholder="010-0000-0000">
+            </div>
+
+            <div class="form-group">
+                <label for="nMaster">마스터 권한</label>
+                <select id="nMaster" name="nMaster">
+                    <option value="0" {% if staff.nMaster == 0 %}selected{% endif %}>일반</option>
+                    <option value="1" {% if staff.nMaster == 1 %}selected{% endif %}>마스터</option>
+                    <option value="2" {% if staff.nMaster == 2 %}selected{% endif %}>슈퍼마스터</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="nStaffAuthority">스텝정보 권한</label>
+                <select id="nStaffAuthority" name="nStaffAuthority">
+                    <option value="0" {% if staff.nStaffAuthority == 0 %}selected{% endif %}>권한없음</option>
+                    <option value="1" {% if staff.nStaffAuthority == 1 %}selected{% endif %}>읽기권한</option>
+                    <option value="2" {% if staff.nStaffAuthority == 2 %}selected{% endif %}>쓰기권한</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="nCompanyAuthority">업체정보 권한</label>
+                <select id="nCompanyAuthority" name="nCompanyAuthority">
+                    <option value="0" {% if staff.nCompanyAuthority == 0 %}selected{% endif %}>권한없음</option>
+                    <option value="1" {% if staff.nCompanyAuthority == 1 %}selected{% endif %}>읽기권한</option>
+                    <option value="2" {% if staff.nCompanyAuthority == 2 %}selected{% endif %}>쓰기권한</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="nOrderAuthority">의뢰할당 권한</label>
+                <select id="nOrderAuthority" name="nOrderAuthority">
+                    <option value="0" {% if staff.nOrderAuthority == 0 %}selected{% endif %}>권한없음</option>
+                    <option value="1" {% if staff.nOrderAuthority == 1 %}selected{% endif %}>읽기권한</option>
+                    <option value="2" {% if staff.nOrderAuthority == 2 %}selected{% endif %}>쓰기권한</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="nContractAuthority">계약관리 권한</label>
+                <select id="nContractAuthority" name="nContractAuthority">
+                    <option value="0" {% if staff.nContractAuthority == 0 %}selected{% endif %}>권한없음</option>
+                    <option value="1" {% if staff.nContractAuthority == 1 %}selected{% endif %}>읽기권한</option>
+                    <option value="2" {% if staff.nContractAuthority == 2 %}selected{% endif %}>쓰기권한</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="nEvaluationAuthority">업체평가 권한</label>
+                <select id="nEvaluationAuthority" name="nEvaluationAuthority">
+                    <option value="0" {% if staff.nEvaluationAuthority == 0 %}selected{% endif %}>권한없음</option>
+                    <option value="1" {% if staff.nEvaluationAuthority == 1 %}selected{% endif %}>읽기권한</option>
+                    <option value="2" {% if staff.nEvaluationAuthority == 2 %}selected{% endif %}>쓰기권한</option>
+                </select>
+            </div>
+
+            <div class="form-actions">
+                <a href="{% url 'staff:staff_list' %}" class="btn btn-secondary">취소</a>
+                <button type="submit" class="btn btn-primary">
+                    {% if action == 'create' %}추가{% else %}수정{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // 마스터 권한 변경 시 다른 권한들을 자동으로 설정
+        document.getElementById('nMaster').addEventListener('change', function() {
+            const masterValue = parseInt(this.value);
+
+            // 마스터(1) 또는 슈퍼마스터(2)인 경우 모든 권한을 쓰기권한(2)로 설정
+            if (masterValue === 1 || masterValue === 2) {
+                document.getElementById('nStaffAuthority').value = '2';
+                document.getElementById('nCompanyAuthority').value = '2';
+                document.getElementById('nOrderAuthority').value = '2';
+                document.getElementById('nContractAuthority').value = '2';
+                document.getElementById('nEvaluationAuthority').value = '2';
+            }
+            // 일반(0)인 경우는 기존 값 유지 (자동 변경하지 않음)
+        });
+
+        // 페이지 로드 시 현재 마스터 권한에 따라 초기 설정
+        document.addEventListener('DOMContentLoaded', function() {
+            const masterValue = parseInt(document.getElementById('nMaster').value);
+
+            // 마스터(1) 또는 슈퍼마스터(2)인 경우 모든 권한을 쓰기권한(2)로 설정
+            if (masterValue === 1 || masterValue === 2) {
+                document.getElementById('nStaffAuthority').value = '2';
+                document.getElementById('nCompanyAuthority').value = '2';
+                document.getElementById('nOrderAuthority').value = '2';
+                document.getElementById('nContractAuthority').value = '2';
+                document.getElementById('nEvaluationAuthority').value = '2';
+            }
+        });
+    </script>
+</body>
+</html>
