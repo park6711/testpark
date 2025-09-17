@@ -7,6 +7,7 @@ TestPark 프로젝트 - Docker와 CI/CD가 구성된 Node.js Express 애플리�
 ```
 testpark/
 ├── README.md
+├── DEPLOYMENT.md              # 🚀 배포 가이드
 ├── Dockerfile
 ├── docker-compose.yml
 ├── package.json
@@ -61,12 +62,18 @@ docker run -p 3000:3000 testpark
 4. **헬스 체크** → 배포 완료 확인
 
 ### 설정 방법
-자세한 CI/CD 설정 방법은 [CI/CD 설정 가이드](docs/CICD-SETUP.md)를 참고하세요.
+- **🚀 [배포 가이드](DEPLOYMENT.md)** - 전체 배포 시스템 설명 및 설정 방법
+- **⚙️ [CI/CD 설정 가이드](docs/CICD-SETUP.md)** - GitHub Actions 상세 설정
 
 ## 📊 API 엔드포인트
 
 - `GET /` - 메인 페이지
 - `GET /health` - 헬스 체크
+
+## 📚 문서
+
+- **🚀 [배포 가이드](DEPLOYMENT.md)** - 자동화 배포 시스템 완전 가이드
+- **⚙️ [CI/CD 설정](docs/CICD-SETUP.md)** - GitHub Actions 상세 설정
 
 ## 🔗 링크
 

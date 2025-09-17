@@ -45,11 +45,29 @@ for i in {1..6}; do
     if curl -f http://localhost:$PORT/health > /dev/null 2>&1; then
         echo "✅ 애플리케이션이 정상적으로 실행되고 있습니다!"
         echo "🌐 접속 주소: http://localhost:$PORT"
+
+        # 잔디 웹훅으로 배포 성공 알림
+        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"body\": \"🐳 도커 배포 성공!\\n프로젝트: testpark\\n이미지: $IMAGE_NAME\\n포트: $PORT\\n상태: 정상 실행 중\",
+            \"connectColor\": \"#00C851\"
+          }" > /dev/null 2>&1
+
         break
     else
         if [ $i -eq 6 ]; then
             echo "❌ 애플리케이션 시작에 실패했습니다."
             docker logs $CONTAINER_NAME
+
+            # 잔디 웹훅으로 배포 실패 알림
+            curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"body\": \"❌ 도커 배포 실패!\\n프로젝트: testpark\\n이미지: $IMAGE_NAME\\n오류: 애플리케이션 시작 실패\\n로그를 확인해주세요.\",
+                \"connectColor\": \"#FF4444\"
+              }" > /dev/null 2>&1
+
             exit 1
         fi
         echo "⏳ 애플리케이션 시작을 기다리는 중... ($i/6)"
@@ -64,3 +82,11 @@ docker image prune -f
 echo "🎉 TestPark 배포가 성공적으로 완료되었습니다!"
 echo "📊 컨테이너 상태:"
 docker ps -f name=$CONTAINER_NAME --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+
+# 최종 배포 완료 알림
+curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"body\": \"🎉 TestPark 전체 배포 프로세스 완료!\\n✅ 도커 이미지 풀 완료\\n✅ 컨테이너 교체 완료\\n✅ 헬스체크 통과\\n✅ 이미지 정리 완료\\n🌐 서비스 URL: http://localhost:$PORT\",
+    \"connectColor\": \"#4A90E2\"
+  }" > /dev/null 2>&1

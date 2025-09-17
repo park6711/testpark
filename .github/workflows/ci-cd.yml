@@ -7,7 +7,7 @@ on:
     branches: [ master, main ]
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
@@ -34,35 +34,24 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: Deploy to production server
-      uses: appleboy/ssh-action@v0.1.7
-      with:
-        host: ${{ secrets.PROD_HOST }}
-        username: ${{ secrets.PROD_USER }}
-        key: ${{ secrets.PROD_SSH_KEY }}
-        script: |
-          # Pull latest image from Docker Hub
-          docker pull 7171man/testpark:latest
 
-          # Stop and remove existing container
-          docker stop testpark || true
-          docker rm testpark || true
-
-          # Run new container
-          docker run -d \
-            --name testpark \
-            --restart unless-stopped \
-            -p 3000:3000 \
-            7171man/testpark:latest
-
-          # Clean up old images
-          docker image prune -f
-
-    - name: Notify deployment status
+    - name: Notify GitHub build status to Jandi
       if: always()
       run: |
         if [ ${{ job.status }} == 'success' ]; then
-          echo "🎉 배포가 성공적으로 완료되었습니다!"
+          curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "body": "🏗️ GitHub Actions 빌드 성공!\n프로젝트: testpark\n커밋: ${{ github.sha }}\n브랜치: ${{ github.ref_name }}\n이미지: 7171man/testpark:latest\n상태: Docker Hub 푸시 완료",
+              "connectColor": "#00C851"
+            }'
+          echo "🎉 빌드 및 푸시가 성공적으로 완료되었습니다!"
         else
-          echo "❌ 배포 중 오류가 발생했습니다."
+          curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "body": "❌ GitHub Actions 빌드 실패!\n프로젝트: testpark\n커밋: ${{ github.sha }}\n브랜치: ${{ github.ref_name }}\n오류를 확인해주세요.",
+              "connectColor": "#FF4444"
+            }'
+          echo "❌ 빌드 중 오류가 발생했습니다."
         fi
