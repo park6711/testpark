@@ -10,7 +10,7 @@ echo "🚀 TestPark 배포를 시작합니다..."
 # 환경 변수 설정
 CONTAINER_NAME="testpark"
 IMAGE_NAME="7171man/testpark:latest"
-PORT="3000"
+PORT="8000"
 
 # Docker Hub에서 최신 이미지 가져오기
 echo "📥 최신 Docker 이미지를 가져옵니다..."
@@ -33,7 +33,7 @@ echo "🏃 새로운 컨테이너를 시작합니다..."
 docker run -d \
     --name $CONTAINER_NAME \
     --restart unless-stopped \
-    -p $PORT:$PORT \
+    -p $PORT:8000 \
     $IMAGE_NAME
 
 # 헬스 체크
@@ -42,7 +42,7 @@ sleep 5
 
 # 최대 30초 동안 헬스 체크 시도
 for i in {1..6}; do
-    if curl -f http://localhost:$PORT/health > /dev/null 2>&1; then
+    if curl -f http://localhost:$PORT/ > /dev/null 2>&1; then
         echo "✅ 애플리케이션이 정상적으로 실행되고 있습니다!"
         echo "🌐 접속 주소: http://localhost:$PORT"
 
