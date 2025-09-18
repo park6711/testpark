@@ -257,3 +257,17 @@ python manage.py check --deploy
 # 포트 충돌 문제
 python manage.py runserver 8001  # 다른 포트 사용
 ```
+
+## 🧪 자동 배포 테스트
+
+### 최근 배포 테스트 기록
+- **테스트 일시**: 2025-09-18 13:00:00 (KST)
+- **테스트 목적**: 웹훅 기반 완전 자동화 배포 시스템 검증
+- **테스트 방법**: GitHub 커밋 → GitHub Actions → 웹훅 API → Docker 배포
+- **예상 결과**: SSH 없이 웹훅만으로 자동 배포 완료
+
+### 배포 시스템 아키텍처
+```
+GitHub Push → GitHub Actions → Webhook API → Docker Deployment → Jandi Notification
+             (CI/CD Pipeline)   (Port 8080)    (TestPark Service)     (팀 알림)
+```
