@@ -132,7 +132,7 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 # 네이버 소셜 로그인 설정
 NAVER_CLIENT_ID = '_mw6kojqJVXoWEBqYBKv'
 NAVER_CLIENT_SECRET = 'hHKrIfKoMA'
-NAVER_REDIRECT_URI = 'http://localhost:8001/auth/naver/callback/'
+NAVER_REDIRECT_URI = 'https://carpenterhosting.cafe24.com/auth/naver/callback/'
 
 # 잔디 웹훅 설정
 JANDI_WEBHOOK_URL = 'https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265'

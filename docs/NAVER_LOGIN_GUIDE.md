@@ -113,11 +113,29 @@ class AuthSession(models.Model):
 ## 🔗 네이버 API 연동
 
 ### 1. 네이버 개발자 센터 설정
+
+#### 🔧 실서버 배포를 위한 설정 변경 (중요!)
+
+**네이버 개발자 센터에서 반드시 변경해야 할 설정:**
+
+1. [네이버 개발자 센터](https://developers.naver.com/apps/)에 로그인
+2. 등록된 애플리케이션 선택
+3. **API 설정** → **네이버 로그인** 항목에서:
+   ```
+   서비스 URL: https://carpenterhosting.cafe24.com
+   Callback URL: https://carpenterhosting.cafe24.com/auth/naver/callback/
+   ```
+
+**⚠️ 주의사항:**
+- 서비스 URL과 Callback URL이 실서버 도메인과 정확히 일치해야 함
+- HTTPS 사용 필수 (HTTP는 네이버에서 허용하지 않음)
+- 변경 후 적용까지 몇 분 소요될 수 있음
+
 ```bash
-# 필요한 정보
-CLIENT_ID = 'your_naver_client_id'
-CLIENT_SECRET = 'your_naver_client_secret'
-REDIRECT_URI = 'http://localhost:8001/auth/naver/callback/'
+# 현재 설정된 정보
+CLIENT_ID = '_mw6kojqJVXoWEBqYBKv'
+CLIENT_SECRET = 'hHKrIfKoMA'
+REDIRECT_URI = 'https://carpenterhosting.cafe24.com/auth/naver/callback/'
 ```
 
 ### 2. 네이버 로그인 URL 생성

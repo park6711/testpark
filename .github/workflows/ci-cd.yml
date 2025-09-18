@@ -48,41 +48,35 @@ jobs:
           }'
         echo "🎉 빌드 및 푸시가 성공적으로 완료되었습니다!"
 
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: success()
-
-    steps:
-    - name: Deploy to production server via SSH
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.PROD_HOST }}
-        username: ${{ secrets.PROD_USER }}
-        key: ${{ secrets.PROD_SSH_KEY }}
-        timeout: 300s
-        script: |
-          # 프로젝트 디렉토리로 이동 후 배포 스크립트 실행
-          cd /var/www/testpark
-
-          # 최신 코드 가져오기 (필요한 경우)
-          git pull origin master || true
-
-          # 배포 스크립트 실행 권한 확인 및 실행
-          chmod +x scripts/deploy.sh
-
-          # 배포 실행
-          bash scripts/deploy.sh
-
-    - name: Notify deployment failure to Jandi
-      if: failure()
+    - name: Trigger deployment via webhook
+      if: success()
       run: |
-        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
+        curl -X POST "https://carpenterhosting.cafe24.com/deploy-from-github" \
           -H "Content-Type: application/json" \
           -d '{
-            "body": "❌ 실서버 배포 실패!\n프로젝트: testpark\n커밋: ${{ github.sha }}\n브랜치: ${{ github.ref_name }}\n\n🔍 실패 원인:\n• SSH 연결 실패 또는\n• 배포 스크립트 실행 실패\n\n🔧 수동 배포 방법:\n```\ncd /var/www/testpark\nbash scripts/deploy.sh\n```\n\n📋 확인사항:\n• SSH 키 및 서버 정보 확인\n• 서버 상태 및 Docker 설치 확인",
-            "connectColor": "#FF4444"
+            "project": "testpark",
+            "commit": "${{ github.sha }}",
+            "branch": "${{ github.ref_name }}",
+            "image": "7171man/testpark:latest",
+            "trigger": "github_actions"
           }'
+
+        # 웹훅 배포 성공 알림
+        if [ $? -eq 0 ]; then
+          curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "body": "✅ 웹훅 배포 요청 전송 완료!\n프로젝트: testpark\n커밋: ${{ github.sha }}\n브랜치: ${{ github.ref_name }}\n이미지: 7171man/testpark:latest\n\n🔄 웹훅 서버에서 배포를 진행합니다...\n📍 단계별 배포 진행상황은 별도 알림으로 확인하세요.",
+              "connectColor": "#4CAF50"
+            }'
+        else
+          curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "body": "❌ 웹훅 배포 요청 실패!\n프로젝트: testpark\n커밋: ${{ github.sha }}\n브랜치: ${{ github.ref_name }}\n\n🔍 실패 원인:\n• 웹훅 서버 연결 실패\n• 웹훅 서버가 실행되지 않음\n\n🔧 수동 배포 방법:\ncurl -X POST http://your-server:8080/deploy",
+              "connectColor": "#FF4444"
+            }'
+        fi
 
     - name: Notify build failure to Jandi
       if: failure()

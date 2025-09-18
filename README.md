@@ -216,7 +216,7 @@ chore: 빌드 관련 작업
 
 - **GitHub Repository**: https://github.com/park6711/testpark
 - **Docker Hub**: https://hub.docker.com/r/7171man/testpark
-- **Production Server**: http://your-server:8000
+- **Production Server**: https://carpenterhosting.cafe24.com
 
 ## 📈 향후 계획
 

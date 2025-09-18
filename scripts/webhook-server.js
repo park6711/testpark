@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const { execSync } = require('child_process');
 const app = express();
 
-// 환경 변수 설정
+// 환경 변수 설정 (카페24 환경에서는 프록시 설정 필요)
 const PORT = process.env.WEBHOOK_PORT || 8080;
 const SECRET = process.env.WEBHOOK_SECRET || 'testpark-webhook-secret';
 const DEPLOY_SCRIPT = process.env.DEPLOY_SCRIPT || '/var/www/testpark/scripts/deploy.sh';
@@ -78,6 +78,57 @@ app.post('/webhook/dockerhub', (req, res) => {
     }
 });
 
+// GitHub Actions 배포 엔드포인트
+app.post('/deploy-from-github', (req, res) => {
+    const body = req.body;
+    let payload;
+
+    try {
+        payload = typeof body === 'string' ? JSON.parse(body) : body;
+    } catch (e) {
+        console.error('❌ GitHub Actions 요청 파싱 실패:', e.message);
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid JSON payload'
+        });
+    }
+
+    console.log('🚀 GitHub Actions 배포 요청을 받았습니다...');
+    console.log(`📦 프로젝트: ${payload.project}`);
+    console.log(`📝 커밋: ${payload.commit}`);
+    console.log(`🌿 브랜치: ${payload.branch}`);
+    console.log(`🐳 이미지: ${payload.image}`);
+
+    try {
+        const output = execSync(`bash ${DEPLOY_SCRIPT}`, { encoding: 'utf8' });
+        console.log('✅ GitHub Actions 배포 완료:', output);
+        res.status(200).json({
+            success: true,
+            message: 'GitHub Actions deployment successful',
+            output: output,
+            deployInfo: {
+                project: payload.project,
+                commit: payload.commit,
+                branch: payload.branch,
+                image: payload.image
+            }
+        });
+    } catch (error) {
+        console.error('❌ GitHub Actions 배포 실패:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'GitHub Actions deployment failed',
+            error: error.message,
+            deployInfo: {
+                project: payload.project,
+                commit: payload.commit,
+                branch: payload.branch,
+                image: payload.image
+            }
+        });
+    }
+});
+
 // 수동 배포 엔드포인트
 app.post('/deploy', (req, res) => {
     console.log('🔄 수동 배포 요청을 받았습니다...');
@@ -112,9 +163,10 @@ app.get('/health', (req, res) => {
 // 서버 시작
 app.listen(PORT, () => {
     console.log(`🔗 TestPark Webhook 서버가 포트 ${PORT}에서 실행중입니다`);
-    console.log(`📡 GitHub Webhook: 비활성화됨 (GitHub Actions가 빌드 담당)`);
-    console.log(`🐳 Docker Hub Webhook URL: http://your-server:${PORT}/webhook/dockerhub`);
-    console.log(`🔄 수동 배포 URL: http://your-server:${PORT}/deploy`);
+    console.log(`🚀 GitHub Actions 배포 URL: https://carpenterhosting.cafe24.com/deploy-from-github`);
+    console.log(`🐳 Docker Hub Webhook URL: https://carpenterhosting.cafe24.com/webhook/dockerhub`);
+    console.log(`🔄 수동 배포 URL: https://carpenterhosting.cafe24.com/deploy`);
+    console.log(`🔍 헬스체크 URL: https://carpenterhosting.cafe24.com/health`);
 });
 
 // 프로세스 종료 시 정리

@@ -97,7 +97,7 @@ echo "🔍 애플리케이션 상태를 확인합니다..."
 curl -X POST "$JANDI_WEBHOOK" \
   -H "Content-Type: application/json" \
   -d "{
-    \"body\": \"🔍 4단계: 헬스체크 진행 중...\\n대상: http://localhost:$PORT\\n최대 대기시간: 30초\\n\\n📋 배포 진행상황:\\n ✅ 1. Docker 이미지 풀\\n ✅ 2. 기존 컨테이너 중지\\n ✅ 3. 새 컨테이너 시작\\n ⏳ 4. 헬스체크\\n ⬜ 5. 정리 작업\",
+    \"body\": \"🔍 4단계: 헬스체크 진행 중...\\n대상: https://carpenterhosting.cafe24.com\\n최대 대기시간: 30초\\n\\n📋 배포 진행상황:\\n ✅ 1. Docker 이미지 풀\\n ✅ 2. 기존 컨테이너 중지\\n ✅ 3. 새 컨테이너 시작\\n ⏳ 4. 헬스체크\\n ⬜ 5. 정리 작업\",
     \"connectColor\": \"#00BCD4\"
   }" > /dev/null 2>&1
 
@@ -105,9 +105,9 @@ sleep 5
 
 # 최대 30초 동안 헬스 체크 시도
 for i in {1..6}; do
-    if curl -f http://localhost:$PORT/ > /dev/null 2>&1; then
+    if curl -f https://carpenterhosting.cafe24.com/ > /dev/null 2>&1; then
         echo "✅ 애플리케이션이 정상적으로 실행되고 있습니다!"
-        echo "🌐 접속 주소: http://localhost:$PORT"
+        echo "🌐 접속 주소: https://carpenterhosting.cafe24.com"
 
         # 헬스체크 성공 알림
         CONTAINER_ID=$(docker ps -q -f name=$CONTAINER_NAME)
@@ -116,7 +116,7 @@ for i in {1..6}; do
         curl -X POST "$JANDI_WEBHOOK" \
           -H "Content-Type: application/json" \
           -d "{
-            \"body\": \"✅ 4단계 완료: 헬스체크 성공!\\n🌐 서비스 URL: http://localhost:$PORT\\n컨테이너 ID: $CONTAINER_ID\\n이미지 ID: $IMAGE_ID\\n\\n📋 배포 진행상황:\\n ✅ 1. Docker 이미지 풀\\n ✅ 2. 기존 컨테이너 중지\\n ✅ 3. 새 컨테이너 시작\\n ✅ 4. 헬스체크\\n ⏳ 5. 정리 작업\",
+            \"body\": \"✅ 4단계 완료: 헬스체크 성공!\\n🌐 서비스 URL: https://carpenterhosting.cafe24.com\\n컨테이너 ID: $CONTAINER_ID\\n이미지 ID: $IMAGE_ID\\n\\n📋 배포 진행상황:\\n ✅ 1. Docker 이미지 풀\\n ✅ 2. 기존 컨테이너 중지\\n ✅ 3. 새 컨테이너 시작\\n ✅ 4. 헬스체크\\n ⏳ 5. 정리 작업\",
             \"connectColor\": \"#4CAF50\"
           }" > /dev/null 2>&1
 
@@ -140,7 +140,7 @@ for i in {1..6}; do
         curl -X POST "$JANDI_WEBHOOK" \
           -H "Content-Type: application/json" \
           -d "{
-            \"body\": \"⏳ 헬스체크 대기 중... ($i/6)\\n대상: http://localhost:$PORT\\n상태: 응답 대기 중\\n다음 시도: 5초 후\",
+            \"body\": \"⏳ 헬스체크 대기 중... ($i/6)\\n대상: https://carpenterhosting.cafe24.com\\n상태: 응답 대기 중\\n다음 시도: 5초 후\",
             \"connectColor\": \"#FFC107\"
           }" > /dev/null 2>&1
         sleep 5
@@ -177,9 +177,9 @@ CONTAINER_UPTIME=$(docker ps -f name=$CONTAINER_NAME --format "{{.Status}}")
 curl -X POST "$JANDI_WEBHOOK" \
   -H "Content-Type: application/json" \
   -d "{
-    \"body\": \"🎉 TestPark 배포 완료!\\n\\n📊 배포 결과 요약:\\n• 프로젝트: testpark\\n• 이미지: $IMAGE_NAME\\n• 컨테이너 ID: $CONTAINER_ID\\n• 이미지 ID: $IMAGE_ID\\n• 상태: $CONTAINER_STATUS\\n• 시작 시간: $START_TIME\\n• 업타임: $CONTAINER_UPTIME\\n• 포트: $PORT\\n• 정리된 이미지: ${CLEANED_IMAGES}개\\n\\n✅ 완료된 배포 단계:\\n ✅ 1. Docker 이미지 풀\\n ✅ 2. 기존 컨테이너 중지\\n ✅ 3. 새 컨테이너 시작\\n ✅ 4. 헬스체크\\n ✅ 5. 정리 작업\\n\\n🌐 서비스: http://localhost:$PORT\\n\\n🎯 배포 작업이 모두 성공적으로 완료되었습니다!\",
+    \"body\": \"🎉 TestPark 배포 완료!\\n\\n📊 배포 결과 요약:\\n• 프로젝트: testpark\\n• 이미지: $IMAGE_NAME\\n• 컨테이너 ID: $CONTAINER_ID\\n• 이미지 ID: $IMAGE_ID\\n• 상태: $CONTAINER_STATUS\\n• 시작 시간: $START_TIME\\n• 업타임: $CONTAINER_UPTIME\\n• 포트: $PORT\\n• 정리된 이미지: ${CLEANED_IMAGES}개\\n\\n✅ 완료된 배포 단계:\\n ✅ 1. Docker 이미지 풀\\n ✅ 2. 기존 컨테이너 중지\\n ✅ 3. 새 컨테이너 시작\\n ✅ 4. 헬스체크\\n ✅ 5. 정리 작업\\n\\n🌐 서비스: https://carpenterhosting.cafe24.com\\n\\n🎯 배포 작업이 모두 성공적으로 완료되었습니다!\",
     \"connectColor\": \"#4A90E2\"
   }" > /dev/null 2>&1
 
 echo "📢 잔디 알림 전송 완료!"
-echo "🌐 서비스 접속: http://localhost:$PORT"
+echo "🌐 서비스 접속: https://carpenterhosting.cafe24.com"
