@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TestPark 로그인</title>
+    <title>PMIS 2.0 로그인</title>
     <style>
         * {
             margin: 0;
@@ -66,6 +66,32 @@
         }
 
         .naver-login-btn:active {
+            transform: translateY(0);
+        }
+
+        .staff-login-btn {
+            background: #0066CC;
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        .staff-login-btn:hover {
+            background: #0052A3;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 102, 204, 0.3);
+        }
+
+        .staff-login-btn:active {
             transform: translateY(0);
         }
 
@@ -156,7 +182,7 @@
 </head>
 <body>
     <div class="login-container">
-        <div class="logo">🏢 TestPark</div>
+        <div class="logo">🏢 PMIS 2.0</div>
         <div class="subtitle">안전한 네이버 소셜 로그인</div>
 
         <!-- 메시지 표시 -->
@@ -173,6 +199,11 @@
         <!-- 네이버 로그인 버튼 -->
         <a href="{% url 'accounts:naver_login' %}" class="naver-login-btn">
             🟢 네이버로 로그인
+        </a>
+
+        <!-- 스텝 로그인 버튼 -->
+        <a href="{% url 'accounts:staff_naver_login' %}" class="staff-login-btn">
+            👤 스텝 로그인
         </a>
 
         <div class="info-text">
