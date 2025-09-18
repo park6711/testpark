@@ -1,0 +1,327 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}스텝 관리 - PMIS 2.0{% endblock %}
+
+{% block page_title %}스텝 관리{% endblock %}
+{% block page_subtitle %}스텝 정보 조회 및 관리{% endblock %}
+
+{% block content %}
+{% if not not_logged_in %}
+{{ block.super }}
+{% endif %}
+
+{% if not not_logged_in %}
+<style>
+    .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin: 2px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-warning {
+        background-color: #ffc107;
+        color: black;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .badge-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .badge-warning {
+        background-color: #ffc107;
+        color: black;
+    }
+
+    .badge-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .badge-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .badge-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+    }
+
+    /* 컬럼별 폭 설정 */
+    th:nth-child(1), td:nth-child(1) { /* No */
+        width: 60px;
+    }
+    th:nth-child(2), td:nth-child(2) { /* 네이버 ID - 숫자 8자 폭 */
+        width: 80px;
+        font-family: monospace;
+    }
+    th:nth-child(3), td:nth-child(3) { /* 로그인 이메일 */
+        width: 180px;
+    }
+    th:nth-child(4), td:nth-child(4) { /* 성명 - 한글 4자 폭 */
+        width: 80px;
+    }
+    th:nth-child(5), td:nth-child(5) { /* 별명 - 한글 4자 폭 */
+        width: 80px;
+    }
+    th:nth-child(6), td:nth-child(6) { /* 구글 ID */
+        width: 120px;
+    }
+    th:nth-child(7), td:nth-child(7) { /* 업무 핸드폰번호 - 숫자 13자 폭 */
+        width: 130px;
+        font-family: monospace;
+    }
+    th:nth-child(8), td:nth-child(8) { /* 마스터 */
+        width: 80px;
+        text-align: center;
+    }
+
+    .super-master-badge {
+        display: inline-block;
+        line-height: 1.2;
+        text-align: center;
+    }
+    th:nth-child(9), td:nth-child(9) { /* 승인 */
+        width: 80px;
+    }
+
+    th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+
+    tr.selected {
+        background-color: #e3f2fd !important;
+    }
+
+    .empty-message {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+        font-style: italic;
+    }
+
+    .permission-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+</style>
+
+<div class="controls">
+    {% if not_logged_in %}
+    <div class="permission-info">
+        <span class="badge badge-info">
+            🔐 로그인이 필요합니다
+        </span>
+        <div style="margin-top: 15px;">
+            <a href="{% url 'accounts:login' %}" class="btn btn-primary">로그인 하기</a>
+        </div>
+    </div>
+    {% elif no_permission %}
+    <div class="permission-info">
+        <span class="badge badge-secondary">
+            🚫 스텝 관리 접근 권한이 없습니다 (nStaffAuthority: {{ staff_permission }})
+        </span>
+    </div>
+    {% elif can_write %}
+    <div>
+        <a href="{% url 'staff:staff_create' %}" class="btn btn-primary">+ 새 스텝 추가</a>
+    </div>
+    <div>
+        <button id="editBtn" class="btn btn-warning" disabled onclick="editSelected()">수정</button>
+        <button id="deleteBtn" class="btn btn-danger" disabled onclick="deleteSelected()">삭제</button>
+    </div>
+    {% elif staff_permission == 1 %}
+    <div class="permission-info">
+        <span class="badge badge-info">
+            📖 읽기 전용 모드 (nStaffAuthority: {{ staff_permission }})
+        </span>
+    </div>
+    <div>
+        <button id="viewBtn" class="btn btn-success" disabled onclick="viewSelected()">보기</button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 스텝 목록 테이블 -->
+<table>
+    <thead>
+        <tr>
+            <th>No</th>
+            <th>네이버 ID</th>
+            <th>로그인 이메일</th>
+            <th>성명</th>
+            <th>별명</th>
+            <th>구글 ID</th>
+            <th>업무 핸드폰</th>
+            <th>마스터</th>
+            <th>승인</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if not_logged_in %}
+        <tr>
+            <td colspan="9" class="empty-message">로그인 후 스텝 목록을 확인할 수 있습니다.</td>
+        </tr>
+        {% elif no_permission %}
+        <tr>
+            <td colspan="9" class="empty-message">스텝 관리 권한이 없어 목록을 표시할 수 없습니다.</td>
+        </tr>
+        {% else %}
+            {% for staff in staff_members %}
+            <tr onclick="selectRow(this, {{ staff.no }})" data-id="{{ staff.no }}">
+                <td>{{ staff.no }}</td>
+                <td>{{ staff.sNaverID0|default:"-" }}</td>
+                <td>{{ staff.sNaverID }}</td>
+                <td>{{ staff.sName }}</td>
+                <td>{{ staff.sNick|default:"-" }}</td>
+                <td>{{ staff.sGoogleID|default:"-" }}</td>
+                <td>{{ staff.sPhone1|default:"-" }}</td>
+                <td>
+                    {% if staff.nMaster == 0 %}
+                        <span class="badge badge-secondary">일반</span>
+                    {% elif staff.nMaster == 1 %}
+                        <span class="badge badge-primary">마스터</span>
+                    {% else %}
+                        <span class="badge badge-warning super-master-badge">슈퍼<br>마스터</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if staff.bApproval %}
+                        <span class="badge badge-success">승인</span>
+                    {% else %}
+                        <span class="badge badge-secondary">미승인</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" class="empty-message">등록된 스텝이 없습니다.</td>
+            </tr>
+            {% endfor %}
+        {% endif %}
+    </tbody>
+</table>
+
+<script>
+    let selectedRow = null;
+    let selectedStaffId = null;
+
+    function selectRow(row, staffId) {
+        // 기존 선택 제거
+        if (selectedRow) {
+            selectedRow.classList.remove('selected');
+        }
+
+        // 새로운 행 선택
+        selectedRow = row;
+        selectedStaffId = staffId;
+        row.classList.add('selected');
+
+        // 버튼 활성화 (권한에 따라)
+        {% if can_write %}
+        document.getElementById('editBtn').disabled = false;
+        document.getElementById('deleteBtn').disabled = false;
+        {% elif staff_permission == 1 %}
+        document.getElementById('viewBtn').disabled = false;
+        {% endif %}
+    }
+
+    function editSelected() {
+        if (selectedStaffId) {
+            window.location.href = '{% url "staff:staff_update" 0 %}'.replace('0', selectedStaffId);
+        }
+    }
+
+    function deleteSelected() {
+        if (selectedStaffId) {
+            if (confirm('정말로 이 스텝을 삭제하시겠습니까?')) {
+                window.location.href = '{% url "staff:staff_delete" 0 %}'.replace('0', selectedStaffId);
+            }
+        }
+    }
+
+    function viewSelected() {
+        if (selectedStaffId) {
+            window.location.href = '{% url "staff:staff_view" 0 %}'.replace('0', selectedStaffId);
+        }
+    }
+</script>
+
+{% endif %}
+
+{% endblock %}

@@ -94,19 +94,36 @@ class CustomUser(AbstractUser):
 
 class AuthSession(models.Model):
     """
-    네이버 로그인 과정에서의 임시 세션 데이터
+    네이버 로그인 과정에서의 임시 세션 데이터 (일반 사용자 + 스텝)
     """
+    LOGIN_TYPE_CHOICES = [
+        ('normal', '일반 로그인'),
+        ('staff', '스텝 로그인'),
+    ]
+
     session_key = models.CharField(
         max_length=255,
         unique=True,
         help_text="세션 키"
+    )
+    login_type = models.CharField(
+        max_length=10,
+        choices=LOGIN_TYPE_CHOICES,
+        default='normal',
+        help_text="로그인 타입"
     )
     user = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        help_text="연결된 사용자"
+        help_text="연결된 사용자 (일반 로그인)"
+    )
+    staff_email = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="스텝 이메일 (스텝 로그인)"
     )
     naver_data = models.JSONField(
         help_text="네이버에서 받은 데이터 임시 저장"
@@ -138,11 +155,13 @@ class AuthSession(models.Model):
         return timezone.now() > self.expires_at
 
     @classmethod
-    def create_session(cls, session_key, naver_data, auth_code):
+    def create_session(cls, session_key, naver_data, auth_code, login_type='normal', staff_email=None):
         """새 인증 세션 생성"""
         return cls.objects.create(
             session_key=session_key,
+            login_type=login_type,
             naver_data=naver_data,
             auth_code=auth_code,
+            staff_email=staff_email,
             expires_at=timezone.now() + timedelta(minutes=10)
         )

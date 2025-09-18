@@ -1,0 +1,347 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}{{ title }} - PMIS 2.0{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}
+    {% if action == 'view' %}
+        스텝 정보 상세 조회
+    {% elif action == 'create' %}
+        새로운 스텝 등록
+    {% else %}
+        스텝 정보 수정
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+{% if not not_logged_in %}
+{{ block.super }}
+{% endif %}
+
+{% if not not_logged_in %}
+<style>
+    .form-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 30px;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    select,
+    textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    input[type="checkbox"] {
+        margin-right: 10px;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+    }
+
+    .readonly-field {
+        background-color: #f8f9fa !important;
+        cursor: not-allowed;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin-right: 10px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .button-group {
+        margin-top: 30px;
+        text-align: center;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 20px;
+    }
+
+    .form-row .form-group {
+        flex: 1;
+    }
+
+    small {
+        color: #666;
+        font-size: 12px;
+    }
+</style>
+
+<div class="form-container">
+    {% if read_only %}
+    <div class="alert alert-info">
+        <strong>📖 읽기 전용 모드</strong><br>
+        이 정보는 조회만 가능합니다. 수정 권한이 없습니다.
+    </div>
+    <form>
+    {% else %}
+    <form method="post">
+        {% csrf_token %}
+    {% endif %}
+
+        <div class="form-group">
+            <label for="sNaverID0">네이버 ID</label>
+            <input type="text"
+                   id="sNaverID0"
+                   name="sNaverID0"
+                   value="{{ staff.sNaverID0|default:'' }}"
+                   readonly
+                   class="readonly-field">
+            <small>네이버 로그인 시 자동으로 설정됩니다.</small>
+        </div>
+
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="checkbox"
+                       id="bApproval"
+                       name="bApproval"
+                       {% if staff.bApproval %}checked{% endif %}
+                       {% if read_only %}disabled{% endif %}>
+                <label for="bApproval">승인 여부</label>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="sNaverID">로그인 이메일 *</label>
+                <input type="text"
+                       id="sNaverID"
+                       name="sNaverID"
+                       value="{{ staff.sNaverID|default:'' }}"
+                       {% if not read_only %}required{% endif %}
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label for="sName">성명 *</label>
+                <input type="text"
+                       id="sName"
+                       name="sName"
+                       value="{{ staff.sName|default:'' }}"
+                       {% if not read_only %}required{% endif %}
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="sTeam">팀</label>
+                <input type="text"
+                       id="sTeam"
+                       name="sTeam"
+                       value="{{ staff.sTeam|default:'' }}"
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label for="sTitle">직급</label>
+                <input type="text"
+                       id="sTitle"
+                       name="sTitle"
+                       value="{{ staff.sTitle|default:'' }}"
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="sNick">별명</label>
+            <input type="text"
+                   id="sNick"
+                   name="sNick"
+                   value="{{ staff.sNick|default:'' }}"
+                   {% if read_only %}readonly class="readonly-field"{% endif %}>
+        </div>
+
+        <div class="form-group">
+            <label for="sGoogleID">구글 ID</label>
+            <input type="text"
+                   id="sGoogleID"
+                   name="sGoogleID"
+                   value="{{ staff.sGoogleID|default:'' }}"
+                   {% if read_only %}readonly class="readonly-field"{% endif %}>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="sPhone1">업무 핸드폰</label>
+                <input type="text"
+                       id="sPhone1"
+                       name="sPhone1"
+                       value="{{ staff.sPhone1|default:'' }}"
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label for="sPhone2">개인 핸드폰</label>
+                <input type="text"
+                       id="sPhone2"
+                       name="sPhone2"
+                       value="{{ staff.sPhone2|default:'' }}"
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="nMaster">마스터 권한</label>
+            <select id="nMaster" name="nMaster" {% if read_only %}disabled{% endif %}>
+                <option value="0" {% if staff.nMaster == 0 %}selected{% endif %}>일반</option>
+                {% if current_staff.nMaster >= 1 %}
+                    <option value="1" {% if staff.nMaster == 1 %}selected{% endif %}>마스터</option>
+                {% endif %}
+                {% if current_staff.nMaster == 2 %}
+                    <option value="2" {% if staff.nMaster == 2 %}selected{% endif %}>슈퍼마스터</option>
+                {% endif %}
+            </select>
+            {% if current_staff.nMaster == 0 %}
+                <small>마스터 권한 설정 권한이 없습니다.</small>
+            {% elif current_staff.nMaster == 1 %}
+                <small>슈퍼마스터 권한은 슈퍼마스터만 설정 가능합니다.</small>
+            {% endif %}
+        </div>
+
+        <!-- 권한 설정 -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="nStaffAuthority">스텝정보 권한</label>
+                <select id="nStaffAuthority" name="nStaffAuthority" {% if read_only %}disabled{% endif %}>
+                    <option value="0" {% if staff.nStaffAuthority == 0 %}selected{% endif %}>권한없음</option>
+                    <option value="1" {% if staff.nStaffAuthority == 1 %}selected{% endif %}>읽기권한</option>
+                    <option value="2" {% if staff.nStaffAuthority == 2 %}selected{% endif %}>쓰기권한</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="nCompanyAuthority">업체정보 권한</label>
+                <select id="nCompanyAuthority" name="nCompanyAuthority" {% if read_only %}disabled{% endif %}>
+                    <option value="0" {% if staff.nCompanyAuthority == 0 %}selected{% endif %}>권한없음</option>
+                    <option value="1" {% if staff.nCompanyAuthority == 1 %}selected{% endif %}>읽기권한</option>
+                    <option value="2" {% if staff.nCompanyAuthority == 2 %}selected{% endif %}>쓰기권한</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="nOrderAuthority">의뢰할당 권한</label>
+                <select id="nOrderAuthority" name="nOrderAuthority" {% if read_only %}disabled{% endif %}>
+                    <option value="0" {% if staff.nOrderAuthority == 0 %}selected{% endif %}>권한없음</option>
+                    <option value="1" {% if staff.nOrderAuthority == 1 %}selected{% endif %}>읽기권한</option>
+                    <option value="2" {% if staff.nOrderAuthority == 2 %}selected{% endif %}>쓰기권한</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="nContractAuthority">계약관리 권한</label>
+                <select id="nContractAuthority" name="nContractAuthority" {% if read_only %}disabled{% endif %}>
+                    <option value="0" {% if staff.nContractAuthority == 0 %}selected{% endif %}>권한없음</option>
+                    <option value="1" {% if staff.nContractAuthority == 1 %}selected{% endif %}>읽기권한</option>
+                    <option value="2" {% if staff.nContractAuthority == 2 %}selected{% endif %}>쓰기권한</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="nEvaluationAuthority">업체평가 권한</label>
+            <select id="nEvaluationAuthority" name="nEvaluationAuthority" {% if read_only %}disabled{% endif %}>
+                <option value="0" {% if staff.nEvaluationAuthority == 0 %}selected{% endif %}>권한없음</option>
+                <option value="1" {% if staff.nEvaluationAuthority == 1 %}selected{% endif %}>읽기권한</option>
+                <option value="2" {% if staff.nEvaluationAuthority == 2 %}selected{% endif %}>쓰기권한</option>
+            </select>
+        </div>
+
+        <div class="button-group">
+            {% if not read_only %}
+                <button type="submit" class="btn btn-primary">
+                    {% if action == 'create' %}추가{% else %}수정{% endif %}
+                </button>
+            {% endif %}
+            <a href="{% url 'staff:staff_list' %}" class="btn btn-secondary">
+                {% if read_only %}← 목록으로 돌아가기{% else %}취소{% endif %}
+            </a>
+        </div>
+
+    </form>
+</div>
+
+<script>
+    {% if not read_only %}
+    // 마스터 권한 변경 시 다른 권한들을 자동으로 설정
+    document.getElementById('nMaster').addEventListener('change', function() {
+        const masterValue = parseInt(this.value);
+
+        // 마스터(1) 또는 슈퍼마스터(2)인 경우 모든 권한을 쓰기권한(2)로 설정
+        if (masterValue === 1 || masterValue === 2) {
+            document.getElementById('nStaffAuthority').value = '2';
+            document.getElementById('nCompanyAuthority').value = '2';
+            document.getElementById('nOrderAuthority').value = '2';
+            document.getElementById('nContractAuthority').value = '2';
+            document.getElementById('nEvaluationAuthority').value = '2';
+        }
+    });
+
+    // 페이지 로드 시 현재 마스터 권한에 따라 초기 설정
+    document.addEventListener('DOMContentLoaded', function() {
+        const masterValue = parseInt(document.getElementById('nMaster').value);
+
+        // 마스터(1) 또는 슈퍼마스터(2)인 경우 모든 권한을 쓰기권한(2)로 설정
+        if (masterValue === 1 || masterValue === 2) {
+            document.getElementById('nStaffAuthority').value = '2';
+            document.getElementById('nCompanyAuthority').value = '2';
+            document.getElementById('nOrderAuthority').value = '2';
+            document.getElementById('nContractAuthority').value = '2';
+            document.getElementById('nEvaluationAuthority').value = '2';
+        }
+    });
+    {% endif %}
+</script>
+
+{% endif %}
+
+{% endblock %}
