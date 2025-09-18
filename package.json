@@ -1,0 +1,14 @@
+{
+  "name": "testpark-webhook",
+  "version": "1.0.0",
+  "description": "TestPark Webhook Server",
+  "main": "scripts/webhook-server.js",
+  "scripts": {
+    "start": "node scripts/webhook-server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "author": "TestPark",
+  "license": "MIT"
+}
