@@ -1,0 +1,334 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}{{ title }} - PMIS 2.0{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}
+    {% if action == 'view' %}
+        회원 정보 상세 조회
+    {% elif action == 'create' %}
+        새로운 회원 등록
+    {% else %}
+        회원 정보 수정
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+{% if not not_logged_in %}
+{{ block.super }}
+{% endif %}
+
+{% if not not_logged_in %}
+<style>
+    .form-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 30px;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    select,
+    textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    input[type="checkbox"] {
+        margin-right: 10px;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+    }
+
+    .readonly-field {
+        background-color: #f8f9fa !important;
+        cursor: not-allowed;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin-right: 10px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .button-group {
+        margin-top: 30px;
+        text-align: center;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 20px;
+    }
+
+    .form-row .form-group {
+        flex: 1;
+    }
+
+    small {
+        color: #666;
+        font-size: 12px;
+    }
+</style>
+
+<div class="form-container">
+    {% if read_only %}
+    <div class="alert alert-info">
+        <strong>📖 읽기 전용 모드</strong><br>
+        이 정보는 조회만 가능합니다. 수정 권한이 없습니다.
+    </div>
+    <form>
+    {% else %}
+    <form method="post">
+        {% csrf_token %}
+    {% endif %}
+
+        <div class="form-group">
+            <label for="sNaverID0">네이버 식별자</label>
+            <input type="text"
+                   id="sNaverID0"
+                   name="sNaverID0"
+                   value="{{ member.sNaverID0|default:'' }}"
+                   {% if read_only %}readonly class="readonly-field"{% endif %}>
+            <small>네이버 로그인 시 자동으로 설정됩니다.</small>
+        </div>
+
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="checkbox"
+                       id="bApproval"
+                       name="bApproval"
+                       {% if member.bApproval %}checked{% endif %}
+                       {% if read_only %}disabled{% endif %}>
+                <label for="bApproval">승인 여부</label>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="sNaverID">네이버 ID *</label>
+                <input type="text"
+                       id="sNaverID"
+                       name="sNaverID"
+                       value="{{ member.sNaverID|default:'' }}"
+                       {% if not read_only %}required{% endif %}
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label for="sCompanyName">업체명 *</label>
+                <input type="text"
+                       id="sCompanyName"
+                       name="sCompanyName"
+                       value="{{ member.sCompanyName|default:'' }}"
+                       {% if not read_only %}required{% endif %}
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="sName2">열린업체명</label>
+                <input type="text"
+                       id="sName2"
+                       name="sName2"
+                       value="{{ member.sName2|default:'' }}"
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label for="noCompany">연결 열린업체</label>
+                <input type="number"
+                       id="noCompany"
+                       name="noCompany"
+                       value="{{ member.noCompany|default:'' }}"
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="sName">성명 *</label>
+                <input type="text"
+                       id="sName"
+                       name="sName"
+                       value="{{ member.sName|default:'' }}"
+                       {% if not read_only %}required{% endif %}
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label for="sPhone">핸드폰 번호</label>
+                <input type="text"
+                       id="sPhone"
+                       name="sPhone"
+                       value="{{ member.sPhone|default:'' }}"
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="nCafeGrade">카페 등급</label>
+                <select id="nCafeGrade" name="nCafeGrade" {% if read_only %}disabled{% endif %}>
+                    <option value="0" {% if member.nCafeGrade == 0 %}selected{% endif %}>일반</option>
+                    <option value="1" {% if member.nCafeGrade == 1 %}selected{% endif %}>광고제휴</option>
+                    <option value="2" {% if member.nCafeGrade == 2 %}selected{% endif %}>단종열린</option>
+                    <option value="3" {% if member.nCafeGrade == 3 %}selected{% endif %}>토탈열린</option>
+                    <option value="4" {% if member.nCafeGrade == 4 %}selected{% endif %}>연합회</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="nNick">카페내 별명</label>
+                <input type="text"
+                       id="nNick"
+                       name="nNick"
+                       value="{{ member.nNick|default:'' }}"
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="checkbox-group">
+                <input type="checkbox"
+                       id="bMaster"
+                       name="bMaster"
+                       {% if member.bMaster %}checked{% endif %}
+                       {% if read_only %}disabled{% endif %}>
+                <label for="bMaster">마스터 여부</label>
+            </div>
+        </div>
+
+        <!-- 권한 설정 -->
+        <div class="form-row">
+            <div class="form-group">
+                <label for="nCompanyAuthority">업체정보 권한</label>
+                <select id="nCompanyAuthority" name="nCompanyAuthority" {% if read_only %}disabled{% endif %}>
+                    <option value="0" {% if member.nCompanyAuthority == 0 %}selected{% endif %}>권한없음</option>
+                    <option value="1" {% if member.nCompanyAuthority == 1 %}selected{% endif %}>읽기권한</option>
+                    <option value="2" {% if member.nCompanyAuthority == 2 %}selected{% endif %}>쓰기권한</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="nOrderAuthority">의뢰할당 권한</label>
+                <select id="nOrderAuthority" name="nOrderAuthority" {% if read_only %}disabled{% endif %}>
+                    <option value="0" {% if member.nOrderAuthority == 0 %}selected{% endif %}>권한없음</option>
+                    <option value="1" {% if member.nOrderAuthority == 1 %}selected{% endif %}>읽기권한</option>
+                    <option value="2" {% if member.nOrderAuthority == 2 %}selected{% endif %}>쓰기권한</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="nContractAuthority">계약관리 권한</label>
+                <select id="nContractAuthority" name="nContractAuthority" {% if read_only %}disabled{% endif %}>
+                    <option value="0" {% if member.nContractAuthority == 0 %}selected{% endif %}>권한없음</option>
+                    <option value="1" {% if member.nContractAuthority == 1 %}selected{% endif %}>읽기권한</option>
+                    <option value="2" {% if member.nContractAuthority == 2 %}selected{% endif %}>쓰기권한</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="nEvaluationAuthority">업체평가 권한</label>
+                <select id="nEvaluationAuthority" name="nEvaluationAuthority" {% if read_only %}disabled{% endif %}>
+                    <option value="0" {% if member.nEvaluationAuthority == 0 %}selected{% endif %}>권한없음</option>
+                    <option value="1" {% if member.nEvaluationAuthority == 1 %}selected{% endif %}>읽기권한</option>
+                    <option value="2" {% if member.nEvaluationAuthority == 2 %}selected{% endif %}>쓰기권한</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="button-group">
+            {% if not read_only %}
+                <button type="submit" class="btn btn-primary">
+                    {% if action == 'create' %}추가{% else %}수정{% endif %}
+                </button>
+            {% endif %}
+            <a href="{% url 'member:member_list' %}" class="btn btn-secondary">
+                {% if read_only %}← 목록으로 돌아가기{% else %}취소{% endif %}
+            </a>
+        </div>
+
+    </form>
+</div>
+
+{% if not read_only %}
+<script>
+    // 마스터 권한 변경 시 다른 권한들을 자동으로 설정
+    document.getElementById('bMaster').addEventListener('change', function() {
+        const isChecked = this.checked;
+
+        // 마스터인 경우 모든 권한을 쓰기권한(2)로 설정
+        if (isChecked) {
+            document.getElementById('nCompanyAuthority').value = '2';
+            document.getElementById('nOrderAuthority').value = '2';
+            document.getElementById('nContractAuthority').value = '2';
+            document.getElementById('nEvaluationAuthority').value = '2';
+        }
+    });
+
+    // 페이지 로드 시 현재 마스터 권한에 따라 초기 설정
+    document.addEventListener('DOMContentLoaded', function() {
+        const isMaster = document.getElementById('bMaster').checked;
+
+        // 마스터인 경우 모든 권한을 쓰기권한(2)로 설정
+        if (isMaster) {
+            document.getElementById('nCompanyAuthority').value = '2';
+            document.getElementById('nOrderAuthority').value = '2';
+            document.getElementById('nContractAuthority').value = '2';
+            document.getElementById('nEvaluationAuthority').value = '2';
+        }
+    });
+</script>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}

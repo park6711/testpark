@@ -1,9 +1,9 @@
 {% extends 'staff/base.html' %}
 
-{% block title %}스텝 관리 - PMIS 2.0{% endblock %}
+{% block title %}회원 관리 - PMIS 2.0{% endblock %}
 
-{% block page_title %}스텝 관리{% endblock %}
-{% block page_subtitle %}스텝 정보 조회 및 관리{% endblock %}
+{% block page_title %}회원 관리{% endblock %}
+{% block page_subtitle %}회원 정보 조회 및 관리{% endblock %}
 
 {% block content %}
 {% if not not_logged_in %}
@@ -21,6 +21,20 @@
         background: white;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .search-section {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .search-input {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        width: 300px;
     }
 
     .btn {
@@ -98,6 +112,17 @@
         color: white;
     }
 
+    .badge-light {
+        background-color: #f8f9fa;
+        color: #6c757d;
+        border: 1px solid #dee2e6;
+    }
+
+    .badge-dark {
+        background-color: #343a40;
+        color: white;
+    }
+
     table {
         width: 100%;
         border-collapse: collapse;
@@ -118,38 +143,37 @@
     th:nth-child(1), td:nth-child(1) { /* No */
         width: 60px;
     }
-    th:nth-child(2), td:nth-child(2) { /* 네이버 ID - 숫자 8자 폭 */
+    th:nth-child(2), td:nth-child(2) { /* 식별자 - 숫자 8자 폭 */
         width: 80px;
         font-family: monospace;
     }
-    th:nth-child(3), td:nth-child(3) { /* 로그인 이메일 */
+    th:nth-child(3), td:nth-child(3) { /* 네이버 ID */
         width: 180px;
     }
-    th:nth-child(4), td:nth-child(4) { /* 성명 - 한글 4자 폭 */
+    th:nth-child(4), td:nth-child(4) { /* 연결 열린업체 */
+        width: 100px;
+    }
+    th:nth-child(5), td:nth-child(5) { /* 성명 */
         width: 80px;
     }
-    th:nth-child(5), td:nth-child(5) { /* 별명 - 한글 4자 폭 */
-        width: 80px;
-    }
-    th:nth-child(6), td:nth-child(6) { /* 구글 ID */
-        width: 120px;
-    }
-    th:nth-child(7), td:nth-child(7) { /* 업무 핸드폰번호 - 숫자 13자 폭 */
+    th:nth-child(6), td:nth-child(6) { /* 핸드폰 번호 */
         width: 130px;
         font-family: monospace;
     }
-    th:nth-child(8), td:nth-child(8) { /* 마스터 */
+    th:nth-child(7), td:nth-child(7) { /* 카페등급 */
+        width: 90px;
+        text-align: center;
+    }
+    th:nth-child(8), td:nth-child(8) { /* 카페내 별명 */
+        width: 80px;
+    }
+    th:nth-child(9), td:nth-child(9) { /* 마스터 */
         width: 80px;
         text-align: center;
     }
-
-    .super-master-badge {
-        display: inline-block;
-        line-height: 1.2;
-        text-align: center;
-    }
-    th:nth-child(9), td:nth-child(9) { /* 승인 */
+    th:nth-child(10), td:nth-child(10) { /* 승인 */
         width: 80px;
+        text-align: center;
     }
 
     th {
@@ -198,6 +222,12 @@
         align-items: center;
         gap: 10px;
     }
+
+    .search-results-info {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
 </style>
 
 <div class="controls">
@@ -213,21 +243,43 @@
     {% elif no_permission %}
     <div class="permission-info">
         <span class="badge badge-secondary">
-            🚫 스텝 관리 접근 권한이 없습니다 (nStaffAuthority: {{ staff_permission }})
+            🚫 회원 관리 접근 권한이 없습니다 (nCompanyAuthority: {{ member_permission }})
         </span>
     </div>
     {% elif can_write %}
-    <div>
-        <a href="{% url 'staff:staff_create' %}" class="btn btn-primary">+ 새 스텝 추가</a>
+    <div class="search-section">
+        <form method="get" style="display: flex; gap: 10px;">
+            <input type="text"
+                   name="search"
+                   value="{{ search_query }}"
+                   placeholder="네이버ID, 업체명, 성명, 핸드폰번호로 검색..."
+                   class="search-input">
+            <button type="submit" class="btn btn-primary">검색</button>
+            {% if search_query %}
+                <a href="{% url 'member:member_list' %}" class="btn btn-secondary">초기화</a>
+            {% endif %}
+        </form>
     </div>
     <div>
+        <a href="{% url 'member:member_create' %}" class="btn btn-primary">+ 새 회원 추가</a>
         <button id="editBtn" class="btn btn-warning" disabled onclick="editSelected()">수정</button>
         <button id="deleteBtn" class="btn btn-danger" disabled onclick="deleteSelected()">삭제</button>
     </div>
-    {% elif staff_permission == 1 %}
-    <div class="permission-info">
+    {% elif member_permission == 1 %}
+    <div class="search-section">
+        <form method="get" style="display: flex; gap: 10px;">
+            <input type="text"
+                   name="search"
+                   value="{{ search_query }}"
+                   placeholder="네이버ID, 업체명, 성명, 핸드폰번호로 검색..."
+                   class="search-input">
+            <button type="submit" class="btn btn-primary">검색</button>
+            {% if search_query %}
+                <a href="{% url 'member:member_list' %}" class="btn btn-secondary">초기화</a>
+            {% endif %}
+        </form>
         <span class="badge badge-info">
-            📖 읽기 전용 모드 (nStaffAuthority: {{ staff_permission }})
+            📖 읽기 전용 모드 (nCompanyAuthority: {{ member_permission }})
         </span>
     </div>
     <div>
@@ -236,17 +288,24 @@
     {% endif %}
 </div>
 
-<!-- 스텝 목록 테이블 -->
+{% if search_query %}
+<div class="search-results-info">
+    검색어 "{{ search_query }}"에 대한 {{ members|length }}개의 결과
+</div>
+{% endif %}
+
+<!-- 회원 목록 테이블 -->
 <table>
     <thead>
         <tr>
             <th>No</th>
+            <th>식별자</th>
             <th>네이버 ID</th>
-            <th>로그인 이메일</th>
+            <th>연결 열린업체</th>
             <th>성명</th>
-            <th>별명</th>
-            <th>구글 ID</th>
-            <th>업무 핸드폰</th>
+            <th>핸드폰 번호</th>
+            <th>카페등급</th>
+            <th>카페내 별명</th>
             <th>마스터</th>
             <th>승인</th>
         </tr>
@@ -254,33 +313,44 @@
     <tbody>
         {% if not_logged_in %}
         <tr>
-            <td colspan="9" class="empty-message">로그인 후 스텝 목록을 확인할 수 있습니다.</td>
+            <td colspan="10" class="empty-message">로그인 후 회원 목록을 확인할 수 있습니다.</td>
         </tr>
         {% elif no_permission %}
         <tr>
-            <td colspan="9" class="empty-message">스텝 관리 권한이 없어 목록을 표시할 수 없습니다.</td>
+            <td colspan="10" class="empty-message">회원 관리 권한이 없어 목록을 표시할 수 없습니다.</td>
         </tr>
         {% else %}
-            {% for staff in staff_members %}
-            <tr onclick="selectRow(this, {{ staff.no }})" ondblclick="doubleClickRow({{ staff.no }})" data-id="{{ staff.no }}">
-                <td>{{ staff.no }}</td>
-                <td>{{ staff.sNaverID0|default:"-" }}</td>
-                <td>{{ staff.sNaverID }}</td>
-                <td>{{ staff.sName }}</td>
-                <td>{{ staff.sNick|default:"-" }}</td>
-                <td>{{ staff.sGoogleID|default:"-" }}</td>
-                <td>{{ staff.sPhone1|default:"-" }}</td>
+            {% for member in members %}
+            <tr onclick="selectRow(this, {{ member.no }})" ondblclick="doubleClickRow({{ member.no }})" data-id="{{ member.no }}">
+                <td>{{ member.no }}</td>
+                <td>{{ member.sNaverID0|default:"-" }}</td>
+                <td>{{ member.sNaverID }}</td>
+                <td>{{ member.noCompany }}</td>
+                <td>{{ member.sName }}</td>
+                <td>{{ member.sPhone|default:"-" }}</td>
                 <td>
-                    {% if staff.nMaster == 0 %}
+                    {% if member.nCafeGrade == 0 %}
                         <span class="badge badge-secondary">일반</span>
-                    {% elif staff.nMaster == 1 %}
-                        <span class="badge badge-primary">마스터</span>
+                    {% elif member.nCafeGrade == 1 %}
+                        <span class="badge badge-primary">광고제휴</span>
+                    {% elif member.nCafeGrade == 2 %}
+                        <span class="badge badge-info">단종열린</span>
+                    {% elif member.nCafeGrade == 3 %}
+                        <span class="badge badge-warning">토탈열린</span>
                     {% else %}
-                        <span class="badge badge-warning super-master-badge">슈퍼<br>마스터</span>
+                        <span class="badge badge-dark">연합회</span>
+                    {% endif %}
+                </td>
+                <td>{{ member.nNick|default:"-" }}</td>
+                <td>
+                    {% if member.bMaster %}
+                        <span class="badge badge-warning">마스터</span>
+                    {% else %}
+                        <span class="badge badge-light">일반</span>
                     {% endif %}
                 </td>
                 <td>
-                    {% if staff.bApproval %}
+                    {% if member.bApproval %}
                         <span class="badge badge-success">승인</span>
                     {% else %}
                         <span class="badge badge-secondary">미승인</span>
@@ -289,7 +359,13 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="9" class="empty-message">등록된 스텝이 없습니다.</td>
+                <td colspan="10" class="empty-message">
+                    {% if search_query %}
+                        검색 조건에 맞는 회원이 없습니다.
+                    {% else %}
+                        등록된 회원이 없습니다.
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         {% endif %}
@@ -298,9 +374,9 @@
 
 <script>
     let selectedRow = null;
-    let selectedStaffId = null;
+    let selectedMemberId = null;
 
-    function selectRow(row, staffId) {
+    function selectRow(row, memberId) {
         // 기존 선택 제거
         if (selectedRow) {
             selectedRow.classList.remove('selected');
@@ -308,46 +384,46 @@
 
         // 새로운 행 선택
         selectedRow = row;
-        selectedStaffId = staffId;
+        selectedMemberId = memberId;
         row.classList.add('selected');
 
         // 버튼 활성화 (권한에 따라)
         {% if can_write %}
         document.getElementById('editBtn').disabled = false;
         document.getElementById('deleteBtn').disabled = false;
-        {% elif staff_permission == 1 %}
+        {% elif member_permission == 1 %}
         document.getElementById('viewBtn').disabled = false;
         {% endif %}
     }
 
     function editSelected() {
-        if (selectedStaffId) {
-            window.location.href = '{% url "staff:staff_update" 0 %}'.replace('0', selectedStaffId);
+        if (selectedMemberId) {
+            window.location.href = '{% url "member:member_update" 0 %}'.replace('0', selectedMemberId);
         }
     }
 
     function deleteSelected() {
-        if (selectedStaffId) {
-            if (confirm('정말로 이 스텝을 삭제하시겠습니까?')) {
-                window.location.href = '{% url "staff:staff_delete" 0 %}'.replace('0', selectedStaffId);
+        if (selectedMemberId) {
+            if (confirm('정말로 이 회원을 삭제하시겠습니까?')) {
+                window.location.href = '{% url "member:member_delete" 0 %}'.replace('0', selectedMemberId);
             }
         }
     }
 
     function viewSelected() {
-        if (selectedStaffId) {
-            window.location.href = '{% url "staff:staff_view" 0 %}'.replace('0', selectedStaffId);
+        if (selectedMemberId) {
+            window.location.href = '{% url "member:member_view" 0 %}'.replace('0', selectedMemberId);
         }
     }
 
-    function doubleClickRow(staffId) {
+    function doubleClickRow(memberId) {
         // 더블클릭 시 바로 수정/보기 모드로 이동
         {% if can_write %}
         // 수정 권한이 있으면 수정 모드로
-        window.location.href = '{% url "staff:staff_update" 0 %}'.replace('0', staffId);
-        {% elif staff_permission == 1 %}
+        window.location.href = '{% url "member:member_update" 0 %}'.replace('0', memberId);
+        {% elif member_permission == 1 %}
         // 읽기 권한만 있으면 보기 모드로
-        window.location.href = '{% url "staff:staff_view" 0 %}'.replace('0', staffId);
+        window.location.href = '{% url "member:member_view" 0 %}'.replace('0', memberId);
         {% endif %}
     }
 </script>
