@@ -61,7 +61,20 @@ def member_list(request):
             Q(sPhone__icontains=search_query)
         )
 
-    members = members.order_by('no')
+    # 정렬 기능
+    sort_by = request.GET.get('sort', 'no')  # 기본값: no
+    sort_order = request.GET.get('order', 'desc')  # 기본값: desc (내림차순)
+
+    # 정렬 필드 검증
+    valid_sort_fields = ['no', 'sNaverID', 'sCompanyName', 'sName', 'sPhone']
+    if sort_by not in valid_sort_fields:
+        sort_by = 'no'
+
+    # 정렬 순서에 따라 쿼리 조정
+    if sort_order == 'desc':
+        members = members.order_by(f'-{sort_by}')
+    else:
+        members = members.order_by(sort_by)
 
     context = {
         'members': members,
@@ -70,6 +83,8 @@ def member_list(request):
         'can_write': member_permission == 2,
         'no_permission': False,
         'search_query': search_query,
+        'sort_by': sort_by,
+        'sort_order': sort_order,
     }
     return render(request, 'member/member_list.html', context)
 

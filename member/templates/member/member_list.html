@@ -187,25 +187,6 @@
         cursor: pointer;
     }
 
-    tr:hover::after {
-        content: "💡 더블클릭하여 바로 수정/보기";
-        position: absolute;
-        background: rgba(0, 123, 255, 0.9);
-        color: white;
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-        z-index: 1000;
-        pointer-events: none;
-        transform: translateY(-30px);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    tr:hover::after {
-        opacity: 1;
-    }
-
     tr.selected {
         background-color: #e3f2fd !important;
     }
@@ -227,6 +208,31 @@
         color: #666;
         font-size: 14px;
         margin-bottom: 10px;
+    }
+
+    .sortable-header {
+        cursor: pointer;
+        position: relative;
+        user-select: none;
+    }
+
+    .sortable-header:hover {
+        background-color: #e9ecef;
+        color: #007bff;
+    }
+
+    .sort-arrow {
+        font-size: 12px;
+        margin-left: 5px;
+        color: #007bff;
+    }
+
+    .sort-arrow.asc::after {
+        content: "▲";
+    }
+
+    .sort-arrow.desc::after {
+        content: "▼";
     }
 </style>
 
@@ -298,12 +304,32 @@
 <table>
     <thead>
         <tr>
-            <th>No</th>
+            <th class="sortable-header" onclick="sortTable('no')">
+                No
+                {% if sort_by == 'no' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
             <th>식별자</th>
-            <th>네이버 ID</th>
+            <th class="sortable-header" onclick="sortTable('sNaverID')">
+                네이버 ID
+                {% if sort_by == 'sNaverID' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
             <th>연결 열린업체</th>
-            <th>성명</th>
-            <th>핸드폰 번호</th>
+            <th class="sortable-header" onclick="sortTable('sName')">
+                성명
+                {% if sort_by == 'sName' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
+            <th class="sortable-header" onclick="sortTable('sPhone')">
+                핸드폰 번호
+                {% if sort_by == 'sPhone' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
             <th>카페등급</th>
             <th>카페내 별명</th>
             <th>마스터</th>
@@ -426,6 +452,26 @@
         window.location.href = '{% url "member:member_view" 0 %}'.replace('0', memberId);
         {% endif %}
     }
+
+    function sortTable(field) {
+        const currentUrl = new URL(window.location);
+        const currentSort = currentUrl.searchParams.get('sort');
+        const currentOrder = currentUrl.searchParams.get('order');
+
+        // 현재 정렬 필드와 같으면 정렬 순서 토글, 다르면 오름차순으로 시작
+        let newOrder = 'asc';
+        if (currentSort === field && currentOrder === 'asc') {
+            newOrder = 'desc';
+        }
+
+        // URL 파라미터 설정
+        currentUrl.searchParams.set('sort', field);
+        currentUrl.searchParams.set('order', newOrder);
+
+        // 페이지 이동
+        window.location.href = currentUrl.toString();
+    }
+
 </script>
 
 {% endif %}

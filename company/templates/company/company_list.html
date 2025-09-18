@@ -188,25 +188,6 @@
         cursor: pointer;
     }
 
-    tr:hover::after {
-        content: "💡 더블클릭하여 바로 수정/보기";
-        position: absolute;
-        background: rgba(0, 123, 255, 0.9);
-        color: white;
-        padding: 5px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-        z-index: 1000;
-        pointer-events: none;
-        transform: translateY(-30px);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    tr:hover::after {
-        opacity: 1;
-    }
-
     tr.selected {
         background-color: #e3f2fd !important;
     }
