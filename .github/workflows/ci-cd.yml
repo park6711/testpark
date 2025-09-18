@@ -43,10 +43,46 @@ jobs:
         curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
           -H "Content-Type: application/json" \
           -d '{
-            "body": "🎉 GitHub Actions 빌드 성공!\n프로젝트: testpark\n커밋: ${{ github.sha }}\n브랜치: ${{ github.ref_name }}\n이미지: 7171man/testpark:latest, 7171man/testpark:${{ github.sha }}\n플랫폼: linux/amd64, linux/arm64\n상태: Docker Hub 멀티플랫폼 푸시 완료\n🌐 배포 준비 완료",
+            "body": "🎉 GitHub Actions 빌드 성공!\n프로젝트: testpark\n커밋: ${{ github.sha }}\n브랜치: ${{ github.ref_name }}\n이미지: 7171man/testpark:latest, 7171man/testpark:${{ github.sha }}\n플랫폼: linux/amd64, linux/arm64\n상태: Docker Hub 멀티플랫폼 푸시 완료\n\n🚀 다음 단계: 실서버 자동 배포 시작",
             "connectColor": "#00C851"
           }'
         echo "🎉 빌드 및 푸시가 성공적으로 완료되었습니다!"
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+    - name: Deploy to production server via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.PROD_HOST }}
+        username: ${{ secrets.PROD_USER }}
+        key: ${{ secrets.PROD_SSH_KEY }}
+        timeout: 300s
+        script: |
+          # 프로젝트 디렉토리로 이동 후 배포 스크립트 실행
+          cd /var/www/testpark
+
+          # 최신 코드 가져오기 (필요한 경우)
+          git pull origin master || true
+
+          # 배포 스크립트 실행 권한 확인 및 실행
+          chmod +x scripts/deploy.sh
+
+          # 배포 실행
+          bash scripts/deploy.sh
+
+    - name: Notify deployment failure to Jandi
+      if: failure()
+      run: |
+        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "body": "❌ 실서버 배포 실패!\n프로젝트: testpark\n커밋: ${{ github.sha }}\n브랜치: ${{ github.ref_name }}\n\n🔍 실패 원인:\n• SSH 연결 실패 또는\n• 배포 스크립트 실행 실패\n\n🔧 수동 배포 방법:\n```\ncd /var/www/testpark\nbash scripts/deploy.sh\n```\n\n📋 확인사항:\n• SSH 키 및 서버 정보 확인\n• 서버 상태 및 Docker 설치 확인",
+            "connectColor": "#FF4444"
+          }'
 
     - name: Notify build failure to Jandi
       if: failure()
