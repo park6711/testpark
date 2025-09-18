@@ -5,6 +5,26 @@ from django.db.models import Q
 from .models import Company, ContractFile
 
 
+def safe_int(value, default=0):
+    """안전한 정수 변환 함수"""
+    try:
+        if value is None or value == '':
+            return default
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def safe_float(value, default=0.0):
+    """안전한 실수 변환 함수"""
+    try:
+        if value is None or value == '':
+            return default
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+
 def get_current_staff(request):
     """현재 로그인한 스텝 정보 반환"""
     from staff.models import Staff
@@ -56,7 +76,7 @@ def company_list(request):
     selected_unions = request.GET.getlist('bUnion')
     selected_mentors = request.GET.getlist('bMentor')
     sort_by = request.GET.get('sort', 'no')  # 기본 정렬: no
-    sort_order = request.GET.get('order', 'asc')  # 기본 순서: 오름차순
+    sort_order = request.GET.get('order', 'desc')  # 기본 순서: 내림차순
 
     companies = Company.objects.all()
 
@@ -86,14 +106,14 @@ def company_list(request):
     if selected_types:
         type_filter = Q()
         for type_val in selected_types:
-            type_filter |= Q(nType=int(type_val))
+            type_filter |= Q(nType=safe_int(type_val))
         companies = companies.filter(type_filter)
 
     # 상태 필터
     if selected_conditions:
         condition_filter = Q()
         for condition_val in selected_conditions:
-            condition_filter |= Q(nCondition=int(condition_val))
+            condition_filter |= Q(nCondition=safe_int(condition_val))
         companies = companies.filter(condition_filter)
 
     # 연합회 필터
@@ -113,7 +133,7 @@ def company_list(request):
             order_field = sort_by
         companies = companies.order_by(order_field)
     else:
-        companies = companies.order_by('no')
+        companies = companies.order_by('-no')
 
     context = {
         'companies': companies,
@@ -171,11 +191,11 @@ def company_create(request):
                 sName2=request.POST.get('sName2', ''),
                 sName3=request.POST.get('sName3', ''),
                 sNaverID=request.POST.get('sNaverID', ''),
-                nType=int(request.POST.get('nType', 0)),
-                nCondition=int(request.POST.get('nCondition', 0)),
+                nType=safe_int(request.POST.get('nType')),
+                nCondition=safe_int(request.POST.get('nCondition')),
                 sCompanyName=request.POST.get('sCompanyName', ''),
                 sAddress=request.POST.get('sAddress', ''),
-                nMember=int(request.POST.get('nMember', 0)),
+                nMember=safe_int(request.POST.get('nMember')),
                 sBuildLicense=request.POST.get('sBuildLicense', ''),
                 sStrength=request.POST.get('sStrength', ''),
                 sCeoName=request.POST.get('sCeoName', ''),
@@ -191,13 +211,13 @@ def company_create(request):
                 sEmergencyPhone=request.POST.get('sEmergencyPhone', ''),
                 sEmergencyRelation=request.POST.get('sEmergencyRelation', ''),
                 dateJoin=date_join,
-                nJoinFee=int(request.POST.get('nJoinFee', 0)),
-                nDeposit=int(request.POST.get('nDeposit', 0)),
-                nFixFee=int(request.POST.get('nFixFee', 0)),
+                nJoinFee=safe_int(request.POST.get('nJoinFee')),
+                nDeposit=safe_int(request.POST.get('nDeposit')),
+                nFixFee=safe_int(request.POST.get('nFixFee')),
                 dateFixFeeStart=date_fix_fee_start,
-                nFeePercent=float(request.POST.get('nFeePercent', 0.0)),
-                nOrderFee=int(request.POST.get('nOrderFee', 0)),
-                nReportPeriod=int(request.POST.get('nReportPeriod', 0)),
+                fFeePercent=safe_float(request.POST.get('fFeePercent')),
+                nOrderFee=safe_int(request.POST.get('nOrderFee')),
+                nReportPeriod=safe_int(request.POST.get('nReportPeriod')),
                 bAptAll=request.POST.get('bAptAll') == 'on',
                 bAptPart=request.POST.get('bAptPart') == 'on',
                 bHouseAll=request.POST.get('bHouseAll') == 'on',
@@ -209,7 +229,7 @@ def company_create(request):
                 bUnion=request.POST.get('bUnion') == 'on',
                 bMentor=request.POST.get('bMentor') == 'on',
                 sMentee=request.POST.get('sMentee', ''),
-                nRefund=int(request.POST.get('nRefund', 0)),
+                nRefund=safe_int(request.POST.get('nRefund')),
                 sManager=request.POST.get('sManager', ''),
                 dateWithdraw=date_withdraw,
                 sMemo=request.POST.get('sMemo', ''),
@@ -286,11 +306,11 @@ def company_update(request, pk):
             company.sName2 = request.POST.get('sName2', '')
             company.sName3 = request.POST.get('sName3', '')
             company.sNaverID = request.POST.get('sNaverID', '')
-            company.nType = int(request.POST.get('nType', 0))
-            company.nCondition = int(request.POST.get('nCondition', 0))
+            company.nType = safe_int(request.POST.get('nType'))
+            company.nCondition = safe_int(request.POST.get('nCondition'))
             company.sCompanyName = request.POST.get('sCompanyName', '')
             company.sAddress = request.POST.get('sAddress', '')
-            company.nMember = int(request.POST.get('nMember', 0))
+            company.nMember = safe_int(request.POST.get('nMember'))
             company.sBuildLicense = request.POST.get('sBuildLicense', '')
             company.sStrength = request.POST.get('sStrength', '')
             company.sCeoName = request.POST.get('sCeoName', '')
@@ -306,13 +326,13 @@ def company_update(request, pk):
             company.sEmergencyPhone = request.POST.get('sEmergencyPhone', '')
             company.sEmergencyRelation = request.POST.get('sEmergencyRelation', '')
             company.dateJoin = date_join
-            company.nJoinFee = int(request.POST.get('nJoinFee', 0))
-            company.nDeposit = int(request.POST.get('nDeposit', 0))
-            company.nFixFee = int(request.POST.get('nFixFee', 0))
+            company.nJoinFee = safe_int(request.POST.get('nJoinFee'))
+            company.nDeposit = safe_int(request.POST.get('nDeposit'))
+            company.nFixFee = safe_int(request.POST.get('nFixFee'))
             company.dateFixFeeStart = date_fix_fee_start
-            company.nFeePercent = float(request.POST.get('nFeePercent', 0.0))
-            company.nOrderFee = int(request.POST.get('nOrderFee', 0))
-            company.nReportPeriod = int(request.POST.get('nReportPeriod', 0))
+            company.fFeePercent = safe_float(request.POST.get('fFeePercent'))
+            company.nOrderFee = safe_int(request.POST.get('nOrderFee'))
+            company.nReportPeriod = safe_int(request.POST.get('nReportPeriod'))
             company.bAptAll = request.POST.get('bAptAll') == 'on'
             company.bAptPart = request.POST.get('bAptPart') == 'on'
             company.bHouseAll = request.POST.get('bHouseAll') == 'on'
@@ -324,7 +344,7 @@ def company_update(request, pk):
             company.bUnion = request.POST.get('bUnion') == 'on'
             company.bMentor = request.POST.get('bMentor') == 'on'
             company.sMentee = request.POST.get('sMentee', '')
-            company.nRefund = int(request.POST.get('nRefund', 0))
+            company.nRefund = safe_int(request.POST.get('nRefund'))
             company.sManager = request.POST.get('sManager', '')
             company.dateWithdraw = date_withdraw
             company.sMemo = request.POST.get('sMemo', '')

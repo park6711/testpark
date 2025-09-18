@@ -374,7 +374,7 @@
                            {% if read_only %}readonly class="readonly-field"{% endif %}>
                 </div>
                 <div class="form-group">
-                    <label for="sBuildLicense">건설면허</label>
+                    <label for="sBuildLicense">보유 건설면허</label>
                     <input type="text"
                            id="sBuildLicense"
                            name="sBuildLicense"
@@ -439,7 +439,7 @@
             </div>
 
             <div class="form-group">
-                <label for="sStrength">강점</label>
+                <label for="sStrength">업체 특장점</label>
                 <textarea id="sStrength"
                           name="sStrength"
                           rows="3"
@@ -690,12 +690,12 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="nFeePercent">수수료율(%)</label>
+                    <label for="fFeePercent">수수료율(%)</label>
                     <input type="number"
                            step="0.01"
-                           id="nFeePercent"
-                           name="nFeePercent"
-                           value="{{ company.nFeePercent|default:0.0 }}"
+                           id="fFeePercent"
+                           name="fFeePercent"
+                           value="{{ company.fFeePercent|default:0.0 }}"
                            {% if read_only %}readonly class="readonly-field"{% endif %}>
                 </div>
                 <div class="form-group">
@@ -726,7 +726,7 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="contractFiles">협약서 사진</label>
+                    <label for="contractFiles">열린업체회원 가입협약서</label>
                     {% if read_only %}
                         {% if company.contract_files.exists %}
                             <div class="readonly-display">
@@ -751,7 +751,7 @@
 
                         {% if company.contract_files.exists %}
                             <div class="current-files">
-                                <strong>현재 업로드된 협약서 파일:</strong>
+                                <strong>현재 업로드된 열린업체회원 가입협약서:</strong>
                                 {% for contract_file in company.contract_files.all %}
                                     <div class="current-file">
                                         <a href="{{ contract_file.file.url }}" target="_blank">{{ contract_file.name }}</a>
@@ -766,7 +766,7 @@
                     {% endif %}
                 </div>
                 <div class="form-group">
-                    <label for="fileCampaignAgree">캠페인 동의서</label>
+                    <label for="fileCampaignAgree">계약 및 하자이행보증증권 발행 캠페인 참여동의서</label>
                     {% if read_only %}
                         {% if company.fileCampaignAgree %}
                             <div class="readonly-display">
@@ -813,7 +813,7 @@
                            name="bAptPart"
                            {% if company.bAptPart %}checked{% endif %}
                            {% if read_only %}disabled{% endif %}>
-                    <label for="bAptPart">아파트 부분</label>
+                    <label for="bAptPart">아파트 부분수리</label>
                 </div>
                 <div class="checkbox-group">
                     <input type="checkbox"
@@ -829,7 +829,7 @@
                            name="bHousePart"
                            {% if company.bHousePart %}checked{% endif %}
                            {% if read_only %}disabled{% endif %}>
-                    <label for="bHousePart">주택 부분</label>
+                    <label for="bHousePart">주택 부분수리</label>
                 </div>
                 <div class="checkbox-group">
                     <input type="checkbox"
@@ -845,7 +845,7 @@
                            name="bCommercePart"
                            {% if company.bCommercePart %}checked{% endif %}
                            {% if read_only %}disabled{% endif %}>
-                    <label for="bCommercePart">상업시설 부분</label>
+                    <label for="bCommercePart">상가 부분수리</label>
                 </div>
                 <div class="checkbox-group">
                     <input type="checkbox"

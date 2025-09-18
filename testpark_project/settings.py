@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'staff',
     'member',
     'company',
+    'join',
 ]
 
 MIDDLEWARE = [
