@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 
 
 class Staff(models.Model):
@@ -86,3 +88,11 @@ class Staff(models.Model):
             '업체평가': dict(self.AUTHORITY_CHOICES).get(self.nEvaluationAuthority),
         }
         return authorities
+
+    def generate_auth_code(self):
+        """6자리 인증번호 생성 (CustomUser와 동일한 로직)"""
+        import random
+        import string
+
+        auth_code = ''.join(random.choices(string.digits, k=6))
+        return auth_code
