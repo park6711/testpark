@@ -21,7 +21,11 @@ curl -X POST "$JANDI_WEBHOOK" \
     \"connectColor\": \"#FFD700\"
   }" > /dev/null 2>&1
 
-# 1단계: Docker Hub에서 최신 이미지 가져오기
+# 1단계: Docker Hub 로그인
+echo "🔐 Docker Hub에 로그인합니다..."
+echo "*jeje4211" | docker login -u "7171man" --password-stdin
+
+# 2단계: Docker Hub에서 최신 이미지 가져오기
 echo "📥 최신 Docker 이미지를 가져옵니다..."
 docker pull $IMAGE_NAME
 
@@ -33,7 +37,7 @@ curl -X POST "$JANDI_WEBHOOK" \
     \"connectColor\": \"#2196F3\"
   }" > /dev/null 2>&1
 
-# 2단계: Docker Compose로 서비스 재시작
+# 3단계: Docker Compose로 서비스 재시작
 echo "🔄 Docker Compose 서비스를 재시작합니다..."
 cd /var/www/testpark
 
@@ -41,7 +45,7 @@ cd /var/www/testpark
 docker-compose pull testpark
 docker-compose up -d --no-deps testpark
 
-# 3단계: 헬스 체크
+# 4단계: 헬스 체크
 echo "🔍 애플리케이션 상태를 확인합니다..."
 sleep 5
 
@@ -73,7 +77,7 @@ for i in {1..6}; do
     fi
 done
 
-# 4단계: 사용하지 않는 이미지 정리
+# 5단계: 사용하지 않는 이미지 정리
 echo "🧹 사용하지 않는 Docker 이미지를 정리합니다..."
 BEFORE_CLEANUP=$(docker images --format "table {{.Repository}}\t{{.Tag}}" | wc -l)
 docker image prune -f
