@@ -58,7 +58,22 @@ curl -X POST "$JANDI_WEBHOOK" \
     \"connectColor\": \"#FFD700\"
   }" > /dev/null 2>&1
 
-# 1단계: Docker Hub에서 최신 이미지 가져오기
+# 1단계: Docker Hub 로그인 및 최신 이미지 가져오기
+echo "🔐 Docker Hub 로그인 중..."
+
+# .env 파일에서 Docker Hub 자격증명 로드
+if [ -f .env ]; then
+    source .env
+fi
+
+# Docker Hub 로그인 (환경변수에서 자격증명 가져오기)
+if [ -n "$DOCKER_USERNAME" ] && [ -n "$DOCKER_PASSWORD" ] && [ "$DOCKER_PASSWORD" != "YOUR_DOCKER_HUB_TOKEN_HERE" ]; then
+    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    echo "✅ Docker Hub 로그인 완료"
+else
+    echo "⚠️ Docker Hub 자격증명이 없거나 설정되지 않음 - public repository로 접근 시도"
+fi
+
 echo "📥 최신 Docker 이미지를 가져옵니다..."
 if docker pull $IMAGE_NAME; then
     echo "✅ Docker 이미지 업데이트 완료!"
@@ -102,6 +117,10 @@ CSRF_TRUSTED_ORIGINS=https://carpenterhosting.cafe24.com,http://210.114.22.100:8
 
 # 잔디 웹훅 설정
 JANDI_WEBHOOK_URL=https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265
+
+# Docker Hub 자격증명 (배포용)
+DOCKER_USERNAME=7171man
+DOCKER_PASSWORD=jeje4211
 EOF
 
 # .env 파일 생성 검증
