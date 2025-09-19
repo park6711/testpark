@@ -27,6 +27,7 @@ urlpatterns = [
     path('company/', include('company.urls')),
     path('license/', include('license.urls')),
     path('join/', include('join.urls')),
+    path('stop/', include('stop.urls')),
     path('', include('demo.urls')),
 ]
 

@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 
 
 class Company(models.Model):
@@ -133,6 +135,29 @@ class Company(models.Model):
                 license_obj.noCompany -= 1
                 license_obj.save()
             print(f"DEBUG: Model delete - Decremented noCompany for {higher_licenses_count} License records with noCompany > {deleted_company_no}")
+
+        # Stop 테이블 처리
+        try:
+            from stop.models import Stop
+
+            # 1. 삭제될 Company를 참조하는 Stop들을 -1로 설정 (연결 해제)
+            direct_stops = Stop.objects.filter(noCompany=deleted_company_no)
+            direct_stops_count = direct_stops.count()
+            if direct_stops_count > 0:
+                direct_stops.update(noCompany=-1)
+                print(f"DEBUG: Model delete - Updated {direct_stops_count} Stop records with noCompany = {deleted_company_no} to -1 (connection removed)")
+
+            # 2. 삭제될 Company.no보다 큰 번호를 참조하는 Stop들의 noCompany를 1씩 감소
+            higher_stops = Stop.objects.filter(noCompany__gt=deleted_company_no)
+            higher_stops_count = higher_stops.count()
+            if higher_stops_count > 0:
+                for stop in higher_stops:
+                    stop.noCompany -= 1
+                    stop.save()
+                print(f"DEBUG: Model delete - Decremented noCompany for {higher_stops_count} Stop records with noCompany > {deleted_company_no}")
+
+        except ImportError:
+            print("DEBUG: Stop model not available - skipping Stop table adjustment")
 
         # 실제 삭제 수행
         super().delete(*args, **kwargs)
