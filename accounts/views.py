@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.contrib import messages
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -259,6 +259,7 @@ class NaverCallbackView(View):
 class VerifyCodeView(View):
     """인증번호 입력 페이지"""
 
+    @method_decorator(ensure_csrf_cookie)
     def get(self, request):
         # 로그인된 경우 메인으로
         if request.user.is_authenticated:
@@ -292,6 +293,7 @@ class VerifyCodeView(View):
             'login_type': login_type_display
         })
 
+    @method_decorator(csrf_exempt)
     def post(self, request):
         auth_code = request.POST.get('auth_code', '').strip()
 

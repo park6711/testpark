@@ -37,3 +37,4 @@ public/build/db.sqlite3
 
 # Claude settings
 .claude/
+.env.backup*

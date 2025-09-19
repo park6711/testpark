@@ -10,9 +10,20 @@ services:
       - .:/app
     env_file:
       - .env
+    environment:
+      # 네이버 로그인 및 프록시 설정
+      - ALLOWED_HOSTS=carpenterhosting.cafe24.com,210.114.22.100,localhost,127.0.0.1
+      - USE_X_FORWARDED_HOST=true
+      - USE_X_FORWARDED_PORT=true
+      - SECURE_PROXY_SSL_HEADER=HTTP_X_FORWARDED_PROTO,https
+      - FORCE_SCRIPT_NAME=
+      # 네트워크 최적화
+      - DJANGO_SETTINGS_MODULE=testpark_project.settings
     restart: unless-stopped
     networks:
       - testpark-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s

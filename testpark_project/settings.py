@@ -32,8 +32,29 @@ DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = ['*']  # Docker 환경에서 모든 호스트 허용
 
+# 프록시 설정 (Apache Reverse Proxy)
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # CSRF 설정
-CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://carpenterhosting.cafe24.com,http://localhost:8000,http://127.0.0.1:8000').split(',')
+CSRF_TRUSTED_ORIGINS = [
+    'https://carpenterhosting.cafe24.com',
+    'http://carpenterhosting.cafe24.com',
+    'https://210.114.22.100',
+    'http://210.114.22.100',
+    'http://210.114.22.100:8000',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+
+# CSRF 설정 추가
+CSRF_COOKIE_SECURE = False  # HTTP도 허용
+CSRF_COOKIE_SAMESITE = 'Lax'  # SameSite 정책 완화
+CSRF_USE_SESSIONS = False  # 쿠키 기반 CSRF 토큰 사용
+CSRF_COOKIE_HTTPONLY = False  # JavaScript에서 접근 가능
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
 
 
 # Application definition
