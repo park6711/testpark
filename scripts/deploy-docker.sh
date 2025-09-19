@@ -43,6 +43,8 @@ send_error_notification() {
 trap 'send_error_notification $LINENO "$BASH_COMMAND"' ERR
 
 echo "🚀 TestPark Docker Compose 배포를 시작합니다..."
+echo "📅 배포 시작 시간: $(date '+%Y-%m-%d %H:%M:%S')"
+echo "🔧 스크립트 버전: v1.2 (구문 오류 수정 버전)"
 
 # 환경 변수 설정
 COMPOSE_PROJECT="testpark"
