@@ -58,39 +58,7 @@ curl -X POST "$JANDI_WEBHOOK" \
     \"connectColor\": \"#FFD700\"
   }" > /dev/null 2>&1
 
-# 1단계: Docker Hub 로그인 및 최신 이미지 가져오기
-echo "🔐 Docker Hub 로그인 중..."
-
-# .env 파일에서 Docker Hub 자격증명 로드
-if [ -f .env ]; then
-    source .env
-fi
-
-# Docker Hub 로그인 (환경변수에서 자격증명 가져오기)
-if [ -n "$DOCKER_USERNAME" ] && [ -n "$DOCKER_PASSWORD" ] && [ "$DOCKER_PASSWORD" != "YOUR_DOCKER_HUB_TOKEN_HERE" ]; then
-    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-    echo "✅ Docker Hub 로그인 완료"
-else
-    echo "⚠️ Docker Hub 자격증명이 없거나 설정되지 않음 - public repository로 접근 시도"
-fi
-
-echo "📥 최신 Docker 이미지를 가져옵니다..."
-if docker pull $IMAGE_NAME; then
-    echo "✅ Docker 이미지 업데이트 완료!"
-
-    # Docker pull 성공 알림
-    curl -X POST "$JANDI_WEBHOOK" \
-      -H "Content-Type: application/json" \
-      -d "{
-        \"body\": \"⚡ Docker Compose 배포 진행 중...\\n✅ Docker 이미지 업데이트 완료\\n🔄 .env 파일 생성 및 컨테이너 재시작 진행 중...\\n\\n이미지: $IMAGE_NAME\",
-        \"connectColor\": \"#2196F3\"
-      }" > /dev/null 2>&1
-else
-    echo "❌ Docker 이미지 가져오기 실패!"
-    exit 1
-fi
-
-# 2단계: 실서버용 .env 파일 생성 및 검증
+# 1단계: 실서버용 .env 파일 생성 및 검증
 echo "⚙️ 실서버용 환경변수 파일을 생성합니다..."
 cd /var/www/testpark
 
@@ -138,6 +106,38 @@ if [ -f .env ]; then
     echo "🔒 파일 권한 설정 완료 (644)"
 else
     echo "❌ .env 파일 생성 실패!"
+    exit 1
+fi
+
+# 2단계: Docker Hub 로그인 및 최신 이미지 가져오기
+echo "🔐 Docker Hub 로그인 중..."
+
+# .env 파일에서 Docker Hub 자격증명 로드
+if [ -f .env ]; then
+    source .env
+fi
+
+# Docker Hub 로그인 (환경변수에서 자격증명 가져오기)
+if [ -n "$DOCKER_USERNAME" ] && [ -n "$DOCKER_PASSWORD" ] && [ "$DOCKER_PASSWORD" != "YOUR_DOCKER_HUB_TOKEN_HERE" ]; then
+    echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    echo "✅ Docker Hub 로그인 완료"
+else
+    echo "⚠️ Docker Hub 자격증명이 없거나 설정되지 않음 - public repository로 접근 시도"
+fi
+
+echo "📥 최신 Docker 이미지를 가져옵니다..."
+if docker pull $IMAGE_NAME; then
+    echo "✅ Docker 이미지 업데이트 완료!"
+
+    # Docker pull 성공 알림
+    curl -X POST "$JANDI_WEBHOOK" \
+      -H "Content-Type: application/json" \
+      -d "{
+        \"body\": \"⚡ Docker Compose 배포 진행 중...\\n✅ .env 파일 생성 완료\\n✅ Docker 이미지 업데이트 완료\\n🔄 컨테이너 재시작 진행 중...\\n\\n이미지: $IMAGE_NAME\",
+        \"connectColor\": \"#2196F3\"
+      }" > /dev/null 2>&1
+else
+    echo "❌ Docker 이미지 가져오기 실패!"
     exit 1
 fi
 
