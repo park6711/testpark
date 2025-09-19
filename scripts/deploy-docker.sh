@@ -62,10 +62,12 @@ curl -X POST "$JANDI_WEBHOOK" \
 echo "⚙️ 실서버용 환경변수 파일을 생성합니다..."
 cd /var/www/testpark
 
-# 기존 .env 파일이 있다면 백업
+# 기존 .env 파일 강제 삭제 (구문 오류 방지)
 if [ -f .env ]; then
-    echo "📋 기존 .env 파일 백업 중..."
-    cp .env .env.backup
+    echo "📋 기존 .env 파일 백업 및 삭제 중..."
+    cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
+    rm -f .env
+    echo "✅ 기존 .env 파일 삭제 완료"
 fi
 
 # 실서버용 .env 파일 생성
@@ -73,7 +75,7 @@ echo "📝 새로운 .env 파일 생성 중..."
 cat > .env << 'EOF'
 # Django 실서버 환경 설정
 DEBUG=False
-SECRET_KEY=django-insecure-nlk5agkjp1+7+sp168_46gy#h0gdmh%#5ano(r196@c+p7m-ny
+SECRET_KEY="django-insecure-nlk5agkjp1+7+sp168_46gy#h0gdmh%#5ano(r196@c+p7m-ny"
 
 # 네이버 소셜 로그인 설정 (실서버용)
 NAVER_CLIENT_ID=_mw6kojqJVXoWEBqYBKv
