@@ -1,35 +1,72 @@
-version: '3.3'
-
 services:
-  web:
-    build: .
+  # TestPark 메인 애플리케이션
+  testpark:
+    image: 7171man/testpark:latest
+    container_name: testpark
     ports:
-      - "8002:8000"
-    volumes:
-      - .:/app
-    environment:
-      - DJANGO_SETTINGS_MODULE=testpark_project.settings
-      - PYTHONUNBUFFERED=1
+      - "8000:8000"
+    restart: unless-stopped
     networks:
-      - testpark_network
+      - testpark-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.testpark.service=main"
+      - "com.testpark.description=TestPark Django Application"
 
-  # 데이터베이스 (필요시 주석 해제)
-  # db:
-  #   image: postgres:15
-  #   environment:
-  #     POSTGRES_DB: testpark
-  #     POSTGRES_USER: testpark
-  #     POSTGRES_PASSWORD: password
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   networks:
-  #     - testpark_network
+  # TestPark 웹훅 서버
+  webhook:
+    build:
+      context: .
+      dockerfile: webhook.Dockerfile
+    container_name: testpark-webhook
+    ports:
+      - "8080:8080"
+    volumes:
+      # Docker socket 마운트 (컨테이너에서 Docker 명령 실행용)
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 배포 스크립트 및 프로젝트 디렉토리 마운트
+      - .:/var/www/testpark
+    working_dir: /var/www/testpark
+    environment:
+      - NODE_ENV=production
+      - WEBHOOK_PORT=8080
+      - WEBHOOK_SECRET=testpark-webhook-secret
+      - DEPLOY_SCRIPT=/var/www/testpark/scripts/deploy-docker.sh
+    restart: unless-stopped
+    networks:
+      - testpark-network
+    depends_on:
+      testpark:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    labels:
+      - "com.testpark.service=webhook"
+      - "com.testpark.description=TestPark Webhook Server"
 
 networks:
-  testpark_network:
+  testpark-network:
     driver: bridge
+    name: testpark-network
 
-# volumes:
-#   postgres_data:
+# 프로젝트 메타데이터
+x-project-info:
+  name: "TestPark"
+  description: "TestPark Django Application with Webhook Server"
+  version: "2.0.0"
+  services:
+    - "TestPark Main Application (port 8000)"
+    - "Webhook Server (port 8080)"
+  external_dependencies:
+    - "Apache Proxy (ports 80/443)"
+    - "intea Django WSGI"
+    - "PMIS Django WSGI"
