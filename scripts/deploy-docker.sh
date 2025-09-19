@@ -73,7 +73,7 @@ echo "📝 새로운 .env 파일 생성 중..."
 cat > .env << 'EOF'
 # Django 실서버 환경 설정
 DEBUG=False
-SECRET_KEY=django-insecure-nlk5agkjp1+7+sp168_46gy#h0gdmh%#5ano(r196@c+p7m-ny
+SECRET_KEY="django-insecure-nlk5agkjp1+7+sp168_46gy#h0gdmh%#5ano(r196@c+p7m-ny"
 
 # 네이버 소셜 로그인 설정 (실서버용)
 NAVER_CLIENT_ID=_mw6kojqJVXoWEBqYBKv
