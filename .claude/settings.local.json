@@ -19,7 +19,11 @@
       "Bash(python3:*)",
       "Read(//etc/apache2/sites-enabled/**)",
       "Bash(systemctl restart:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(/var/www/testpark/scripts/deploy-docker.sh:*)"
     ],
     "deny": [],
     "ask": []

@@ -17,7 +17,8 @@ class NaverAuthManager:
     def __init__(self):
         self.client_id = settings.NAVER_CLIENT_ID
         self.client_secret = settings.NAVER_CLIENT_SECRET
-        self.redirect_uri = settings.NAVER_REDIRECT_URI
+        self.base_redirect_uri = settings.NAVER_REDIRECT_URI
+        # 기본 redirect_uri를 base로 사용 (ex: http://domain.com/accounts/)
 
     def generate_state(self) -> str:
         """CSRF 방지용 state 값 생성"""
@@ -34,18 +35,26 @@ class NaverAuthManager:
             return True
         return False
 
-    def get_login_url(self) -> Tuple[str, str]:
+    def get_login_url(self, login_type='company') -> Tuple[str, str]:
         """
         네이버 로그인 URL 생성
+        Args:
+            login_type: 'company' 또는 'staff' - 로그인 타입에 따라 콜백 URL 다름
         Returns:
             (login_url, state): 로그인 URL과 state 값
         """
         state = self.generate_state()
 
+        # 로그인 타입에 따른 콜백 URL 설정
+        if login_type == 'staff':
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}staff/naver/callback/"
+        else:  # company (default)
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}company/naver/callback/"
+
         params = {
             'response_type': 'code',
             'client_id': self.client_id,
-            'redirect_uri': self.redirect_uri,
+            'redirect_uri': redirect_uri,
             'state': state
         }
 
@@ -54,23 +63,31 @@ class NaverAuthManager:
 
         return login_url, state
 
-    def get_access_token(self, code: str, state: str) -> Optional[Dict]:
+    def get_access_token(self, code: str, state: str, login_type='company') -> Optional[Dict]:
         """
         인증 코드로 액세스 토큰 획득
         Args:
             code: 네이버에서 받은 인증 코드
             state: CSRF 검증용 state 값
+            login_type: 'company' 또는 'staff' - redirect_uri 설정용
         Returns:
             토큰 정보 딕셔너리 또는 None
         """
         if not self.verify_state(state):
             return None
 
+        # 로그인 타입에 따른 콜백 URL 설정 (토큰 요청 시도 동일하게)
+        if login_type == 'staff':
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}staff/naver/callback/"
+        else:  # company (default)
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}company/naver/callback/"
+
         token_url = 'https://nid.naver.com/oauth2.0/token'
         data = {
             'grant_type': 'authorization_code',
             'client_id': self.client_id,
             'client_secret': self.client_secret,
+            'redirect_uri': redirect_uri,
             'code': code,
             'state': state
         }
@@ -119,27 +136,35 @@ class NaverAuthManager:
             print(f"네이버 사용자 정보 요청 에러: {e}")
             return None
 
-    def process_naver_login(self, code: str, state: str, skip_state_verification: bool = False) -> Tuple[bool, Optional[Dict], Optional[str]]:
+    def process_naver_login(self, code: str, state: str, skip_state_verification: bool = False, login_type='company') -> Tuple[bool, Optional[Dict], Optional[str]]:
         """
         네이버 로그인 전체 프로세스 처리
         Args:
             code: 네이버 인증 코드
             state: CSRF 검증용 state
             skip_state_verification: state 검증 건너뛰기 (이미 검증된 경우)
+            login_type: 'company' 또는 'staff' - redirect_uri 설정용
         Returns:
             (성공 여부, 사용자 정보, 에러 메시지)
         """
         try:
-            print(f"[DEBUG] 네이버 로그인 처리 시작 - code: {code[:10]}..., state: {state}")
+            print(f"[DEBUG] 네이버 로그인 처리 시작 - code: {code[:10]}..., state: {state}, type: {login_type}")
 
             # 1. 액세스 토큰 획득 (state 검증 포함 또는 제외)
             if skip_state_verification:
                 # state 검증을 건너뛰고 토큰 요청
+                # 로그인 타입에 따른 콜백 URL 설정
+                if login_type == 'staff':
+                    redirect_uri = f"{self.base_redirect_uri.rstrip('/')}staff/naver/callback/"
+                else:  # company (default)
+                    redirect_uri = f"{self.base_redirect_uri.rstrip('/')}company/naver/callback/"
+
                 token_url = 'https://nid.naver.com/oauth2.0/token'
                 data = {
                     'grant_type': 'authorization_code',
                     'client_id': self.client_id,
                     'client_secret': self.client_secret,
+                    'redirect_uri': redirect_uri,
                     'code': code,
                     'state': state
                 }
@@ -152,7 +177,7 @@ class NaverAuthManager:
                     print(f"[ERROR] 토큰 획득 실패: {token_data}")
                     return False, None, f"토큰 획득 실패: {token_data.get('error_description', '알 수 없는 오류')}"
             else:
-                token_data = self.get_access_token(code, state)
+                token_data = self.get_access_token(code, state, login_type)
                 if not token_data:
                     return False, None, "액세스 토큰 획득에 실패했습니다."
 

@@ -25,26 +25,28 @@ class LoginView(View):
         return render(request, 'accounts/login.html')
 
 
-class NaverLoginView(View):
-    """네이버 로그인 시작"""
+class CompanyNaverLoginView(View):
+    """업체(일반) 네이버 로그인 시작"""
 
     def get(self, request):
         try:
-            login_url, state = naver_auth.get_login_url()
-            # state를 세션에 저장 (추가 보안)
+            # 업체용 콜백 URL 생성
+            login_url, state = naver_auth.get_login_url(login_type='company')
+            # state를 세션에 저장
             request.session['naver_state'] = state
+            request.session['login_type'] = 'company'
             return redirect(login_url)
 
         except Exception as e:
-            messages.error(request, f"네이버 로그인 연결에 실패했습니다: {str(e)}")
+            messages.error(request, f"업체 네이버 로그인 연결에 실패했습니다: {str(e)}")
             return redirect('accounts:login')
 
 
-class NaverCallbackView(View):
-    """네이버 로그인 콜백 처리"""
+class CompanyNaverCallbackView(View):
+    """업체(일반) 네이버 로그인 콜백 처리"""
 
     def get(self, request):
-        print(f"[DEBUG] 네이버 콜백 호출 - URL: {request.get_full_path()}")
+        print(f"[DEBUG] 업체 네이버 콜백 호출 - URL: {request.get_full_path()}")
 
         code = request.GET.get('code')
         state = request.GET.get('state')
@@ -72,13 +74,7 @@ class NaverCallbackView(View):
             messages.error(request, "잘못된 요청입니다.")
             return redirect('accounts:login')
 
-        # 로그인 타입 확인 (staff 로그인인지 확인)
-        login_type = request.session.get('login_type', 'normal')
-        print(f"[DEBUG] 로그인 타입: {login_type}")
-
-        if login_type == 'staff':
-            # 스텝 로그인 처리로 이동
-            return self._handle_staff_login(request, code, state)
+        # 업체 로그인만 처리
 
         try:
             # 네이버 인증 처리 (state 검증은 이미 완료되었으므로 건너뛰기)
@@ -161,12 +157,63 @@ class NaverCallbackView(View):
             return redirect('accounts:login')
 
         finally:
-            # 세션에서 state와 login_type 제거
+            # 세션에서 state 제거
             if 'naver_state' in request.session:
                 del request.session['naver_state']
             if 'login_type' in request.session:
                 del request.session['login_type']
-            print(f"[DEBUG] 세션 정리 완료")
+            print(f"[DEBUG] 업체 로그인 세션 정리 완료")
+
+
+
+class StaffNaverCallbackView(View):
+    """스텝 네이버 로그인 콜백 처리"""
+
+    def get(self, request):
+        print(f"[DEBUG] 스텝 네이버 콜백 호출 - URL: {request.get_full_path()}")
+
+        code = request.GET.get('code')
+        state = request.GET.get('state')
+        error = request.GET.get('error')
+
+        print(f"[DEBUG] 스텝 콜백 파라미터 - code: {code[:10] if code else None}..., state: {state}, error: {error}")
+
+        # 에러 처리
+        if error:
+            print(f"[ERROR] 스텝 네이버 로그인 에러: {error}")
+            messages.error(request, f"스텝 네이버 로그인이 취소되었습니다: {error}")
+            return redirect('accounts:login')
+
+        if not code or not state:
+            print(f"[ERROR] 필수 파라미터 누락 - code: {bool(code)}, state: {bool(state)}")
+            messages.error(request, "필수 파라미터가 없습니다.")
+            return redirect('accounts:login')
+
+        # state 검증 (추가 보안)
+        session_state = request.session.get('naver_state')
+        print(f"[DEBUG] State 검증 - session: {session_state}, callback: {state}")
+
+        if session_state != state:
+            print(f"[ERROR] State 불일치 - session: {session_state}, callback: {state}")
+            messages.error(request, "잘못된 요청입니다.")
+            return redirect('accounts:login')
+
+        try:
+            # 스텝 로그인 처리
+            return self._handle_staff_login(request, code, state)
+        except Exception as e:
+            print(f"[ERROR] 스텝 콜백 처리 중 예외 발생: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            messages.error(request, f"스텝 로그인 처리 중 오류가 발생했습니다: {str(e)}")
+            return redirect('accounts:login')
+        finally:
+            # 세션에서 state 제거
+            if 'naver_state' in request.session:
+                del request.session['naver_state']
+            if 'login_type' in request.session:
+                del request.session['login_type']
+            print(f"[DEBUG] 스텝 로그인 세션 정리 완료")
 
     def _handle_staff_login(self, request, code, state):
         """스텝 로그인 처리"""
@@ -475,13 +522,16 @@ class StaffNaverLoginView(View):
     """스텝 네이버 로그인 시작"""
 
     def get(self, request):
-        # 네이버 로그인 URL 생성 (기존과 동일한 로직)
-        naver_login_url, state = naver_auth.get_login_url()
+        try:
+            # 스텝용 콜백 URL 생성
+            login_url, state = naver_auth.get_login_url(login_type='staff')
+            # state를 세션에 저장
+            request.session['naver_state'] = state
+            request.session['login_type'] = 'staff'
+            return redirect(login_url)
 
-        # state를 세션에 저장
-        request.session['naver_state'] = state
-        request.session['login_type'] = 'staff'  # 스텝 로그인임을 표시
-
-        return redirect(naver_login_url)
+        except Exception as e:
+            messages.error(request, f"스텝 네이버 로그인 연결에 실패했습니다: {str(e)}")
+            return redirect('accounts:login')
 
 
