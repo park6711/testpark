@@ -95,6 +95,8 @@
             text-align: center;
             transition: all 0.3s ease;
             border-right: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            z-index: 1001;
         }
 
         .menu-item:last-child .menu-link {
@@ -125,7 +127,13 @@
             opacity: 1;
             visibility: visible;
             transform: translateY(0);
+            transition-delay: 0.2s;
         }
+
+        .menu-link:active {
+            background: #1a252f !important;
+        }
+
 
         .dropdown-item {
             display: block;
@@ -269,7 +277,11 @@
         <div class="menu-container">
             <!-- 1. 업체정보 -->
             <div class="menu-item">
-                <a href="#" class="menu-link">업체정보</a>
+                {% if current_staff and current_staff.nCompanyAuthority > 0 %}
+                    <a href="{% url 'company:company_list' %}" class="menu-link">업체정보</a>
+                {% else %}
+                    <a href="#" class="menu-link">업체정보</a>
+                {% endif %}
                 <div class="dropdown">
                     {% if current_staff and current_staff.nCompanyAuthority > 0 %}
                         <a href="{% url 'company:company_list' %}" class="dropdown-item">업체 리스트</a>
@@ -286,8 +298,8 @@
                     {% else %}
                         <span class="dropdown-item" style="color: #ccc; cursor: not-allowed;">사업자 리스트 (권한없음)</span>
                     {% endif %}
-                    <a href="#" class="dropdown-item">일시정지</a>
-                    <a href="#" class="dropdown-item">공사불가능 일정</a>
+                    <a href="/stop/" class="dropdown-item">일시정지 기간</a>
+                    <a href="#" class="dropdown-item">공사불가능 기간</a>
                     <a href="#" class="dropdown-item">공사가능 지역</a>
                     <a href="#" class="dropdown-item">업체 상태</a>
                 </div>

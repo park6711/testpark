@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     'company',
     'join',
     'license',
+    'stop',
 ]
 
 MIDDLEWARE = [
