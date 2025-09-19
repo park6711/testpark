@@ -28,9 +28,11 @@ class Company(models.Model):
     sName2 = models.CharField(max_length=100, blank=True, verbose_name='열린업체명2')
     sName3 = models.CharField(max_length=100, blank=True, verbose_name='열린업체명3')
     sNaverID = models.CharField(max_length=50, blank=True, verbose_name='네이버 ID')
+    noMemberMaster = models.IntegerField(blank=True, null=True, verbose_name='마스터 멤버 번호')
     nType = models.IntegerField(choices=TYPE_CHOICES, default=0, verbose_name='업체 타입')
     nCondition = models.IntegerField(choices=CONDITION_CHOICES, default=0, verbose_name='업체 상태')
     sCompanyName = models.CharField(max_length=200, verbose_name='업체명')
+    noLicenseRepresent = models.IntegerField(blank=True, null=True, verbose_name='대표 라이센스 번호')
     sAddress = models.TextField(verbose_name='주소')
     nMember = models.IntegerField(default=0, verbose_name='직원수')
     sBuildLicense = models.CharField(max_length=100, blank=True, verbose_name='보유 건설면허')
@@ -89,6 +91,51 @@ class Company(models.Model):
 
     def __str__(self):
         return f"{self.sCompanyName} ({self.sName1})"
+
+    def delete(self, *args, **kwargs):
+        """Company 삭제 시 관련된 Member와 License의 noCompany 값 조정"""
+        deleted_company_no = self.no
+
+        # Member 테이블 처리
+        from member.models import Member
+
+        # 1. 삭제될 Company를 참조하는 Member들을 -1로 설정 (연결 해제)
+        direct_members = Member.objects.filter(noCompany=deleted_company_no)
+        direct_members_count = direct_members.count()
+        if direct_members_count > 0:
+            direct_members.update(noCompany=-1)
+            print(f"DEBUG: Model delete - Updated {direct_members_count} Member records with noCompany = {deleted_company_no} to -1 (connection removed)")
+
+        # 2. 삭제될 Company.no보다 큰 번호를 참조하는 Member들의 noCompany를 1씩 감소
+        higher_members = Member.objects.filter(noCompany__gt=deleted_company_no)
+        higher_members_count = higher_members.count()
+        if higher_members_count > 0:
+            for member in higher_members:
+                member.noCompany -= 1
+                member.save()
+            print(f"DEBUG: Model delete - Decremented noCompany for {higher_members_count} Member records with noCompany > {deleted_company_no}")
+
+        # License 테이블 처리
+        from license.models import License
+
+        # 1. 삭제될 Company를 참조하는 License들을 -1로 설정 (연결 해제)
+        direct_licenses = License.objects.filter(noCompany=deleted_company_no)
+        direct_licenses_count = direct_licenses.count()
+        if direct_licenses_count > 0:
+            direct_licenses.update(noCompany=-1)
+            print(f"DEBUG: Model delete - Updated {direct_licenses_count} License records with noCompany = {deleted_company_no} to -1 (connection removed)")
+
+        # 2. 삭제될 Company.no보다 큰 번호를 참조하는 License들의 noCompany를 1씩 감소
+        higher_licenses = License.objects.filter(noCompany__gt=deleted_company_no)
+        higher_licenses_count = higher_licenses.count()
+        if higher_licenses_count > 0:
+            for license_obj in higher_licenses:
+                license_obj.noCompany -= 1
+                license_obj.save()
+            print(f"DEBUG: Model delete - Decremented noCompany for {higher_licenses_count} License records with noCompany > {deleted_company_no}")
+
+        # 실제 삭제 수행
+        super().delete(*args, **kwargs)
 
 
 class ContractFile(models.Model):

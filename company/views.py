@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Q
 from .models import Company, ContractFile
+from license.models import License
 
 
 def safe_int(value, default=0):
@@ -253,7 +254,68 @@ def company_create(request):
                     file=contract_file
                 )
 
-            messages.success(request, f'업체 "{company.sCompanyName}"이 성공적으로 추가되었습니다.')
+            # Company 생성 시 자동으로 License 레코드 생성
+            print(f"DEBUG: Starting License creation for company {company.no}")
+            print(f"DEBUG: Company data - sCompanyName: '{company.sCompanyName}', sCeoName: '{company.sCeoName}', sCeoMail: '{company.sCeoMail}'")
+
+            try:
+                license = License.objects.create(
+                    noCompany=company.no,
+                    sCompanyName=company.sCompanyName,
+                    sCeoName=company.sCeoName,
+                    sAccountMail=company.sAccoutMail or '',  # 회계담당자 이메일을 계좌 메일로 사용 (빈 값 처리)
+                    sLicenseNo='',  # 사업자등록번호는 빈 값으로 시작
+                    sAccount='',    # 계좌번호는 빈 값으로 시작
+                    fileLicense=company.fileLicense,  # Company의 사업자등록증 파일
+                    fileAccount=None,  # 통장사본은 나중에 별도 업로드
+                )
+                print(f"DEBUG: SUCCESS - License record created for company {company.no}: License ID {license.no}")
+
+                # Company의 noLicenseRepresent 필드를 새로 생성된 License.no로 설정
+                company.noLicenseRepresent = license.no
+                company.save()
+                print(f"DEBUG: Company {company.no} noLicenseRepresent set to {license.no}")
+
+                # Company 생성 시 자동으로 Member 레코드 생성 (마스터 회원)
+                try:
+                    from member.models import Member
+                    member = Member.objects.create(
+                        noCompany=company.no,
+                        sCompanyName=company.sCompanyName,
+                        sName2=company.sName2 or '',
+                        sName=company.sCeoName,
+                        sPhone=company.sCeoPhone or '',
+                        sNaverID=company.sCeoMail or '',  # CEO 이메일을 네이버 ID로 사용
+                        bApproval=True,  # 마스터 회원은 자동 승인
+                        nCafeGrade=0,  # 일반 등급
+                        nCompanyAuthority=2,  # 쓰기권한
+                        nOrderAuthority=2,  # 쓰기권한
+                        nContractAuthority=2,  # 쓰기권한
+                        nEvaluationAuthority=2,  # 쓰기권한
+                    )
+                    print(f"DEBUG: SUCCESS - Member record created for company {company.no}: Member ID {member.no}")
+
+                    # Company의 noMemberMaster 필드를 새로 생성된 Member.no로 설정
+                    company.noMemberMaster = member.no
+                    company.save()
+                    print(f"DEBUG: Company {company.no} noMemberMaster set to {member.no}")
+
+                    messages.success(request, f'업체 "{company.sCompanyName}"이 성공적으로 추가되었습니다. 사업자 정보(ID: {license.no})와 마스터 회원(ID: {member.no})도 자동으로 생성되었습니다.')
+                except Exception as member_error:
+                    print(f"DEBUG: ERROR - Failed to create Member record: {str(member_error)}")
+                    print(f"DEBUG: Member Exception type: {type(member_error).__name__}")
+                    import traceback
+                    traceback.print_exc()
+                    # Member 생성 실패해도 License와 Company는 성공으로 처리
+                    messages.success(request, f'업체 "{company.sCompanyName}"이 성공적으로 추가되었습니다. 사업자 정보(ID: {license.no})도 자동으로 생성되었습니다. (마스터 회원 생성 실패: {str(member_error)})')
+            except Exception as e:
+                print(f"DEBUG: ERROR - Failed to create License record: {str(e)}")
+                print(f"DEBUG: Exception type: {type(e).__name__}")
+                import traceback
+                traceback.print_exc()
+                # License 생성 실패해도 Company 생성은 성공으로 처리
+                messages.success(request, f'업체 "{company.sCompanyName}"이 성공적으로 추가되었습니다. (사업자 정보 생성 실패: {str(e)})')
+
             return redirect('company:company_list')
         except Exception as e:
             messages.error(request, f'업체 추가 중 오류가 발생했습니다: {str(e)}')
@@ -457,6 +519,7 @@ def company_delete(request, pk):
         contract_file.file.delete()
         contract_file.delete()
 
+    # Company 삭제 (모델의 delete 메서드에서 관련 레코드 정리)
     company.delete()
     messages.success(request, f'업체 "{company_name}"이 성공적으로 삭제되었습니다.')
     return redirect('company:company_list')

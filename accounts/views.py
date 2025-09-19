@@ -116,9 +116,6 @@ class NaverCallbackView(View):
                     request.session.save()
                     session_key = request.session.session_key
 
-                # 기존 인증 세션이 있다면 삭제
-                AuthSession.objects.filter(session_key=session_key).delete()
-
                 AuthSession.create_session(
                     session_key=session_key,
                     naver_data=user_info,
@@ -158,25 +155,23 @@ class NaverCallbackView(View):
             naver_email = user_info['email']
             naver_name = user_info['name']
 
-            # 🔍 Step 1: Staff에서 네이버 ID로 기존 스텝 찾기 (sNaverID0 = naver_id)
+            # Staff에서 네이버 ID로 기존 스텝 찾기 (sNaverID0 필드 사용)
             existing_staff = Staff.objects.filter(sNaverID0=naver_id).first()
             if existing_staff:
-                # 이미 네이버 ID가 연동된 스텝 → 즉시 로그인
+                # 기존 연동 스텝 → 스텝 정보를 세션에 저장하고 staff 페이지로 이동
                 request.session['staff_user'] = {
                     'no': existing_staff.no,
                     'name': existing_staff.sName,
-                    'email': existing_staff.sNaverID,  # sNaverID = naver_email
+                    'email': existing_staff.sNaverID,
                     'team': existing_staff.sTeam,
-                    'naver_id': existing_staff.sNaverID0,  # sNaverID0 = naver_id
                 }
                 messages.success(request, f"환영합니다, {existing_staff.sName}님! (스텝 로그인)")
                 return redirect('staff:staff_list')
 
-            # 🔍 Step 2: 이메일로 기존 스텝 찾기 (sNaverID = naver_email)
+            # 이메일로 기존 스텝 찾기 (sNaverID 필드 사용)
             existing_email_staff = Staff.objects.filter(sNaverID=naver_email).first()
-
             if not existing_email_staff:
-                # Staff 테이블에 해당 이메일이 없음 → 가입 불가
+                # DB에 이메일이 없음 → 가입 불가
                 messages.error(
                     request,
                     f"등록되지 않은 스텝 이메일입니다: {naver_email}\n"
@@ -184,34 +179,20 @@ class NaverCallbackView(View):
                 )
                 return redirect('accounts:login')
 
-            # 🔗 Step 3: 스텝에 대해 잔디 인증번호 발송 및 인증 요구
-            auth_code = existing_email_staff.generate_auth_code()
+            # 기존 스텝 있음 → 네이버 ID 연동 및 로그인
+            existing_email_staff.sNaverID0 = naver_id  # 네이버 ID 저장
+            existing_email_staff.save()
 
-            # 잔디로 인증번호 발송
-            if jandi_webhook.send_auth_code(existing_email_staff.sNaverID, auth_code):
-                # 스텝용 인증 세션 생성
-                session_key = request.session.session_key
-                if not session_key:
-                    request.session.save()
-                    session_key = request.session.session_key
+            # 스텝 정보를 세션에 저장
+            request.session['staff_user'] = {
+                'no': existing_email_staff.no,
+                'name': existing_email_staff.sName,
+                'email': existing_email_staff.sNaverID,
+                'team': existing_email_staff.sTeam,
+            }
 
-                # 기존 인증 세션이 있다면 삭제
-                AuthSession.objects.filter(session_key=session_key).delete()
-
-                AuthSession.create_session(
-                    session_key=session_key,
-                    naver_data=user_info,
-                    auth_code=auth_code,
-                    login_type='staff',
-                    staff_email=existing_email_staff.sNaverID
-                )
-
-                messages.info(request, f"스텝 인증번호가 잔디로 발송되었습니다. ({existing_email_staff.sName}님)")
-                return redirect('accounts:verify_code')
-
-            else:
-                messages.error(request, "스텝 인증번호 발송에 실패했습니다. 다시 시도해주세요.")
-                return redirect('accounts:login')
+            messages.success(request, f"환영합니다, {existing_email_staff.sName}님! 네이버 계정이 연동되었습니다. (스텝 로그인)")
+            return redirect('staff:staff_list')
 
         except Exception as e:
             messages.error(request, f"스텝 로그인 처리 중 오류가 발생했습니다: {str(e)}")
@@ -241,17 +222,8 @@ class VerifyCodeView(View):
             messages.error(request, "인증 세션이 만료되었습니다. 다시 로그인해주세요.")
             return redirect('accounts:login')
 
-        # 로그인 타입에 따라 이메일 표시
-        if auth_session.login_type == 'staff':
-            display_email = auth_session.staff_email
-            login_type_display = "스텝 로그인"
-        else:
-            display_email = auth_session.naver_data.get('email', '')
-            login_type_display = "일반 로그인"
-
         return render(request, 'accounts/verify_code.html', {
-            'user_email': display_email,
-            'login_type': login_type_display
+            'user_email': auth_session.naver_data.get('email', '')
         })
 
     def post(self, request):
@@ -278,82 +250,41 @@ class VerifyCodeView(View):
                 messages.error(request, "인증번호가 틀렸거나 만료되었습니다.")
                 return self.get(request)
 
-            # 로그인 타입에 따라 처리 분기
-            if auth_session.login_type == 'staff':
-                return self._handle_staff_verification(request, auth_session)
-            else:
-                return self._handle_normal_verification(request, auth_session)
+            # 네이버 데이터에서 사용자 정보 추출
+            naver_data = auth_session.naver_data
+            naver_email = naver_data['email']
+
+            # 기존 사용자 찾기
+            user = CustomUser.objects.filter(email=naver_email).first()
+            if not user:
+                messages.error(request, "사용자를 찾을 수 없습니다.")
+                return redirect('accounts:login')
+
+            # 네이버 정보 업데이트
+            user.naver_id = naver_data['id']
+            user.naver_email = naver_data['email']
+            user.naver_name = naver_data['name']
+            user.is_naver_linked = True
+            user.clear_auth_code()  # 인증번호 정리
+            user.save()
+
+            # 인증 세션 완료 처리
+            auth_session.is_verified = True
+            auth_session.user = user
+            auth_session.save()
+
+            # 로그인 처리
+            login(request, user)
+            messages.success(request, f"환영합니다, {user.name}님! 네이버 계정이 연동되었습니다.")
+
+            # 잔디 알림 발송
+            jandi_webhook.send_login_success(user.name, user.email)
+
+            return redirect('demo:home')
 
         except Exception as e:
             messages.error(request, f"인증 처리 중 오류가 발생했습니다: {str(e)}")
             return self.get(request)
-
-    def _handle_normal_verification(self, request, auth_session):
-        """일반 사용자 인증 처리"""
-        # 네이버 데이터에서 사용자 정보 추출
-        naver_data = auth_session.naver_data
-        naver_email = naver_data['email']
-
-        # 기존 사용자 찾기
-        user = CustomUser.objects.filter(email=naver_email).first()
-        if not user:
-            messages.error(request, "사용자를 찾을 수 없습니다.")
-            return redirect('accounts:login')
-
-        # 네이버 정보 업데이트
-        user.naver_id = naver_data['id']
-        user.naver_email = naver_data['email']
-        user.naver_name = naver_data['name']
-        user.is_naver_linked = True
-        user.clear_auth_code()  # 인증번호 정리
-        user.save()
-
-        # 인증 세션 완료 처리
-        auth_session.is_verified = True
-        auth_session.user = user
-        auth_session.save()
-
-        # 로그인 처리
-        login(request, user)
-        messages.success(request, f"환영합니다, {user.name}님! 네이버 계정이 연동되었습니다.")
-
-        # 잔디 알림 발송
-        jandi_webhook.send_login_success(user.name, user.email)
-
-        return redirect('demo:home')
-
-    def _handle_staff_verification(self, request, auth_session):
-        """스텝 사용자 인증 처리"""
-        # 네이버 데이터에서 정보 추출
-        naver_data = auth_session.naver_data
-        naver_id = naver_data['id']
-        staff_email = auth_session.staff_email
-
-        # 스텝 찾기
-        staff = Staff.objects.filter(sNaverID=staff_email).first()
-        if not staff:
-            messages.error(request, "스텝 정보를 찾을 수 없습니다.")
-            return redirect('accounts:login')
-
-        # 네이버 ID 연동 및 저장
-        staff.sNaverID0 = naver_id
-        staff.save()
-
-        # 인증 세션 완료 처리
-        auth_session.is_verified = True
-        auth_session.save()
-
-        # 스텝 정보를 세션에 저장 (CustomUser와 독립적)
-        request.session['staff_user'] = {
-            'no': staff.no,
-            'name': staff.sName,
-            'email': staff.sNaverID,
-            'team': staff.sTeam,
-            'naver_id': staff.sNaverID0,
-        }
-
-        messages.success(request, f"환영합니다, {staff.sName}님! 스텝 네이버 계정이 연동되었습니다.")
-        return redirect('staff:staff_list')
 
 
 @require_http_methods(["POST"])
@@ -375,44 +306,24 @@ def resend_auth_code(request):
         if not auth_session:
             return JsonResponse({'success': False, 'message': '인증 세션을 찾을 수 없습니다.'})
 
-        # 로그인 타입에 따라 처리 분기
-        if auth_session.login_type == 'staff':
-            # 스텝 로그인 재발송
-            staff = Staff.objects.filter(sNaverID=auth_session.staff_email).first()
-            if not staff:
-                return JsonResponse({'success': False, 'message': '스텝을 찾을 수 없습니다.'})
+        naver_email = auth_session.naver_data['email']
+        user = CustomUser.objects.filter(email=naver_email).first()
 
-            # 새 인증번호 생성
-            new_auth_code = staff.generate_auth_code()
+        if not user:
+            return JsonResponse({'success': False, 'message': '사용자를 찾을 수 없습니다.'})
 
-            # 잔디로 발송
-            if jandi_webhook.send_auth_code(staff.sNaverID, new_auth_code):
-                # 세션 업데이트
-                auth_session.auth_code = new_auth_code
-                auth_session.save()
-                return JsonResponse({'success': True, 'message': '스텝 인증번호가 재발송되었습니다.'})
-            else:
-                return JsonResponse({'success': False, 'message': '스텝 인증번호 발송에 실패했습니다.'})
+        # 새 인증번호 생성
+        new_auth_code = user.generate_auth_code()
 
+        # 잔디로 발송
+        if jandi_webhook.send_auth_code(user.email, new_auth_code):
+            # 세션 업데이트
+            auth_session.auth_code = new_auth_code
+            auth_session.save()
+
+            return JsonResponse({'success': True, 'message': '인증번호가 재발송되었습니다.'})
         else:
-            # 일반 사용자 로그인 재발송
-            naver_email = auth_session.naver_data['email']
-            user = CustomUser.objects.filter(email=naver_email).first()
-
-            if not user:
-                return JsonResponse({'success': False, 'message': '사용자를 찾을 수 없습니다.'})
-
-            # 새 인증번호 생성
-            new_auth_code = user.generate_auth_code()
-
-            # 잔디로 발송
-            if jandi_webhook.send_auth_code(user.email, new_auth_code):
-                # 세션 업데이트
-                auth_session.auth_code = new_auth_code
-                auth_session.save()
-                return JsonResponse({'success': True, 'message': '인증번호가 재발송되었습니다.'})
-            else:
-                return JsonResponse({'success': False, 'message': '인증번호 발송에 실패했습니다.'})
+            return JsonResponse({'success': False, 'message': '인증번호 발송에 실패했습니다.'})
 
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'오류: {str(e)}'})

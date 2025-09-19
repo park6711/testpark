@@ -276,16 +276,20 @@
                     {% else %}
                         <span class="dropdown-item" style="color: #ccc; cursor: not-allowed;">업체 리스트 (권한없음)</span>
                     {% endif %}
-                    <a href="#" class="dropdown-item">열린업체 정보</a>
-                    <a href="#" class="dropdown-item">네이버 ID/사업자</a>
-                    <a href="#" class="dropdown-item">휴무/불가능 일정</a>
+                    {% if current_staff and current_staff.nCompanyAuthority > 0 %}
+                        <a href="{% url 'member:member_list' %}" class="dropdown-item">회원 리스트</a>
+                    {% else %}
+                        <span class="dropdown-item" style="color: #ccc; cursor: not-allowed;">회원 리스트 (권한없음)</span>
+                    {% endif %}
+                    {% if current_staff and current_staff.nCompanyAuthority > 0 %}
+                        <a href="{% url 'license:license_list' %}" class="dropdown-item">사업자 리스트</a>
+                    {% else %}
+                        <span class="dropdown-item" style="color: #ccc; cursor: not-allowed;">사업자 리스트 (권한없음)</span>
+                    {% endif %}
+                    <a href="#" class="dropdown-item">일시정지</a>
+                    <a href="#" class="dropdown-item">공사불가능 일정</a>
                     <a href="#" class="dropdown-item">공사가능 지역</a>
                     <a href="#" class="dropdown-item">업체 상태</a>
-                    {% if current_staff and current_staff.nCompanyAuthority > 0 %}
-                        <a href="{% url 'member:member_list' %}" class="dropdown-item">회원정보 관리</a>
-                    {% else %}
-                        <span class="dropdown-item" style="color: #ccc; cursor: not-allowed;">회원정보 관리 (권한없음)</span>
-                    {% endif %}
                 </div>
             </div>
 

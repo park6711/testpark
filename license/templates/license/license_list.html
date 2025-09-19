@@ -1,9 +1,9 @@
 {% extends 'staff/base.html' %}
 
-{% block title %}회원 관리 - PMIS 2.0{% endblock %}
+{% block title %}사업자 정보 관리 - PMIS 2.0{% endblock %}
 
-{% block page_title %}회원 관리{% endblock %}
-{% block page_subtitle %}회원 정보 조회 및 관리{% endblock %}
+{% block page_title %}사업자 정보 관리{% endblock %}
+{% block page_subtitle %}사업자 정보 조회 및 관리{% endblock %}
 
 {% block content %}
 {% if not not_logged_in %}
@@ -66,6 +66,11 @@
 
     .btn-danger {
         background-color: #dc3545;
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
         color: white;
     }
 
@@ -143,36 +148,24 @@
     th:nth-child(1), td:nth-child(1) { /* No */
         width: 60px;
     }
-    th:nth-child(2), td:nth-child(2) { /* 식별자 - 숫자 8자 폭 */
-        width: 80px;
-        font-family: monospace;
+    th:nth-child(2), td:nth-child(2) { /* 소속 열린업체 */
+        width: 150px;
     }
-    th:nth-child(3), td:nth-child(3) { /* 네이버 ID */
+    th:nth-child(3), td:nth-child(3) { /* 상호 */
         width: 180px;
     }
-    th:nth-child(4), td:nth-child(4) { /* 소속 열린업체 */
+    th:nth-child(4), td:nth-child(4) { /* 대표자 */
         width: 100px;
     }
-    th:nth-child(5), td:nth-child(5) { /* 성명 */
-        width: 80px;
-    }
-    th:nth-child(6), td:nth-child(6) { /* 핸드폰 번호 */
-        width: 130px;
+    th:nth-child(5), td:nth-child(5) { /* 사업자등록번호 */
+        width: 120px;
         font-family: monospace;
     }
-    th:nth-child(7), td:nth-child(7) { /* 카페등급 */
-        width: 90px;
-        text-align: center;
+    th:nth-child(6), td:nth-child(6) { /* 전자세금계산서 이메일 */
+        width: 250px;
     }
-    th:nth-child(8), td:nth-child(8) { /* 카페내 별명 */
-        width: 80px;
-    }
-    th:nth-child(9), td:nth-child(9) { /* 마스터 */
-        width: 80px;
-        text-align: center;
-    }
-    th:nth-child(10), td:nth-child(10) { /* 승인 */
-        width: 80px;
+    th:nth-child(7), td:nth-child(7) { /* 대표 사업자 여부 */
+        width: 120px;
         text-align: center;
     }
 
@@ -249,7 +242,7 @@
     {% elif no_permission %}
     <div class="permission-info">
         <span class="badge badge-secondary">
-            🚫 회원 관리 접근 권한이 없습니다 (nCompanyAuthority: {{ member_permission }})
+            🚫 사업자 정보 관리 접근 권한이 없습니다 (nCompanyAuthority: {{ license_permission }})
         </span>
     </div>
     {% elif can_write %}
@@ -258,34 +251,34 @@
             <input type="text"
                    name="search"
                    value="{{ search_query }}"
-                   placeholder="네이버ID, 업체명, 성명, 핸드폰번호로 검색..."
+                   placeholder="소속 열린업체, 상호, 대표자, 사업자등록번호, 이메일로 검색..."
                    class="search-input">
             <button type="submit" class="btn btn-primary">검색</button>
             {% if search_query %}
-                <a href="{% url 'member:member_list' %}" class="btn btn-secondary">초기화</a>
+                <a href="{% url 'license:license_list' %}" class="btn btn-secondary">초기화</a>
             {% endif %}
         </form>
     </div>
     <div>
-        <button onclick="createNew()" class="btn btn-primary">+ 새 회원 추가</button>
+        <button onclick="createNew()" class="btn btn-primary">+ 새 사업자 추가</button>
         <button id="editBtn" class="btn btn-warning" disabled onclick="editSelected()">수정</button>
         <button id="deleteBtn" class="btn btn-danger" disabled onclick="deleteSelected()">삭제</button>
     </div>
-    {% elif member_permission == 1 %}
+    {% elif license_permission == 1 %}
     <div class="search-section">
         <form method="get" style="display: flex; gap: 10px;">
             <input type="text"
                    name="search"
                    value="{{ search_query }}"
-                   placeholder="네이버ID, 업체명, 성명, 핸드폰번호로 검색..."
+                   placeholder="소속 열린업체, 상호, 대표자, 사업자등록번호, 이메일로 검색..."
                    class="search-input">
             <button type="submit" class="btn btn-primary">검색</button>
             {% if search_query %}
-                <a href="{% url 'member:member_list' %}" class="btn btn-secondary">초기화</a>
+                <a href="{% url 'license:license_list' %}" class="btn btn-secondary">초기화</a>
             {% endif %}
         </form>
         <span class="badge badge-info">
-            📖 읽기 전용 모드 (nCompanyAuthority: {{ member_permission }})
+            📖 읽기 전용 모드 (nCompanyAuthority: {{ license_permission }})
         </span>
     </div>
     <div>
@@ -296,11 +289,11 @@
 
 {% if search_query %}
 <div class="search-results-info">
-    검색어 "{{ search_query }}"에 대한 {{ members|length }}개의 결과
+    검색어 "{{ search_query }}"에 대한 {{ licenses|length }}개의 결과
 </div>
 {% endif %}
 
-<!-- 회원 목록 테이블 -->
+<!-- 사업자 정보 목록 테이블 -->
 <table>
     <thead>
         <tr>
@@ -310,90 +303,71 @@
                     <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
                 {% endif %}
             </th>
-            <th>식별자</th>
-            <th class="sortable-header" onclick="sortTable('sNaverID')">
-                네이버 ID
-                {% if sort_by == 'sNaverID' %}
+            <th class="sortable-header" onclick="sortTable('noCompany')">
+                소속 열린업체
+                {% if sort_by == 'noCompany' %}
                     <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
                 {% endif %}
             </th>
-            <th>소속 열린업체</th>
-            <th class="sortable-header" onclick="sortTable('sName')">
-                성명
-                {% if sort_by == 'sName' %}
+            <th class="sortable-header" onclick="sortTable('sCompanyName')">
+                상호
+                {% if sort_by == 'sCompanyName' %}
                     <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
                 {% endif %}
             </th>
-            <th class="sortable-header" onclick="sortTable('sPhone')">
-                핸드폰 번호
-                {% if sort_by == 'sPhone' %}
+            <th class="sortable-header" onclick="sortTable('sCeoName')">
+                대표자
+                {% if sort_by == 'sCeoName' %}
                     <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
                 {% endif %}
             </th>
-            <th>카페등급</th>
-            <th>카페내 별명</th>
-            <th>마스터</th>
-            <th>승인</th>
+            <th class="sortable-header" onclick="sortTable('sLicenseNo')">
+                사업자등록번호
+                {% if sort_by == 'sLicenseNo' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
+            <th>전자세금계산서 이메일</th>
+            <th>대표 사업자 여부</th>
         </tr>
     </thead>
     <tbody>
         {% if not_logged_in %}
         <tr>
-            <td colspan="10" class="empty-message">로그인 후 회원 목록을 확인할 수 있습니다.</td>
+            <td colspan="7" class="empty-message">로그인 후 사업자 정보를 확인할 수 있습니다.</td>
         </tr>
         {% elif no_permission %}
         <tr>
-            <td colspan="10" class="empty-message">회원 관리 권한이 없어 목록을 표시할 수 없습니다.</td>
+            <td colspan="7" class="empty-message">사업자 정보 관리 권한이 없어 목록을 표시할 수 없습니다.</td>
         </tr>
         {% else %}
-            {% for member in members %}
-            <tr onclick="selectRow(this, {{ member.no }}, {{ member.noCompany }}, '{{ member.get_company_sname2 }}', '{{ member.get_company_sname1 }}')" ondblclick="doubleClickRow({{ member.no }})" data-id="{{ member.no }}" data-company-id="{{ member.noCompany }}" data-company-sname2="{{ member.get_company_sname2 }}" data-company-sname1="{{ member.get_company_sname1 }}">
-                <td>{{ member.no }}</td>
-                <td>{{ member.sNaverID0|default:"-" }}</td>
-                <td>{{ member.sNaverID }}</td>
-                <td onmousedown="startCompanyClick({{ member.noCompany }}, '{{ member.get_company_name }}', event)"
+            {% for license in licenses %}
+            <tr onclick="selectRow(this, {{ license.no }}, {{ license.noCompany }})" ondblclick="doubleClickRow({{ license.no }})" data-id="{{ license.no }}" data-company-id="{{ license.noCompany }}">
+                <td>{{ license.no }}</td>
+                <td onmousedown="startCompanyClick({{ license.noCompany }}, '{{ license.get_company_sname2 }}', event)"
                     style="cursor: pointer; color: #007bff; text-decoration: underline;"
                     title="클릭: 업체 정보 보기 | 더블클릭: 이 업체명으로 검색">
-                    {{ member.get_company_name }}
+                    {{ license.get_company_sname2 }}
                 </td>
-                <td>{{ member.sName }}</td>
-                <td>{{ member.sPhone|default:"-" }}</td>
+                <td>{{ license.sCompanyName }}</td>
+                <td>{{ license.sCeoName }}</td>
+                <td>{{ license.sLicenseNo|default:"-" }}</td>
+                <td>{{ license.sAccountMail|default:"-" }}</td>
                 <td>
-                    {% if member.nCafeGrade == 0 %}
-                        <span class="badge badge-secondary">일반</span>
-                    {% elif member.nCafeGrade == 1 %}
-                        <span class="badge badge-primary">광고제휴</span>
-                    {% elif member.nCafeGrade == 2 %}
-                        <span class="badge badge-info">단종열린</span>
-                    {% elif member.nCafeGrade == 3 %}
-                        <span class="badge badge-warning">토탈열린</span>
-                    {% else %}
-                        <span class="badge badge-dark">연합회</span>
-                    {% endif %}
-                </td>
-                <td>{{ member.nNick|default:"-" }}</td>
-                <td>
-                    {% if member.is_company_master %}
-                        <span class="badge badge-warning">마스터</span>
+                    {% if license.is_company_represent %}
+                        <span class="badge badge-success">대표</span>
                     {% else %}
                         <span class="badge badge-light">일반</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if member.bApproval %}
-                        <span class="badge badge-success">승인</span>
-                    {% else %}
-                        <span class="badge badge-secondary">미승인</span>
                     {% endif %}
                 </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="10" class="empty-message">
+                <td colspan="7" class="empty-message">
                     {% if search_query %}
-                        검색 조건에 맞는 회원이 없습니다.
+                        검색 조건에 맞는 사업자 정보가 없습니다.
                     {% else %}
-                        등록된 회원이 없습니다.
+                        등록된 사업자 정보가 없습니다.
                     {% endif %}
                 </td>
             </tr>
@@ -404,12 +378,10 @@
 
 <script>
     let selectedRow = null;
-    let selectedMemberId = null;
+    let selectedLicenseId = null;
     let selectedCompanyId = null;
-    let selectedCompanySname2 = null;
-    let selectedCompanySname1 = null;
 
-    function selectRow(row, memberId, companyId, companySname2, companySname1) {
+    function selectRow(row, licenseId, companyId) {
         // 기존 선택 제거
         if (selectedRow) {
             selectedRow.classList.remove('selected');
@@ -417,49 +389,47 @@
 
         // 새로운 행 선택
         selectedRow = row;
-        selectedMemberId = memberId;
+        selectedLicenseId = licenseId;
         selectedCompanyId = companyId;
-        selectedCompanySname2 = companySname2;
-        selectedCompanySname1 = companySname1;
         row.classList.add('selected');
 
         // 버튼 활성화 (권한에 따라)
         {% if can_write %}
         document.getElementById('editBtn').disabled = false;
         document.getElementById('deleteBtn').disabled = false;
-        {% elif member_permission == 1 %}
+        {% elif license_permission == 1 %}
         document.getElementById('viewBtn').disabled = false;
         {% endif %}
     }
 
     function editSelected() {
-        if (selectedMemberId) {
-            window.location.href = '{% url "member:member_update" 0 %}'.replace('0', selectedMemberId);
+        if (selectedLicenseId) {
+            window.location.href = '{% url "license:license_update" 0 %}'.replace('0', selectedLicenseId);
         }
     }
 
     function deleteSelected() {
-        if (selectedMemberId) {
-            if (confirm('정말로 이 회원을 삭제하시겠습니까?')) {
-                window.location.href = '{% url "member:member_delete" 0 %}'.replace('0', selectedMemberId);
+        if (selectedLicenseId) {
+            if (confirm('정말로 이 사업자 정보를 삭제하시겠습니까?')) {
+                window.location.href = '{% url "license:license_delete" 0 %}'.replace('0', selectedLicenseId);
             }
         }
     }
 
     function viewSelected() {
-        if (selectedMemberId) {
-            window.location.href = '{% url "member:member_view" 0 %}'.replace('0', selectedMemberId);
+        if (selectedLicenseId) {
+            window.location.href = '{% url "license:license_view" 0 %}'.replace('0', selectedLicenseId);
         }
     }
 
-    function doubleClickRow(memberId) {
+    function doubleClickRow(licenseId) {
         // 더블클릭 시 바로 수정/보기 모드로 이동
         {% if can_write %}
         // 수정 권한이 있으면 수정 모드로
-        window.location.href = '{% url "member:member_update" 0 %}'.replace('0', memberId);
-        {% elif member_permission == 1 %}
+        window.location.href = '{% url "license:license_update" 0 %}'.replace('0', licenseId);
+        {% elif license_permission == 1 %}
         // 읽기 권한만 있으면 보기 모드로
-        window.location.href = '{% url "member:member_view" 0 %}'.replace('0', memberId);
+        window.location.href = '{% url "license:license_view" 0 %}'.replace('0', licenseId);
         {% endif %}
     }
 
@@ -528,15 +498,6 @@
         }, 500);
     }
 
-    function searchByCompanyName(companyName) {
-        // 업체명으로 검색하기 위해 현재 페이지를 검색 쿼리와 함께 새로고침
-        const currentUrl = new URL(window.location);
-        currentUrl.searchParams.set('search', companyName);
-        currentUrl.searchParams.delete('sort'); // 정렬 초기화
-        currentUrl.searchParams.delete('order'); // 정렬 순서 초기화
-        window.location.href = currentUrl.toString();
-    }
-
     function openCompanyDetail(companyId, event) {
         // 이벤트 버블링 방지 (행 선택과 충돌 방지)
         if (event) {
@@ -550,7 +511,7 @@
         }
 
         // Company 권한 확인 - 읽기 권한 이상이면 보기, 쓰기 권한이면 수정
-        {% if member_permission >= 1 %}
+        {% if license_permission >= 1 %}
             {% if can_write %}
                 // 쓰기 권한이 있으면 수정 페이지로
                 window.location.href = `/company/update/${companyId}/`;
@@ -564,27 +525,22 @@
     }
 
     function createNew() {
-        // 선택된 행이 있으면 해당 정보를 파라미터로 전달
-        let url = '{% url "member:member_create" %}';
-        let params = [];
-
+        // 선택된 행이 있으면 해당 noCompany를 파라미터로 전달
+        let url = '{% url "license:license_create" %}';
         if (selectedCompanyId) {
-            params.push(`noCompany=${selectedCompanyId}`);
+            url += `?noCompany=${selectedCompanyId}`;
         }
-        if (selectedCompanySname2) {
-            params.push(`sName2=${encodeURIComponent(selectedCompanySname2)}`);
-        }
-        if (selectedCompanySname1) {
-            params.push(`sCompanyName=${encodeURIComponent(selectedCompanySname1)}`);
-        }
-
-        if (params.length > 0) {
-            url += `?${params.join('&')}`;
-        }
-
         window.location.href = url;
     }
 
+    function searchByCompanyName(companyName) {
+        // 업체명으로 검색하기 위해 현재 페이지를 검색 쿼리와 함께 새로고침
+        const currentUrl = new URL(window.location);
+        currentUrl.searchParams.set('search', companyName);
+        currentUrl.searchParams.delete('sort'); // 정렬 초기화
+        currentUrl.searchParams.delete('order'); // 정렬 순서 초기화
+        window.location.href = currentUrl.toString();
+    }
 </script>
 
 {% endif %}

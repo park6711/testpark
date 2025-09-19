@@ -1,0 +1,267 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}{{ title }} - PMIS 2.0{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}
+    {% if action == 'view' %}
+        사업자 정보 상세 조회
+    {% elif action == 'create' %}
+        새로운 사업자 정보 등록
+    {% else %}
+        사업자 정보 수정
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+{% if not not_logged_in %}
+{{ block.super }}
+{% endif %}
+
+{% if not not_logged_in %}
+<style>
+    .form-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 30px;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="file"],
+    select,
+    textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    input[type="checkbox"] {
+        margin-right: 10px;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+    }
+
+    .readonly-field {
+        background-color: #f8f9fa !important;
+        cursor: not-allowed;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin-right: 10px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .button-group {
+        margin-top: 30px;
+        text-align: center;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 20px;
+    }
+
+    .form-row .form-group {
+        flex: 1;
+    }
+
+    small {
+        color: #666;
+        font-size: 12px;
+    }
+
+    .file-info {
+        margin-top: 5px;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .file-link {
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .file-link:hover {
+        text-decoration: underline;
+    }
+</style>
+
+<div class="form-container">
+    {% if read_only %}
+    <div class="alert alert-info">
+        <strong>📖 읽기 전용 모드</strong><br>
+        이 정보는 조회만 가능합니다. 수정 권한이 없습니다.
+    </div>
+    <form>
+    {% else %}
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+    {% endif %}
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="noCompany">소속 열린업체 *</label>
+                {% if read_only %}
+                    <input type="text"
+                           id="noCompany"
+                           name="noCompany"
+                           value="{% if license %}{{ license.noCompany }}{% endif %}"
+                           readonly class="readonly-field">
+                {% else %}
+                    <select id="noCompany" name="noCompany" required>
+                        <option value="">-- 업체 선택 --</option>
+                        {% for company in companies %}
+                            <option value="{{ company.no }}"
+                                    {% if license and license.noCompany == company.no %}selected{% elif initial_no_company == company.no|stringformat:"s" %}selected{% endif %}>
+                                {{ company.sName2|default:company.sName1 }} ({{ company.no }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="sCompanyName">상호 *</label>
+                <input type="text"
+                       id="sCompanyName"
+                       name="sCompanyName"
+                       value="{{ license.sCompanyName|default:'' }}"
+                       {% if not read_only %}required{% endif %}
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="sCeoName">대표자 *</label>
+                <input type="text"
+                       id="sCeoName"
+                       name="sCeoName"
+                       value="{{ license.sCeoName|default:'' }}"
+                       {% if not read_only %}required{% endif %}
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label for="sLicenseNo">사업자등록번호</label>
+                <input type="text"
+                       id="sLicenseNo"
+                       name="sLicenseNo"
+                       value="{{ license.sLicenseNo|default:'' }}"
+                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+                <small>예: 123-45-67890</small>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="sAccountMail">전자세금계산서 발행을 위한 이메일</label>
+            <input type="email"
+                   id="sAccountMail"
+                   name="sAccountMail"
+                   value="{{ license.sAccountMail|default:'' }}"
+                   {% if read_only %}readonly class="readonly-field"{% endif %}>
+        </div>
+
+        <div class="form-group">
+            <label for="sAccount">환급 계좌번호</label>
+            <input type="text"
+                   id="sAccount"
+                   name="sAccount"
+                   value="{{ license.sAccount|default:'' }}"
+                   {% if read_only %}readonly class="readonly-field"{% endif %}>
+            <small>예금주까지 정확하게 기재해주세요.</small>
+        </div>
+
+        <div class="form-group">
+            <label for="fileLicense">사업자등록증 파일</label>
+            {% if not read_only %}
+                <input type="file"
+                       id="fileLicense"
+                       name="fileLicense"
+                       accept=".pdf,.jpg,.jpeg,.png,.gif">
+            {% endif %}
+            {% if license.fileLicense %}
+                <div class="file-info">
+                    현재 파일: <a href="{{ license.fileLicense.url }}" target="_blank" class="file-link">{{ license.get_license_file_name }}</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="fileAccount">통장사본 파일</label>
+            {% if not read_only %}
+                <input type="file"
+                       id="fileAccount"
+                       name="fileAccount"
+                       accept=".pdf,.jpg,.jpeg,.png,.gif">
+            {% endif %}
+            {% if license.fileAccount %}
+                <div class="file-info">
+                    현재 파일: <a href="{{ license.fileAccount.url }}" target="_blank" class="file-link">{{ license.get_account_file_name }}</a>
+                </div>
+            {% endif %}
+        </div>
+
+
+        <div class="button-group">
+            {% if not read_only %}
+                <button type="submit" class="btn btn-primary">
+                    {% if action == 'create' %}추가{% else %}수정{% endif %}
+                </button>
+            {% endif %}
+            <a href="{% url 'license:license_list' %}" class="btn btn-secondary">
+                {% if read_only %}← 목록으로 돌아가기{% else %}취소{% endif %}
+            </a>
+        </div>
+
+    </form>
+</div>
+
+{% endif %}
+
+{% endblock %}
