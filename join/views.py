@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.db import transaction
 from company.models import Company, ContractFile
 from member.models import Member
+from license.models import License
 from datetime import date
 
 
@@ -88,17 +89,37 @@ def company_registration(request):
                         file=contract_file
                     )
 
+                # Company 생성 시 자동으로 License 레코드 생성
+                try:
+                    license = License.objects.create(
+                        noCompany=company.no,
+                        sCompanyName=company.sCompanyName,
+                        sCeoName=company.sCeoName,
+                        sAccountMail=company.sAccoutMail or '',  # 회계담당자 이메일을 계좌 메일로 사용
+                        sLicenseNo='',  # 사업자등록번호는 빈 값으로 시작
+                        sAccount='',    # 계좌번호는 빈 값으로 시작
+                        fileLicense=company.fileLicense,  # Company의 사업자등록증 파일
+                        fileAccount=None,  # 통장사본은 나중에 별도 업로드
+                    )
+                    print(f"DEBUG: License record created for company {company.no}: License ID {license.no}")
+                    # Company의 noLicenseRepresent 필드를 새로 생성된 License.no로 설정
+                    company.noLicenseRepresent = license.no
+                    company.save()
+                    print(f"DEBUG: Company {company.no} noLicenseRepresent set to {license.no}")
+                except Exception as e:
+                    print(f"DEBUG: Error creating License record: {str(e)}")
+
                 # Member 데이터 생성
-                Member.objects.create(
+                member = Member.objects.create(
                     sNaverID0='',  # 식별자는 빈값으로
                     sNaverID=request.POST.get('sNaverID', ''),  # 네이버 ID
-                    sCompanyName=request.POST.get('sCompanyName', ''),  # 업체명
-                    sName=request.POST.get('sCeoName', ''),  # 대표자 이름
-                    sPhone=request.POST.get('sCeoPhone', ''),  # 대표 핸드폰번호
+                    sCompanyName=company.sCompanyName,  # Company의 sCompanyName 사용
+                    sName2=company.sName2 or '',  # Company의 sName2 사용
+                    sName=company.sCeoName,  # Company의 sCeoName 사용
+                    sPhone=company.sCeoPhone or '',  # Company의 sCeoPhone 사용
                     noCompany=company.no,  # 자동으로 company 연결
                     nCafeGrade=0,  # 기본값: 일반
                     nNick='',
-                    bMaster=True,  # 마스터로 설정 (bMaster=1)
                     bApproval=False,  # 비승인 상태 (bApproval=0)
                     # 나머지 권한은 모두 쓰기권한(2)으로 설정
                     nCompanyAuthority=2,
@@ -106,6 +127,11 @@ def company_registration(request):
                     nContractAuthority=2,
                     nEvaluationAuthority=2
                 )
+
+                # Company의 noMemberMaster 필드를 새로 생성된 Member.no로 설정
+                company.noMemberMaster = member.no
+                company.save()
+                print(f"DEBUG: Company {company.no} updated - noMemberMaster: {member.no}, noLicenseRepresent: {company.noLicenseRepresent}")
 
                 messages.success(request, f'가입신청이 완료되었습니다. 업체명: {company.sCompanyName}')
                 return redirect('join:registration_success')
@@ -193,17 +219,37 @@ def btoc_registration(request):
                         file=contract_file
                     )
 
+                # Company 생성 시 자동으로 License 레코드 생성
+                try:
+                    license = License.objects.create(
+                        noCompany=company.no,
+                        sCompanyName=company.sCompanyName,
+                        sCeoName=company.sCeoName,
+                        sAccountMail=company.sAccoutMail or '',  # 회계담당자 이메일을 계좌 메일로 사용
+                        sLicenseNo='',  # 사업자등록번호는 빈 값으로 시작
+                        sAccount='',    # 계좌번호는 빈 값으로 시작
+                        fileLicense=company.fileLicense,  # Company의 사업자등록증 파일
+                        fileAccount=None,  # 통장사본은 나중에 별도 업로드
+                    )
+                    print(f"DEBUG: License record created for btoc company {company.no}: License ID {license.no}")
+                    # Company의 noLicenseRepresent 필드를 새로 생성된 License.no로 설정
+                    company.noLicenseRepresent = license.no
+                    company.save()
+                    print(f"DEBUG: Company {company.no} noLicenseRepresent set to {license.no}")
+                except Exception as e:
+                    print(f"DEBUG: Error creating License record for btoc: {str(e)}")
+
                 # Member 데이터 생성
-                Member.objects.create(
+                member = Member.objects.create(
                     sNaverID0='',  # 식별자는 빈값으로
                     sNaverID=request.POST.get('sNaverID', ''),  # 네이버 ID
-                    sCompanyName=request.POST.get('sCompanyName', ''),  # 업체명
-                    sName=request.POST.get('sCeoName', ''),  # 대표자 이름
-                    sPhone=request.POST.get('sCeoPhone', ''),  # 대표 핸드폰번호
+                    sCompanyName=company.sCompanyName,  # Company의 sCompanyName 사용
+                    sName2=company.sName2 or '',  # Company의 sName2 사용
+                    sName=company.sCeoName,  # Company의 sCeoName 사용
+                    sPhone=company.sCeoPhone or '',  # Company의 sCeoPhone 사용
                     noCompany=company.no,  # 자동으로 company 연결
                     nCafeGrade=0,  # 기본값: 일반
                     nNick='',
-                    bMaster=True,  # 마스터로 설정 (bMaster=1)
                     bApproval=False,  # 비승인 상태 (bApproval=0)
                     # 기본 권한들을 쓰기권한(2)으로 설정
                     nCompanyAuthority=2,
@@ -211,6 +257,11 @@ def btoc_registration(request):
                     nContractAuthority=2,
                     nEvaluationAuthority=2
                 )
+
+                # Company의 noMemberMaster 필드를 새로 생성된 Member.no로 설정
+                company.noMemberMaster = member.no
+                company.save()
+                print(f"DEBUG: BTOC Company {company.no} updated - noMemberMaster: {member.no}, noLicenseRepresent: {company.noLicenseRepresent}")
 
                 messages.success(request, f'btoc제휴 가입신청이 완료되었습니다. 업체명: {company.sCompanyName}')
                 return redirect('join:registration_success')
@@ -294,17 +345,37 @@ def btob_registration(request):
                         file=contract_file
                     )
 
+                # Company 생성 시 자동으로 License 레코드 생성
+                try:
+                    license = License.objects.create(
+                        noCompany=company.no,
+                        sCompanyName=company.sCompanyName,
+                        sCeoName=company.sCeoName,
+                        sAccountMail=company.sAccoutMail or '',  # 회계담당자 이메일을 계좌 메일로 사용
+                        sLicenseNo='',  # 사업자등록번호는 빈 값으로 시작
+                        sAccount='',    # 계좌번호는 빈 값으로 시작
+                        fileLicense=company.fileLicense,  # Company의 사업자등록증 파일
+                        fileAccount=None,  # 통장사본은 나중에 별도 업로드
+                    )
+                    print(f"DEBUG: License record created for btob company {company.no}: License ID {license.no}")
+                    # Company의 noLicenseRepresent 필드를 새로 생성된 License.no로 설정
+                    company.noLicenseRepresent = license.no
+                    company.save()
+                    print(f"DEBUG: Company {company.no} noLicenseRepresent set to {license.no}")
+                except Exception as e:
+                    print(f"DEBUG: Error creating License record for btob: {str(e)}")
+
                 # Member 데이터 생성
-                Member.objects.create(
+                member = Member.objects.create(
                     sNaverID0='',  # 식별자는 빈값으로
                     sNaverID=request.POST.get('sNaverID', ''),  # 네이버 ID
-                    sCompanyName=request.POST.get('sCompanyName', ''),  # 업체명
-                    sName=request.POST.get('sCeoName', ''),  # 대표자 이름
-                    sPhone=request.POST.get('sCeoPhone', ''),  # 대표 핸드폰번호
+                    sCompanyName=company.sCompanyName,  # Company의 sCompanyName 사용
+                    sName2=company.sName2 or '',  # Company의 sName2 사용
+                    sName=company.sCeoName,  # Company의 sCeoName 사용
+                    sPhone=company.sCeoPhone or '',  # Company의 sCeoPhone 사용
                     noCompany=company.no,  # 자동으로 company 연결
                     nCafeGrade=0,  # 기본값: 일반
                     nNick='',
-                    bMaster=True,  # 마스터로 설정 (bMaster=1)
                     bApproval=False,  # 비승인 상태 (bApproval=0)
                     # 기본 권한들을 쓰기권한(2)으로 설정
                     nCompanyAuthority=2,
@@ -312,6 +383,11 @@ def btob_registration(request):
                     nContractAuthority=2,
                     nEvaluationAuthority=2
                 )
+
+                # Company의 noMemberMaster 필드를 새로 생성된 Member.no로 설정
+                company.noMemberMaster = member.no
+                company.save()
+                print(f"DEBUG: BTOB Company {company.no} updated - noMemberMaster: {member.no}, noLicenseRepresent: {company.noLicenseRepresent}")
 
                 messages.success(request, f'btob제휴 가입신청이 완료되었습니다. 업체명: {company.sCompanyName}')
                 return redirect('join:registration_success')

@@ -5,11 +5,11 @@ from .models import Member
 @admin.register(Member)
 class MemberAdmin(admin.ModelAdmin):
     list_display = [
-        'no', 'sName', 'sCompanyName', 'sNaverID', 'bApproval', 'bMaster',
+        'no', 'sName', 'sCompanyName', 'sNaverID', 'bApproval',
         'nCompanyAuthority', 'nOrderAuthority', 'nContractAuthority', 'nEvaluationAuthority'
     ]
     list_filter = [
-        'bApproval', 'bMaster', 'nCafeGrade', 'nCompanyAuthority', 'nOrderAuthority',
+        'bApproval', 'nCafeGrade', 'nCompanyAuthority', 'nOrderAuthority',
         'nContractAuthority', 'nEvaluationAuthority', 'created_at'
     ]
     search_fields = ['sName', 'sCompanyName', 'sNaverID', 'nNick']
@@ -23,7 +23,7 @@ class MemberAdmin(admin.ModelAdmin):
             'fields': ('sName', 'sName2', 'sCompanyName', 'noCompany', 'sPhone', 'nCafeGrade', 'nNick')
         }),
         ('권한 설정', {
-            'fields': ('bMaster', 'nCompanyAuthority', 'nOrderAuthority', 'nContractAuthority', 'nEvaluationAuthority')
+            'fields': ('nCompanyAuthority', 'nOrderAuthority', 'nContractAuthority', 'nEvaluationAuthority')
         }),
         ('시스템 정보', {
             'fields': ('created_at', 'updated_at'),

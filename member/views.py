@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Q
 from .models import Member
+from company.models import Company
 
 
 def get_current_staff(request):
@@ -76,6 +77,15 @@ def member_list(request):
     else:
         members = members.order_by(sort_by)
 
+    # 마스터 판별을 위해 Company 정보를 가져와서 각 Member에 마스터 여부 추가
+    companies = Company.objects.all()
+    companies_dict = {company.no: company for company in companies}
+
+    # 각 Member에 마스터 여부 속성 추가
+    for member in members:
+        company = companies_dict.get(member.noCompany)
+        member.is_company_master = (company and company.noMemberMaster == member.no)
+
     context = {
         'members': members,
         'member_permission': member_permission,
@@ -97,7 +107,8 @@ def member_create(request):
             'not_logged_in': True,
             'title': '회원 추가',
             'action': 'create',
-            'current_staff': None
+            'current_staff': None,
+            'companies': []
         })
 
     # 쓰기 권한 확인
@@ -106,11 +117,17 @@ def member_create(request):
         return redirect('member:member_list')
 
     current_staff = get_current_staff(request)
+    companies = Company.objects.all().order_by('sName1')
+
+    # URL 파라미터에서 초기값 가져오기
+    initial_no_company = request.GET.get('noCompany', '')
+    initial_sname2 = request.GET.get('sName2', '')
+    initial_scompany_name = request.GET.get('sCompanyName', '')
 
     if request.method == 'POST':
         try:
             member = Member.objects.create(
-                sNaverID0=request.POST.get('sNaverID0', ''),
+                sNaverID0='',  # 네이버 로그인 시에만 자동으로 설정됨
                 bApproval=request.POST.get('bApproval') == 'on',
                 sNaverID=request.POST.get('sNaverID', ''),
                 sCompanyName=request.POST.get('sCompanyName', ''),
@@ -120,11 +137,10 @@ def member_create(request):
                 sPhone=request.POST.get('sPhone', ''),
                 nCafeGrade=int(request.POST.get('nCafeGrade', 0)),
                 nNick=request.POST.get('nNick', ''),
-                bMaster=request.POST.get('bMaster') == 'on',
-                nCompanyAuthority=int(request.POST.get('nCompanyAuthority', 0)),
-                nOrderAuthority=int(request.POST.get('nOrderAuthority', 0)),
-                nContractAuthority=int(request.POST.get('nContractAuthority', 0)),
-                nEvaluationAuthority=int(request.POST.get('nEvaluationAuthority', 0))
+                nCompanyAuthority=int(request.POST.get('nCompanyAuthority', 2)),
+                nOrderAuthority=int(request.POST.get('nOrderAuthority', 2)),
+                nContractAuthority=int(request.POST.get('nContractAuthority', 2)),
+                nEvaluationAuthority=int(request.POST.get('nEvaluationAuthority', 2))
             )
             messages.success(request, f'회원 "{member.sName}"이 성공적으로 추가되었습니다.')
             return redirect('member:member_list')
@@ -132,10 +148,27 @@ def member_create(request):
             messages.error(request, f'회원 추가 중 오류가 발생했습니다: {str(e)}')
             return redirect('member:member_list')
 
+    # 새로운 회원의 초기값 설정
+    class DummyMember:
+        is_company_master = False
+        # 권한 초기값을 모두 쓰기권한(2)로 설정
+        nCompanyAuthority = 2
+        nOrderAuthority = 2
+        nContractAuthority = 2
+        nEvaluationAuthority = 2
+        # 기타 필드 초기값
+        bApproval = False
+        nCafeGrade = 0
+
     return render(request, 'member/member_form.html', {
+        'member': DummyMember() if not hasattr(request, 'member') else request.member,
         'title': '회원 추가',
         'action': 'create',
-        'current_staff': current_staff
+        'current_staff': current_staff,
+        'companies': companies,
+        'initial_no_company': initial_no_company,
+        'initial_sname2': initial_sname2,
+        'initial_scompany_name': initial_scompany_name
     })
 
 
@@ -147,7 +180,8 @@ def member_update(request, pk):
             'not_logged_in': True,
             'title': '회원 수정',
             'action': 'update',
-            'current_staff': None
+            'current_staff': None,
+            'companies': []
         })
 
     # 쓰기 권한 확인
@@ -157,10 +191,11 @@ def member_update(request, pk):
 
     current_staff = get_current_staff(request)
     member = get_object_or_404(Member, pk=pk)
+    companies = Company.objects.all().order_by('sName1')
 
     if request.method == 'POST':
         try:
-            member.sNaverID0 = request.POST.get('sNaverID0', '')
+            # sNaverID0는 네이버 로그인 시에만 자동으로 설정되므로 수동 업데이트 불가
             member.bApproval = request.POST.get('bApproval') == 'on'
             member.sNaverID = request.POST.get('sNaverID', '')
             member.sCompanyName = request.POST.get('sCompanyName', '')
@@ -170,7 +205,6 @@ def member_update(request, pk):
             member.sPhone = request.POST.get('sPhone', '')
             member.nCafeGrade = int(request.POST.get('nCafeGrade', 0))
             member.nNick = request.POST.get('nNick', '')
-            member.bMaster = request.POST.get('bMaster') == 'on'
             member.nCompanyAuthority = int(request.POST.get('nCompanyAuthority', 0))
             member.nOrderAuthority = int(request.POST.get('nOrderAuthority', 0))
             member.nContractAuthority = int(request.POST.get('nContractAuthority', 0))
@@ -183,11 +217,39 @@ def member_update(request, pk):
             messages.error(request, f'회원 수정 중 오류가 발생했습니다: {str(e)}')
             return redirect('member:member_list')
 
+    # 초기값들 설정 (member_create와 동일한 로직)
+    try:
+        if member.noCompany and member.noCompany > 0:
+            company = Company.objects.get(no=member.noCompany)
+            initial_scompany_name = company.sCompanyName
+        else:
+            initial_scompany_name = member.sCompanyName
+    except Company.DoesNotExist:
+        initial_scompany_name = member.sCompanyName
+
+    # member_update용 초기값들
+    initial_no_company = member.noCompany if member.noCompany else 0
+    initial_sname2 = member.sName2 if member.sName2 else ''
+
+    # 마스터 여부 판별 (Company.noMemberMaster == Member.no)
+    try:
+        if member.noCompany:
+            company = Company.objects.get(no=member.noCompany)
+            member.is_company_master = (company.noMemberMaster == member.no)
+        else:
+            member.is_company_master = False
+    except Company.DoesNotExist:
+        member.is_company_master = False
+
     return render(request, 'member/member_form.html', {
         'member': member,
         'title': '회원 수정',
         'action': 'update',
-        'current_staff': current_staff
+        'current_staff': current_staff,
+        'companies': companies,
+        'initial_no_company': initial_no_company,
+        'initial_sname2': initial_sname2,
+        'initial_scompany_name': initial_scompany_name
     })
 
 
@@ -218,7 +280,8 @@ def member_view(request, pk):
             'title': '회원 정보 보기',
             'action': 'view',
             'current_staff': None,
-            'read_only': True
+            'read_only': True,
+            'companies': []
         })
 
     # 최소 읽기 권한 확인
@@ -229,11 +292,23 @@ def member_view(request, pk):
 
     current_staff = get_current_staff(request)
     member = get_object_or_404(Member, pk=pk)
+    companies = Company.objects.all().order_by('sName1')
+
+    # 마스터 여부 판별 (Company.noMemberMaster == Member.no)
+    try:
+        if member.noCompany:
+            company = Company.objects.get(no=member.noCompany)
+            member.is_company_master = (company.noMemberMaster == member.no)
+        else:
+            member.is_company_master = False
+    except Company.DoesNotExist:
+        member.is_company_master = False
 
     return render(request, 'member/member_form.html', {
         'member': member,
         'title': f'회원 정보 보기 - {member.sName}',
         'action': 'view',
         'current_staff': current_staff,
-        'read_only': True
+        'read_only': True,
+        'companies': companies
     })

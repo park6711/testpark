@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     'member',
     'company',
     'join',
+    'license',
 ]
 
 MIDDLEWARE = [
