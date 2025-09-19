@@ -10,7 +10,12 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# .env 파일 로드
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +25,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-nlk5agkjp1+7+sp168_46gy#h0gdmh%#5ano(r196@c+p7m-ny'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-nlk5agkjp1+7+sp168_46gy#h0gdmh%#5ano(r196@c+p7m-ny')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = ['*']  # Docker 환경에서 모든 호스트 허용
+
+# CSRF 설정
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'https://carpenterhosting.cafe24.com,http://localhost:8000,http://127.0.0.1:8000').split(',')
 
 
 # Application definition
@@ -138,9 +146,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
 # 네이버 소셜 로그인 설정
-NAVER_CLIENT_ID = '_mw6kojqJVXoWEBqYBKv'
-NAVER_CLIENT_SECRET = 'hHKrIfKoMA'
-NAVER_REDIRECT_URI = 'https://carpenterhosting.cafe24.com/auth/naver/callback/'
+NAVER_CLIENT_ID = os.getenv('NAVER_CLIENT_ID', '_mw6kojqJVXoWEBqYBKv')
+NAVER_CLIENT_SECRET = os.getenv('NAVER_CLIENT_SECRET', 'hHKrIfKoMA')
+NAVER_REDIRECT_URI = os.getenv('NAVER_REDIRECT_URI', 'http://localhost:8000/auth/naver/callback/')
 
 # 잔디 웹훅 설정
-JANDI_WEBHOOK_URL = 'https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265'
+JANDI_WEBHOOK_URL = os.getenv('JANDI_WEBHOOK_URL', 'https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265')
