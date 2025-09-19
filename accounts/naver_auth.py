@@ -17,7 +17,7 @@ class NaverAuthManager:
     def __init__(self):
         self.client_id = settings.NAVER_CLIENT_ID
         self.client_secret = settings.NAVER_CLIENT_SECRET
-        self.base_redirect_uri = settings.NAVER_REDIRECT_URI
+        self.base_redirect_uri = "https://carpenterhosting.cafe24.com/auth"
         # 기본 redirect_uri를 base로 사용 (ex: http://domain.com/accounts/)
 
     def generate_state(self) -> str:
@@ -47,9 +47,9 @@ class NaverAuthManager:
 
         # 로그인 타입에 따른 콜백 URL 설정
         if login_type == 'staff':
-            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}staff/naver/callback/"
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/staff/naver/callback/"
         else:  # company (default)
-            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}company/naver/callback/"
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/company/naver/callback/"
 
         params = {
             'response_type': 'code',
@@ -78,9 +78,9 @@ class NaverAuthManager:
 
         # 로그인 타입에 따른 콜백 URL 설정 (토큰 요청 시도 동일하게)
         if login_type == 'staff':
-            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}staff/naver/callback/"
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/staff/naver/callback/"
         else:  # company (default)
-            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}company/naver/callback/"
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/company/naver/callback/"
 
         token_url = 'https://nid.naver.com/oauth2.0/token'
         data = {
@@ -155,9 +155,9 @@ class NaverAuthManager:
                 # state 검증을 건너뛰고 토큰 요청
                 # 로그인 타입에 따른 콜백 URL 설정
                 if login_type == 'staff':
-                    redirect_uri = f"{self.base_redirect_uri.rstrip('/')}staff/naver/callback/"
+                    redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/staff/naver/callback/"
                 else:  # company (default)
-                    redirect_uri = f"{self.base_redirect_uri.rstrip('/')}company/naver/callback/"
+                    redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/company/naver/callback/"
 
                 token_url = 'https://nid.naver.com/oauth2.0/token'
                 data = {
