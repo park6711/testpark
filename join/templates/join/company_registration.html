@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>열린업체 가입신청서 - PMIS 2.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .form-container {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+            font-weight: 600;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="tel"]:focus,
+        input[type="number"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .file-input {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .file-input input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-input-label:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-item:hover {
+            background: #e9ecef;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+
+        .required {
+            color: #e74c3c;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 30px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .messages {
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .contract-files {
+            margin-top: 10px;
+        }
+
+        .help-text {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>열린업체 가입신청서</h1>
+        </div>
+
+        <div class="form-container">
+            {% if messages %}
+                <div class="messages">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <!-- 기본 정보 -->
+                <div class="section">
+                    <h2 class="section-title">기본 정보</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="sNaverID">네이버 ID <span class="required">*</span></label>
+                            <input type="text" id="sNaverID" name="sNaverID" required>
+                            <div class="help-text">카페내 열린업체 활동만을 위한 ID로서, 해당 ID를 통해서 상호, 연락처 노출이 되진 않는 ID이어야 합니다. 즉, 기존의 ID로 상호, 연락처 노출이 되는 블로그 활동을 하고 있는 경우에는 별도의 네이버 계정을 만들어서 주시기 바랍니다.</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="sCompanyName">업체명 <span class="required">*</span></label>
+                            <input type="text" id="sCompanyName" name="sCompanyName" required>
+                            <div class="help-text">사업자등록증에 있는 업체명을 기재해주세요.</div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="sAddress">주소 <span class="required">*</span></label>
+                            <textarea id="sAddress" name="sAddress" required></textarea>
+                            <div class="help-text">정확한 주소(신주소 또는 구주소) 기재해주시면 됩니다.(예: 서울시 금천구 OO동 120-58번지 302호)</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="nMember">직원수</label>
+                            <input type="number" id="nMember" name="nMember" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="sBuildLicense">보유 건설면허</label>
+                            <input type="text" id="sBuildLicense" name="sBuildLicense">
+                        </div>
+                        <div class="form-group">
+                            <label for="fileBuildLicense">건설면허 사진</label>
+                            <div class="file-input">
+                                <input type="file" id="fileBuildLicense" name="fileBuildLicense" accept="image/*,.pdf">
+                                <label for="fileBuildLicense" class="file-input-label">
+                                    📎 파일 선택 (이미지 또는 PDF)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="sStrength">업체 특장점</label>
+                            <textarea id="sStrength" name="sStrength" placeholder="업체의 강점이나 특장점을 입력해주세요"></textarea>
+                            <div class="help-text">주력으로 하는 공사 종류, 직접 할 수 있는 공사, 외주를 줘서 할 수 있는 공사, 할 수 없는 공사, 대표자 주요 경력 등을 적어주시면 됩니다.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 대표자 정보 -->
+                <div class="section">
+                    <h2 class="section-title">대표자 정보</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="sCeoName">대표자명 <span class="required">*</span></label>
+                            <input type="text" id="sCeoName" name="sCeoName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="sCeoPhone">대표자 연락처 <span class="required">*</span></label>
+                            <input type="tel" id="sCeoPhone" name="sCeoPhone" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="sCeoMail">대표자 이메일</label>
+                            <input type="email" id="sCeoMail" name="sCeoMail">
+                            <div class="help-text">카페 본부와 소통하기 위한 전용 메일주소를 기록해주세요.</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="fileCeo">대표자 사진</label>
+                            <div class="file-input">
+                                <input type="file" id="fileCeo" name="fileCeo" accept="image/*">
+                                <label for="fileCeo" class="file-input-label">
+                                    📷 사진 선택
+                                </label>
+                            </div>
+                            <div class="help-text">카페에 열린업체 사진 등록, 명찰 사진에 사용되니 정면으로 잘 나온 사진으로 올려주세요.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 담당자 정보 -->
+                <div class="section">
+                    <h2 class="section-title">담당자 정보</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="sSaleName">영업담당자명</label>
+                            <input type="text" id="sSaleName" name="sSaleName">
+                        </div>
+                        <div class="form-group">
+                            <label for="sSalePhone">영업담당자 연락처</label>
+                            <input type="tel" id="sSalePhone" name="sSalePhone">
+                        </div>
+                        <div class="form-group">
+                            <label for="sSaleMail">영업담당자 이메일</label>
+                            <input type="email" id="sSaleMail" name="sSaleMail">
+                        </div>
+                        <div class="form-group">
+                            <label for="fileSale">영업담당자 사진</label>
+                            <div class="file-input">
+                                <input type="file" id="fileSale" name="fileSale" accept="image/*">
+                                <label for="fileSale" class="file-input-label">
+                                    📷 사진 선택
+                                </label>
+                            </div>
+                            <div class="help-text">카페에 열린업체 사진 등록, 명찰 사진에 사용되니 정면으로 잘 나온 사진으로 올려주세요.</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="sAccoutName">회계담당자명</label>
+                            <input type="text" id="sAccoutName" name="sAccoutName">
+                        </div>
+                        <div class="form-group">
+                            <label for="sAccoutPhone">회계담당자 연락처</label>
+                            <input type="tel" id="sAccoutPhone" name="sAccoutPhone">
+                        </div>
+                        <div class="form-group">
+                            <label for="sAccoutMail">회계담당자 이메일</label>
+                            <input type="email" id="sAccoutMail" name="sAccoutMail">
+                            <div class="help-text">세금계산서 발행때 사용할 이메일 주소를 적어주세요. 대표자 이메일 주소와 동일하면 적지 않으셔도 됩니다.</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="fileLicense">사업자등록증 사진 <span class="required">*</span></label>
+                            <div class="file-input">
+                                <input type="file" id="fileLicense" name="fileLicense" accept="image/*,.pdf" required>
+                                <label for="fileLicense" class="file-input-label">
+                                    📄 파일 선택 (이미지 또는 PDF)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 비상연락처 -->
+                <div class="section">
+                    <h2 class="section-title">비상연락처</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="sEmergencyName">비상연락처명 <span class="required">*</span></label>
+                            <input type="text" id="sEmergencyName" name="sEmergencyName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="sEmergencyPhone">비상연락처 <span class="required">*</span></label>
+                            <input type="tel" id="sEmergencyPhone" name="sEmergencyPhone" required>
+                            <div class="help-text">대표님/담당자와 연락이 되지 않을 때 연락할 수 있는 연락처 번호(배우자 또는 직계 친척)를 기재해주세요.</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="sEmergencyRelation">대표자와의 관계 <span class="required">*</span></label>
+                            <input type="text" id="sEmergencyRelation" name="sEmergencyRelation" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 파일 업로드 -->
+                <div class="section">
+                    <h2 class="section-title">첨부 파일</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="fileContract">열린업체회원 가입협약서 <span class="required">*</span></label>
+                            <div class="file-input">
+                                <input type="file" id="fileContract" name="fileContract" accept="image/*,.pdf" multiple required>
+                                <label for="fileContract" class="file-input-label">
+                                    📎 파일 선택 (여러개 가능, 이미지 또는 PDF)
+                                </label>
+                            </div>
+                            <div class="help-text">(주)박목수의열린견적서에서 이메일(7171man@naver.com)로 보내드린 가입협약서를 수정없이 날인 후, 스캔한 파일을 업로드해주시고, 초기 개설 비용을 입금하셔야 계약이 성립됩니다.</div>
+                            <div class="contract-files" id="contractFilesList"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="fileCampaignAgree">계약 및 하자이행보증증권 발행 캠페인 참여동의서 <span class="required">*</span></label>
+                            <div class="file-input">
+                                <input type="file" id="fileCampaignAgree" name="fileCampaignAgree" accept="image/*,.pdf" required>
+                                <label for="fileCampaignAgree" class="file-input-label">
+                                    📄 파일 선택
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 동의 항목 -->
+                <div class="section">
+                    <h2 class="section-title">동의 항목</h2>
+
+                    <!-- 개인정보 동의 -->
+                    <div style="margin-bottom: 30px;">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="bPrivacy" name="bPrivacy" required>
+                            <label for="bPrivacy">개인정보 수집/이용 및 제3자 제공 동의 <span class="required">*</span></label>
+                        </div>
+                        <div class="help-text" style="margin-top: 15px; margin-left: 0; font-size: 0.9rem; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+                            수집한 개인정보는 다른 목적으로는 사용하지 않습니다. 동의를 거부할 수 있으며, 이 경우 열린업체 가입이 불가능합니다.<br>
+                            관련 상세글 ⇒ <a href="http://cafe.naver.com/pcarpenter/373170" target="_blank" style="color: #667eea; text-decoration: underline;">http://cafe.naver.com/pcarpenter/373170</a>
+                        </div>
+                    </div>
+
+                    <!-- 경업금지 동의 -->
+                    <div style="margin-bottom: 30px;">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="bCompetition" name="bCompetition" required>
+                            <label for="bCompetition">경업 금지에 대한 동의 <span class="required">*</span></label>
+                        </div>
+                        <div class="help-text" style="margin-top: 15px; margin-left: 0; font-size: 0.9rem; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+                            "박목수의 열린 견적서" 온라인 사업(인테리어 견적 중개 플랫폼)과 비슷한 성격의 온라인 카페 및 블로그, 홈페이지를 만들 수 없고, 비슷한 성격의 온라인 카페 및 블로그, 사이트에서의 활동(예를 들면, 집닥, 오늘의집, 위매치, MS하우징, 인기통... 등의 다른 인테리어 견적 중개 플랫폼에서의 소속 활동)을 할 수 없습니다. 동의를 거부할 수 있으며, 이 경우 열린업체 가입이 불가능합니다.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 서비스 항목 -->
+                <div class="section">
+                    <h2 class="section-title">공사 가능한 분야</h2>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="bAptAll" name="bAptAll">
+                            <label for="bAptAll">아파트 올수리</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="bAptPart" name="bAptPart">
+                            <label for="bAptPart">아파트 부분수리</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="bHouseAll" name="bHouseAll">
+                            <label for="bHouseAll">주택 올수리</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="bHousePart" name="bHousePart">
+                            <label for="bHousePart">주택 부분수리</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="bCommerceAll" name="bCommerceAll">
+                            <label for="bCommerceAll">상업시설 올수리</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="bCommercePart" name="bCommercePart">
+                            <label for="bCommercePart">상가 부분수리</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="bBuild" name="bBuild">
+                            <label for="bBuild">신축/증축</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn">
+                    🚀 가입신청서 제출
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 누적된 파일들을 저장할 배열
+        let accumulatedContractFiles = [];
+
+        // 파일 선택 시 시각적 피드백
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function() {
+                if (this.id === 'fileContract') {
+                    // 협약서 파일은 누적 처리
+                    handleContractFiles(this);
+                } else {
+                    // 다른 파일들은 기본 처리
+                    const label = this.nextElementSibling;
+                    if (this.files.length > 0) {
+                        label.textContent = this.files[0].name;
+                        label.style.background = '#28a745';
+                        label.style.color = 'white';
+                    } else {
+                        label.textContent = label.getAttribute('data-original') || '파일 선택';
+                        label.style.background = '#f8f9fa';
+                        label.style.color = 'inherit';
+                    }
+                }
+            });
+        });
+
+        // 협약서 파일 누적 처리
+        function handleContractFiles(input) {
+            const label = input.nextElementSibling;
+
+            // 새로 선택된 파일들을 누적 배열에 추가
+            if (input.files.length > 0) {
+                for (let i = 0; i < input.files.length; i++) {
+                    // 중복 파일 체크 (파일명과 크기로 비교)
+                    const newFile = input.files[i];
+                    const isDuplicate = accumulatedContractFiles.some(existingFile =>
+                        existingFile.name === newFile.name && existingFile.size === newFile.size
+                    );
+
+                    if (!isDuplicate) {
+                        accumulatedContractFiles.push(newFile);
+                    }
+                }
+            }
+
+            // 누적된 파일 목록 표시
+            updateContractFilesList();
+
+            // 라벨 업데이트
+            if (accumulatedContractFiles.length > 0) {
+                label.textContent = `${accumulatedContractFiles.length}개 파일 선택됨`;
+                label.style.background = '#28a745';
+                label.style.color = 'white';
+            } else {
+                label.textContent = '📎 파일 선택 (여러개 가능, 이미지 또는 PDF)';
+                label.style.background = '#f8f9fa';
+                label.style.color = 'inherit';
+            }
+        }
+
+        // 누적된 협약서 파일 목록 표시
+        function updateContractFilesList() {
+            const filesList = document.getElementById('contractFilesList');
+            filesList.innerHTML = '';
+
+            if (accumulatedContractFiles.length > 0) {
+                const list = document.createElement('ul');
+                list.style.marginTop = '10px';
+                list.style.paddingLeft = '20px';
+
+                accumulatedContractFiles.forEach((file, index) => {
+                    const listItem = document.createElement('li');
+                    listItem.style.color = '#667eea';
+                    listItem.style.marginBottom = '5px';
+                    listItem.style.display = 'flex';
+                    listItem.style.alignItems = 'center';
+                    listItem.style.justifyContent = 'space-between';
+
+                    const fileName = document.createElement('span');
+                    fileName.textContent = file.name;
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.textContent = '삭제';
+                    removeBtn.style.marginLeft = '10px';
+                    removeBtn.style.padding = '2px 8px';
+                    removeBtn.style.fontSize = '12px';
+                    removeBtn.style.background = '#dc3545';
+                    removeBtn.style.color = 'white';
+                    removeBtn.style.border = 'none';
+                    removeBtn.style.borderRadius = '4px';
+                    removeBtn.style.cursor = 'pointer';
+
+                    removeBtn.addEventListener('click', function() {
+                        accumulatedContractFiles.splice(index, 1);
+                        updateContractFilesList();
+
+                        // 라벨 업데이트
+                        const label = document.getElementById('fileContract').nextElementSibling;
+                        if (accumulatedContractFiles.length > 0) {
+                            label.textContent = `${accumulatedContractFiles.length}개 파일 선택됨`;
+                        } else {
+                            label.textContent = '📎 파일 선택 (여러개 가능, 이미지 또는 PDF)';
+                            label.style.background = '#f8f9fa';
+                            label.style.color = 'inherit';
+                        }
+                    });
+
+                    listItem.appendChild(fileName);
+                    listItem.appendChild(removeBtn);
+                    list.appendChild(listItem);
+                });
+
+                filesList.appendChild(list);
+            }
+        }
+
+        // 폼 제출 시 누적된 파일들을 폼에 전달
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const requiredFields = ['sNaverID', 'sCompanyName', 'sAddress', 'sCeoName', 'sCeoPhone', 'sEmergencyName', 'sEmergencyPhone', 'sEmergencyRelation'];
+            let isValid = true;
+            let errorMessage = '';
+
+            // 필수 텍스트 필드 검증
+            requiredFields.forEach(fieldName => {
+                const field = document.getElementById(fieldName);
+                if (!field.value.trim()) {
+                    field.style.borderColor = '#e74c3c';
+                    isValid = false;
+                } else {
+                    field.style.borderColor = '#e1e5e9';
+                }
+            });
+
+            // 개인정보 동의 체크 검증
+            const privacyCheck = document.getElementById('bPrivacy');
+            if (!privacyCheck.checked) {
+                isValid = false;
+                errorMessage += '개인정보 수집/이용 및 제3자 제공 동의가 필요합니다.\n';
+            }
+
+            // 경업금지 동의 체크 검증
+            const competitionCheck = document.getElementById('bCompetition');
+            if (!competitionCheck.checked) {
+                isValid = false;
+                errorMessage += '경업 금지에 대한 동의가 필요합니다.\n';
+            }
+
+            // 협약서 파일 검증 (누적된 파일 또는 선택된 파일)
+            const contractFileInput = document.getElementById('fileContract');
+            if (accumulatedContractFiles.length === 0 && contractFileInput.files.length === 0) {
+                isValid = false;
+                errorMessage += '열린업체회원 가입협약서 파일을 선택해주세요.\n';
+            }
+
+            // 캠페인 동의서 파일 검증
+            const campaignFileInput = document.getElementById('fileCampaignAgree');
+            if (!campaignFileInput.files || campaignFileInput.files.length === 0) {
+                isValid = false;
+                errorMessage += '계약 및 하자이행보증증권 발행 캠페인 참여동의서 파일을 선택해주세요.\n';
+            }
+
+            // 사업자등록증 파일 검증
+            const licenseFileInput = document.getElementById('fileLicense');
+            if (!licenseFileInput.files || licenseFileInput.files.length === 0) {
+                isValid = false;
+                errorMessage += '사업자등록증 사진을 선택해주세요.\n';
+            }
+
+            if (!isValid) {
+                e.preventDefault();
+                if (errorMessage) {
+                    alert(errorMessage.trim());
+                } else {
+                    alert('필수 항목을 모두 입력해주세요.');
+                }
+                return;
+            }
+
+            // 누적된 파일들을 폼에 추가
+            if (accumulatedContractFiles.length > 0) {
+                const form = this;
+                const contractFileInput = document.getElementById('fileContract');
+
+                // 기존 동적 생성 파일 필드들 제거
+                const existingDynamicInputs = form.querySelectorAll('.dynamic-contract-file');
+                existingDynamicInputs.forEach(input => input.remove());
+
+                // 누적된 파일들을 위한 새로운 input 필드들 생성
+                accumulatedContractFiles.forEach((file, index) => {
+                    const fileInput = document.createElement('input');
+                    fileInput.type = 'file';
+                    fileInput.name = 'fileContract';
+                    fileInput.className = 'dynamic-contract-file';
+                    fileInput.style.display = 'none';
+
+                    // DataTransfer를 사용해서 File 객체를 input에 설정
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    fileInput.files = dataTransfer.files;
+
+                    form.appendChild(fileInput);
+                });
+
+                console.log('Added', accumulatedContractFiles.length, 'accumulated files to form');
+            }
+        });
+    </script>
+</body>
+</html>

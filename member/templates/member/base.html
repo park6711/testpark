@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}PMIS 2.0 스텝 관리{% endblock %}</title>
+    <title>{% block title %}PMIS 2.0 회원 관리{% endblock %}</title>
     <style>
         * {
             margin: 0;
@@ -70,6 +70,7 @@
         }
 
         /* 메인 메뉴 */
+        {% if request.session.staff_user %}
         .main-menu {
             background: #2c3e50;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -146,6 +147,7 @@
             color: #3498db;
             padding-left: 25px;
         }
+        {% endif %}
 
         /* 컨텐츠 영역 */
         .content-wrapper {
@@ -271,11 +273,7 @@
             <div class="menu-item">
                 <a href="#" class="menu-link">업체정보</a>
                 <div class="dropdown">
-                    {% if current_staff and current_staff.nCompanyAuthority > 0 %}
-                        <a href="{% url 'company:company_list' %}" class="dropdown-item">업체 리스트</a>
-                    {% else %}
-                        <span class="dropdown-item" style="color: #ccc; cursor: not-allowed;">업체 리스트 (권한없음)</span>
-                    {% endif %}
+                    <a href="#" class="dropdown-item">업체 리스트</a>
                     <a href="#" class="dropdown-item">열린업체 정보</a>
                     <a href="#" class="dropdown-item">네이버 ID/사업자</a>
                     <a href="#" class="dropdown-item">휴무/불가능 일정</a>
@@ -357,8 +355,8 @@
         {% endif %}
         {% block content %}
         <div class="page-header">
-            <h1 class="page-title">{% block page_title %}PMIS 2.0 스텝 관리{% endblock %}</h1>
-            <p class="page-subtitle">{% block page_subtitle %}스텝 전용 관리 시스템{% endblock %}</p>
+            <h1 class="page-title">{% block page_title %}PMIS 2.0 회원 관리{% endblock %}</h1>
+            <p class="page-subtitle">{% block page_subtitle %}회원 전용 관리 시스템{% endblock %}</p>
         </div>
         {% endblock %}
     </div>

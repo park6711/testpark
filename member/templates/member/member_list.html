@@ -1,0 +1,479 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}회원 관리 - PMIS 2.0{% endblock %}
+
+{% block page_title %}회원 관리{% endblock %}
+{% block page_subtitle %}회원 정보 조회 및 관리{% endblock %}
+
+{% block content %}
+{% if not not_logged_in %}
+{{ block.super }}
+{% endif %}
+
+{% if not not_logged_in %}
+<style>
+    .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .search-section {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .search-input {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        width: 300px;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin: 2px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-warning {
+        background-color: #ffc107;
+        color: black;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .badge-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .badge-warning {
+        background-color: #ffc107;
+        color: black;
+    }
+
+    .badge-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .badge-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .badge-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .badge-light {
+        background-color: #f8f9fa;
+        color: #6c757d;
+        border: 1px solid #dee2e6;
+    }
+
+    .badge-dark {
+        background-color: #343a40;
+        color: white;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+    }
+
+    /* 컬럼별 폭 설정 */
+    th:nth-child(1), td:nth-child(1) { /* No */
+        width: 60px;
+    }
+    th:nth-child(2), td:nth-child(2) { /* 식별자 - 숫자 8자 폭 */
+        width: 80px;
+        font-family: monospace;
+    }
+    th:nth-child(3), td:nth-child(3) { /* 네이버 ID */
+        width: 180px;
+    }
+    th:nth-child(4), td:nth-child(4) { /* 연결 열린업체 */
+        width: 100px;
+    }
+    th:nth-child(5), td:nth-child(5) { /* 성명 */
+        width: 80px;
+    }
+    th:nth-child(6), td:nth-child(6) { /* 핸드폰 번호 */
+        width: 130px;
+        font-family: monospace;
+    }
+    th:nth-child(7), td:nth-child(7) { /* 카페등급 */
+        width: 90px;
+        text-align: center;
+    }
+    th:nth-child(8), td:nth-child(8) { /* 카페내 별명 */
+        width: 80px;
+    }
+    th:nth-child(9), td:nth-child(9) { /* 마스터 */
+        width: 80px;
+        text-align: center;
+    }
+    th:nth-child(10), td:nth-child(10) { /* 승인 */
+        width: 80px;
+        text-align: center;
+    }
+
+    th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+
+    tr.selected {
+        background-color: #e3f2fd !important;
+    }
+
+    .empty-message {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+        font-style: italic;
+    }
+
+    .permission-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .search-results-info {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .sortable-header {
+        cursor: pointer;
+        position: relative;
+        user-select: none;
+    }
+
+    .sortable-header:hover {
+        background-color: #e9ecef;
+        color: #007bff;
+    }
+
+    .sort-arrow {
+        font-size: 12px;
+        margin-left: 5px;
+        color: #007bff;
+    }
+
+    .sort-arrow.asc::after {
+        content: "▲";
+    }
+
+    .sort-arrow.desc::after {
+        content: "▼";
+    }
+</style>
+
+<div class="controls">
+    {% if not_logged_in %}
+    <div class="permission-info">
+        <span class="badge badge-info">
+            🔐 로그인이 필요합니다
+        </span>
+        <div style="margin-top: 15px;">
+            <a href="{% url 'accounts:login' %}" class="btn btn-primary">로그인 하기</a>
+        </div>
+    </div>
+    {% elif no_permission %}
+    <div class="permission-info">
+        <span class="badge badge-secondary">
+            🚫 회원 관리 접근 권한이 없습니다 (nCompanyAuthority: {{ member_permission }})
+        </span>
+    </div>
+    {% elif can_write %}
+    <div class="search-section">
+        <form method="get" style="display: flex; gap: 10px;">
+            <input type="text"
+                   name="search"
+                   value="{{ search_query }}"
+                   placeholder="네이버ID, 업체명, 성명, 핸드폰번호로 검색..."
+                   class="search-input">
+            <button type="submit" class="btn btn-primary">검색</button>
+            {% if search_query %}
+                <a href="{% url 'member:member_list' %}" class="btn btn-secondary">초기화</a>
+            {% endif %}
+        </form>
+    </div>
+    <div>
+        <a href="{% url 'member:member_create' %}" class="btn btn-primary">+ 새 회원 추가</a>
+        <button id="editBtn" class="btn btn-warning" disabled onclick="editSelected()">수정</button>
+        <button id="deleteBtn" class="btn btn-danger" disabled onclick="deleteSelected()">삭제</button>
+    </div>
+    {% elif member_permission == 1 %}
+    <div class="search-section">
+        <form method="get" style="display: flex; gap: 10px;">
+            <input type="text"
+                   name="search"
+                   value="{{ search_query }}"
+                   placeholder="네이버ID, 업체명, 성명, 핸드폰번호로 검색..."
+                   class="search-input">
+            <button type="submit" class="btn btn-primary">검색</button>
+            {% if search_query %}
+                <a href="{% url 'member:member_list' %}" class="btn btn-secondary">초기화</a>
+            {% endif %}
+        </form>
+        <span class="badge badge-info">
+            📖 읽기 전용 모드 (nCompanyAuthority: {{ member_permission }})
+        </span>
+    </div>
+    <div>
+        <button id="viewBtn" class="btn btn-success" disabled onclick="viewSelected()">보기</button>
+    </div>
+    {% endif %}
+</div>
+
+{% if search_query %}
+<div class="search-results-info">
+    검색어 "{{ search_query }}"에 대한 {{ members|length }}개의 결과
+</div>
+{% endif %}
+
+<!-- 회원 목록 테이블 -->
+<table>
+    <thead>
+        <tr>
+            <th class="sortable-header" onclick="sortTable('no')">
+                No
+                {% if sort_by == 'no' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
+            <th>식별자</th>
+            <th class="sortable-header" onclick="sortTable('sNaverID')">
+                네이버 ID
+                {% if sort_by == 'sNaverID' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
+            <th>연결 열린업체</th>
+            <th class="sortable-header" onclick="sortTable('sName')">
+                성명
+                {% if sort_by == 'sName' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
+            <th class="sortable-header" onclick="sortTable('sPhone')">
+                핸드폰 번호
+                {% if sort_by == 'sPhone' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
+            <th>카페등급</th>
+            <th>카페내 별명</th>
+            <th>마스터</th>
+            <th>승인</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if not_logged_in %}
+        <tr>
+            <td colspan="10" class="empty-message">로그인 후 회원 목록을 확인할 수 있습니다.</td>
+        </tr>
+        {% elif no_permission %}
+        <tr>
+            <td colspan="10" class="empty-message">회원 관리 권한이 없어 목록을 표시할 수 없습니다.</td>
+        </tr>
+        {% else %}
+            {% for member in members %}
+            <tr onclick="selectRow(this, {{ member.no }})" ondblclick="doubleClickRow({{ member.no }})" data-id="{{ member.no }}">
+                <td>{{ member.no }}</td>
+                <td>{{ member.sNaverID0|default:"-" }}</td>
+                <td>{{ member.sNaverID }}</td>
+                <td>{{ member.noCompany }}</td>
+                <td>{{ member.sName }}</td>
+                <td>{{ member.sPhone|default:"-" }}</td>
+                <td>
+                    {% if member.nCafeGrade == 0 %}
+                        <span class="badge badge-secondary">일반</span>
+                    {% elif member.nCafeGrade == 1 %}
+                        <span class="badge badge-primary">광고제휴</span>
+                    {% elif member.nCafeGrade == 2 %}
+                        <span class="badge badge-info">단종열린</span>
+                    {% elif member.nCafeGrade == 3 %}
+                        <span class="badge badge-warning">토탈열린</span>
+                    {% else %}
+                        <span class="badge badge-dark">연합회</span>
+                    {% endif %}
+                </td>
+                <td>{{ member.nNick|default:"-" }}</td>
+                <td>
+                    {% if member.bMaster %}
+                        <span class="badge badge-warning">마스터</span>
+                    {% else %}
+                        <span class="badge badge-light">일반</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if member.bApproval %}
+                        <span class="badge badge-success">승인</span>
+                    {% else %}
+                        <span class="badge badge-secondary">미승인</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="10" class="empty-message">
+                    {% if search_query %}
+                        검색 조건에 맞는 회원이 없습니다.
+                    {% else %}
+                        등록된 회원이 없습니다.
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        {% endif %}
+    </tbody>
+</table>
+
+<script>
+    let selectedRow = null;
+    let selectedMemberId = null;
+
+    function selectRow(row, memberId) {
+        // 기존 선택 제거
+        if (selectedRow) {
+            selectedRow.classList.remove('selected');
+        }
+
+        // 새로운 행 선택
+        selectedRow = row;
+        selectedMemberId = memberId;
+        row.classList.add('selected');
+
+        // 버튼 활성화 (권한에 따라)
+        {% if can_write %}
+        document.getElementById('editBtn').disabled = false;
+        document.getElementById('deleteBtn').disabled = false;
+        {% elif member_permission == 1 %}
+        document.getElementById('viewBtn').disabled = false;
+        {% endif %}
+    }
+
+    function editSelected() {
+        if (selectedMemberId) {
+            window.location.href = '{% url "member:member_update" 0 %}'.replace('0', selectedMemberId);
+        }
+    }
+
+    function deleteSelected() {
+        if (selectedMemberId) {
+            if (confirm('정말로 이 회원을 삭제하시겠습니까?')) {
+                window.location.href = '{% url "member:member_delete" 0 %}'.replace('0', selectedMemberId);
+            }
+        }
+    }
+
+    function viewSelected() {
+        if (selectedMemberId) {
+            window.location.href = '{% url "member:member_view" 0 %}'.replace('0', selectedMemberId);
+        }
+    }
+
+    function doubleClickRow(memberId) {
+        // 더블클릭 시 바로 수정/보기 모드로 이동
+        {% if can_write %}
+        // 수정 권한이 있으면 수정 모드로
+        window.location.href = '{% url "member:member_update" 0 %}'.replace('0', memberId);
+        {% elif member_permission == 1 %}
+        // 읽기 권한만 있으면 보기 모드로
+        window.location.href = '{% url "member:member_view" 0 %}'.replace('0', memberId);
+        {% endif %}
+    }
+
+    function sortTable(field) {
+        const currentUrl = new URL(window.location);
+        const currentSort = currentUrl.searchParams.get('sort');
+        const currentOrder = currentUrl.searchParams.get('order');
+
+        // 현재 정렬 필드와 같으면 정렬 순서 토글, 다르면 오름차순으로 시작
+        let newOrder = 'asc';
+        if (currentSort === field && currentOrder === 'asc') {
+            newOrder = 'desc';
+        }
+
+        // URL 파라미터 설정
+        currentUrl.searchParams.set('sort', field);
+        currentUrl.searchParams.set('order', newOrder);
+
+        // 페이지 이동
+        window.location.href = currentUrl.toString();
+    }
+
+</script>
+
+{% endif %}
+
+{% endblock %}

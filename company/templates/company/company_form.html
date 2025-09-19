@@ -1,0 +1,1214 @@
+{% extends 'staff/base.html' %}
+{% load humanize %}
+
+{% block title %}{{ title }} - PMIS 2.0{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}
+    {% if action == 'view' %}
+        업체 정보 상세 조회
+    {% elif action == 'create' %}
+        새로운 업체 등록
+    {% else %}
+        업체 정보 수정
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+{% if not not_logged_in %}
+{{ block.super }}
+{% endif %}
+
+{% if not not_logged_in %}
+<style>
+    .form-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 30px;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="date"],
+    select,
+    textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    input[type="checkbox"] {
+        margin-right: 10px;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .readonly-field {
+        background-color: #f8f9fa !important;
+        cursor: not-allowed;
+    }
+
+    .readonly-display {
+        padding: 8px 12px;
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        color: #333;
+        font-size: 14px;
+        font-weight: 600;
+        min-height: 20px;
+    }
+
+    .current-file {
+        margin-top: 5px;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .current-file a {
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .current-file a:hover {
+        text-decoration: underline;
+    }
+
+    input[type="file"] {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: white;
+        font-size: 14px;
+        width: 100%;
+    }
+
+    input[type="file"]:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+    .delete-checkbox {
+        display: block;
+        margin-top: 5px;
+        font-size: 12px;
+        color: #dc3545;
+        cursor: pointer;
+    }
+
+    .delete-checkbox input[type="checkbox"] {
+        margin-right: 5px;
+        width: auto;
+    }
+
+    .delete-checkbox:hover {
+        background-color: #fff5f5;
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+
+    .file-help {
+        font-size: 12px;
+        color: #666;
+        margin-top: 5px;
+    }
+
+    .current-files {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+    }
+
+    .current-files strong {
+        display: block;
+        margin-bottom: 10px;
+        color: #333;
+    }
+
+    .file-item {
+        margin-bottom: 5px;
+        padding: 5px 0;
+    }
+
+    .file-item:last-child {
+        margin-bottom: 0;
+    }
+
+    input[type="file"][multiple] {
+        border: 2px dashed #ddd;
+        padding: 20px;
+        text-align: center;
+        background-color: #fafafa;
+    }
+
+    input[type="file"][multiple]:hover {
+        border-color: #007bff;
+        background-color: #f0f8ff;
+    }
+
+    .selected-files {
+        margin-top: 10px;
+        font-size: 14px;
+    }
+
+    .selected-file-item {
+        background: #e9ecef;
+        padding: 5px 10px;
+        margin: 2px 0;
+        border-radius: 3px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .file-type-pdf {
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .file-type-image {
+        color: #28a745;
+        font-weight: bold;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin-right: 10px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .button-group {
+        margin-top: 30px;
+        text-align: center;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 20px;
+    }
+
+    .form-row .form-group {
+        flex: 1;
+    }
+
+    .form-section {
+        margin-bottom: 30px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+    }
+
+    .form-section-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #333;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 5px;
+    }
+
+    .checkbox-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 10px;
+    }
+
+    small {
+        color: #666;
+        font-size: 12px;
+    }
+</style>
+
+<div class="form-container">
+    {% if read_only %}
+    <div class="alert alert-info">
+        <strong>📖 읽기 전용 모드</strong><br>
+        이 정보는 조회만 가능합니다. 수정 권한이 없습니다.
+    </div>
+    <form>
+    {% else %}
+    <form method="post" enctype="multipart/form-data" onsubmit="return prepareFormSubmission()">
+        {% csrf_token %}
+    {% endif %}
+
+        <!-- 기본 정보 섹션 -->
+        <div class="form-section">
+            <div class="form-section-title">기본 정보</div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sName1">열린업체명1</label>
+                    <input type="text"
+                           id="sName1"
+                           name="sName1"
+                           value="{{ company.sName1|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}
+                           oninput="generateNames()">
+                    <small>예: "서울1호 영등포" 입력시 자동으로 "서울1호", "서울1"가 입력됩니다.</small>
+                </div>
+                <div class="form-group">
+                    <label for="sName2">열린업체명2</label>
+                    <input type="text"
+                           id="sName2"
+                           name="sName2"
+                           value="{{ company.sName2|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                    <small>자동 생성: "서울1호"</small>
+                </div>
+                <div class="form-group">
+                    <label for="sName3">열린업체명3</label>
+                    <input type="text"
+                           id="sName3"
+                           name="sName3"
+                           value="{{ company.sName3|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                    <small>자동 생성: "서울1"</small>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sCompanyName">업체명</label>
+                    <input type="text"
+                           id="sCompanyName"
+                           name="sCompanyName"
+                           value="{{ company.sCompanyName|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="sNaverID">네이버 ID</label>
+                    <input type="text"
+                           id="sNaverID"
+                           name="sNaverID"
+                           value="{{ company.sNaverID|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="nType">업체 타입</label>
+                    <select id="nType" name="nType" {% if read_only %}disabled{% endif %}>
+                        <option value="0" {% if company.nType == 0 %}selected{% endif %}>일반토탈</option>
+                        <option value="1" {% if company.nType == 1 %}selected{% endif %}>고정비토탈</option>
+                        <option value="2" {% if company.nType == 2 %}selected{% endif %}>부분단종</option>
+                        <option value="3" {% if company.nType == 3 %}selected{% endif %}>순수단종</option>
+                        <option value="4" {% if company.nType == 4 %}selected{% endif %}>btoc제휴</option>
+                        <option value="5" {% if company.nType == 5 %}selected{% endif %}>btob제휴</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="nCondition">업체 상태</label>
+                    <select id="nCondition" name="nCondition" {% if read_only %}disabled{% endif %}>
+                        <option value="0" {% if company.nCondition == 0 %}selected{% endif %}>준비중</option>
+                        <option value="1" {% if company.nCondition == 1 %}selected{% endif %}>정상</option>
+                        <option value="2" {% if company.nCondition == 2 %}selected{% endif %}>일시정지</option>
+                        <option value="3" {% if company.nCondition == 3 %}selected{% endif %}>탈퇴</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="sAddress">주소</label>
+                <textarea id="sAddress"
+                          name="sAddress"
+                          rows="3"
+                          {% if read_only %}readonly class="readonly-field"{% endif %}>{{ company.sAddress|default:'' }}</textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="nMember">직원수</label>
+                    <input type="number"
+                           id="nMember"
+                           name="nMember"
+                           value="{{ company.nMember|default:0 }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="sBuildLicense">보유 건설면허</label>
+                    <input type="text"
+                           id="sBuildLicense"
+                           name="sBuildLicense"
+                           value="{{ company.sBuildLicense|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fileBuildLicense">건설면허 사진</label>
+                    {% if read_only %}
+                        {% if company.fileBuildLicense %}
+                            <div class="readonly-display">
+                                <a href="{{ company.fileBuildLicense.url }}" target="_blank">📎 {{ company.fileBuildLicense.name }}</a>
+                            </div>
+                        {% else %}
+                            <div class="readonly-display">-</div>
+                        {% endif %}
+                    {% else %}
+                        <input type="file"
+                               id="fileBuildLicense"
+                               name="fileBuildLicense"
+                               accept=".jpg,.jpeg,.png,.gif,.bmp,.webp">
+                        {% if company.fileBuildLicense %}
+                            <div class="current-file">
+                                현재 사진: <a href="{{ company.fileBuildLicense.url }}" target="_blank">{{ company.fileBuildLicense.name }}</a>
+                                <label class="delete-checkbox">
+                                    <input type="checkbox" name="delete_fileBuildLicense" value="1">
+                                    사진 삭제
+                                </label>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="fileLicense">사업자등록증 사진</label>
+                    {% if read_only %}
+                        {% if company.fileLicense %}
+                            <div class="readonly-display">
+                                <a href="{{ company.fileLicense.url }}" target="_blank">📎 {{ company.fileLicense.name }}</a>
+                            </div>
+                        {% else %}
+                            <div class="readonly-display">-</div>
+                        {% endif %}
+                    {% else %}
+                        <input type="file"
+                               id="fileLicense"
+                               name="fileLicense"
+                               accept=".jpg,.jpeg,.png,.gif,.bmp,.webp">
+                        {% if company.fileLicense %}
+                            <div class="current-file">
+                                현재 사진: <a href="{{ company.fileLicense.url }}" target="_blank">{{ company.fileLicense.name }}</a>
+                                <label class="delete-checkbox">
+                                    <input type="checkbox" name="delete_fileLicense" value="1">
+                                    사진 삭제
+                                </label>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="sStrength">업체 특장점</label>
+                <textarea id="sStrength"
+                          name="sStrength"
+                          rows="3"
+                          {% if read_only %}readonly class="readonly-field"{% endif %}>{{ company.sStrength|default:'' }}</textarea>
+            </div>
+        </div>
+
+        <!-- 담당자 정보 섹션 -->
+        <div class="form-section">
+            <div class="form-section-title">담당자 정보</div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sCeoName">대표자명 *</label>
+                    <input type="text"
+                           id="sCeoName"
+                           name="sCeoName"
+                           value="{{ company.sCeoName|default:'' }}"
+                           {% if not read_only %}required{% endif %}
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="sCeoPhone">대표자 연락처 *</label>
+                    <input type="text"
+                           id="sCeoPhone"
+                           name="sCeoPhone"
+                           value="{{ company.sCeoPhone|default:'' }}"
+                           {% if not read_only %}required{% endif %}
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="sCeoMail">대표자 이메일</label>
+                    <input type="email"
+                           id="sCeoMail"
+                           name="sCeoMail"
+                           value="{{ company.sCeoMail|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="fileCeo">대표자 사진</label>
+                    {% if read_only %}
+                        {% if company.fileCeo %}
+                            <div class="readonly-display">
+                                <a href="{{ company.fileCeo.url }}" target="_blank">📎 {{ company.fileCeo.name }}</a>
+                            </div>
+                        {% else %}
+                            <div class="readonly-display">-</div>
+                        {% endif %}
+                    {% else %}
+                        <input type="file"
+                               id="fileCeo"
+                               name="fileCeo"
+                               accept=".jpg,.jpeg,.png,.gif,.bmp,.webp">
+                        {% if company.fileCeo %}
+                            <div class="current-file">
+                                현재 사진: <a href="{{ company.fileCeo.url }}" target="_blank">{{ company.fileCeo.name }}</a>
+                                <label class="delete-checkbox">
+                                    <input type="checkbox" name="delete_fileCeo" value="1">
+                                    사진 삭제
+                                </label>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sSaleName">영업담당자명</label>
+                    <input type="text"
+                           id="sSaleName"
+                           name="sSaleName"
+                           value="{{ company.sSaleName|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="sSalePhone">영업담당자 연락처</label>
+                    <input type="text"
+                           id="sSalePhone"
+                           name="sSalePhone"
+                           value="{{ company.sSalePhone|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="sSaleMail">영업담당자 이메일</label>
+                    <input type="email"
+                           id="sSaleMail"
+                           name="sSaleMail"
+                           value="{{ company.sSaleMail|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="fileSale">영업담당자 사진</label>
+                    {% if read_only %}
+                        {% if company.fileSale %}
+                            <div class="readonly-display">
+                                <a href="{{ company.fileSale.url }}" target="_blank">📎 {{ company.fileSale.name }}</a>
+                            </div>
+                        {% else %}
+                            <div class="readonly-display">-</div>
+                        {% endif %}
+                    {% else %}
+                        <input type="file"
+                               id="fileSale"
+                               name="fileSale"
+                               accept=".jpg,.jpeg,.png,.gif,.bmp,.webp">
+                        {% if company.fileSale %}
+                            <div class="current-file">
+                                현재 사진: <a href="{{ company.fileSale.url }}" target="_blank">{{ company.fileSale.name }}</a>
+                                <label class="delete-checkbox">
+                                    <input type="checkbox" name="delete_fileSale" value="1">
+                                    사진 삭제
+                                </label>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sAccoutName">회계담당자명</label>
+                    <input type="text"
+                           id="sAccoutName"
+                           name="sAccoutName"
+                           value="{{ company.sAccoutName|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="sAccoutPhone">회계담당자 연락처</label>
+                    <input type="text"
+                           id="sAccoutPhone"
+                           name="sAccoutPhone"
+                           value="{{ company.sAccoutPhone|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="sAccoutMail">회계담당자 이메일</label>
+                    <input type="email"
+                           id="sAccoutMail"
+                           name="sAccoutMail"
+                           value="{{ company.sAccoutMail|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sEmergencyName">비상연락처명</label>
+                    <input type="text"
+                           id="sEmergencyName"
+                           name="sEmergencyName"
+                           value="{{ company.sEmergencyName|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="sEmergencyPhone">비상연락처</label>
+                    <input type="text"
+                           id="sEmergencyPhone"
+                           name="sEmergencyPhone"
+                           value="{{ company.sEmergencyPhone|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="sEmergencyRelation">비상연락처 관계</label>
+                    <input type="text"
+                           id="sEmergencyRelation"
+                           name="sEmergencyRelation"
+                           value="{{ company.sEmergencyRelation|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+            </div>
+        </div>
+
+        <!-- 계약 정보 섹션 -->
+        <div class="form-section">
+            <div class="form-section-title">계약 정보</div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="dateJoin">가입일</label>
+                    <input type="date"
+                           id="dateJoin"
+                           name="dateJoin"
+                           value="{{ company.dateJoin|date:'Y-m-d' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="nJoinFee">가입비(원)</label>
+                    {% if read_only %}
+                        <div class="readonly-display">{{ company.nJoinFee|default:0|intcomma }}원</div>
+                        <input type="hidden" name="nJoinFee" value="{{ company.nJoinFee|default:0 }}">
+                    {% else %}
+                        <input type="text"
+                               id="nJoinFee"
+                               name="nJoinFee"
+                               value="{% if company.nJoinFee and company.nJoinFee != 0 %}{{ company.nJoinFee|intcomma }}{% else %}0{% endif %}"
+                               placeholder="숫자만 입력 (예: 1,000,000)"
+                               class="money-input"
+                               oninput="formatMoney(this)">
+                        <input type="hidden" id="nJoinFee_raw" name="nJoinFee_raw" value="{{ company.nJoinFee|default:0 }}">
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="nDeposit">보증금(원)</label>
+                    {% if read_only %}
+                        <div class="readonly-display">{{ company.nDeposit|default:0|intcomma }}원</div>
+                        <input type="hidden" name="nDeposit" value="{{ company.nDeposit|default:0 }}">
+                    {% else %}
+                        <input type="text"
+                               id="nDeposit"
+                               name="nDeposit"
+                               value="{% if company.nDeposit and company.nDeposit != 0 %}{{ company.nDeposit|intcomma }}{% else %}0{% endif %}"
+                               placeholder="숫자만 입력 (예: 5,000,000)"
+                               class="money-input"
+                               oninput="formatMoney(this)">
+                        <input type="hidden" id="nDeposit_raw" name="nDeposit_raw" value="{{ company.nDeposit|default:0 }}">
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="nFixFee">고정비(원)</label>
+                    {% if read_only %}
+                        <div class="readonly-display">{{ company.nFixFee|default:0|intcomma }}원</div>
+                        <input type="hidden" name="nFixFee" value="{{ company.nFixFee|default:0 }}">
+                    {% else %}
+                        <input type="text"
+                               id="nFixFee"
+                               name="nFixFee"
+                               value="{% if company.nFixFee and company.nFixFee != 0 %}{{ company.nFixFee|intcomma }}{% else %}0{% endif %}"
+                               placeholder="숫자만 입력 (예: 200,000)"
+                               class="money-input"
+                               oninput="formatMoney(this)">
+                        <input type="hidden" id="nFixFee_raw" name="nFixFee_raw" value="{{ company.nFixFee|default:0 }}">
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="dateFixFeeStart">고정비 시작일</label>
+                    <input type="date"
+                           id="dateFixFeeStart"
+                           name="dateFixFeeStart"
+                           value="{{ company.dateFixFeeStart|date:'Y-m-d' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="fFeePercent">수수료율(%)</label>
+                    <input type="number"
+                           step="0.01"
+                           id="fFeePercent"
+                           name="fFeePercent"
+                           value="{{ company.fFeePercent|default:0.0 }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="nOrderFee">오더당 수수료(원)</label>
+                    {% if read_only %}
+                        <div class="readonly-display">{{ company.nOrderFee|default:0|intcomma }}원</div>
+                        <input type="hidden" name="nOrderFee" value="{{ company.nOrderFee|default:0 }}">
+                    {% else %}
+                        <input type="text"
+                               id="nOrderFee"
+                               name="nOrderFee"
+                               value="{% if company.nOrderFee and company.nOrderFee != 0 %}{{ company.nOrderFee|intcomma }}{% else %}0{% endif %}"
+                               placeholder="숫자만 입력 (예: 50,000)"
+                               class="money-input"
+                               oninput="formatMoney(this)">
+                        <input type="hidden" id="nOrderFee_raw" name="nOrderFee_raw" value="{{ company.nOrderFee|default:0 }}">
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="nReportPeriod">보고주기</label>
+                    <input type="number"
+                           id="nReportPeriod"
+                           name="nReportPeriod"
+                           value="{{ company.nReportPeriod|default:0 }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="contractFiles">열린업체회원 가입협약서</label>
+                    {% if read_only %}
+                        {% if company.contract_files.exists %}
+                            <div class="readonly-display">
+                                {% for contract_file in company.contract_files.all %}
+                                    <div class="file-item">
+                                        <a href="{{ contract_file.file.url }}" target="_blank">📎 {{ contract_file.name }}</a>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="readonly-display">-</div>
+                        {% endif %}
+                    {% else %}
+                        <input type="file"
+                               id="contractFiles"
+                               name="contractFiles"
+                               accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.pdf"
+                               multiple
+                               onchange="updateFileList(this)">
+                        <div class="file-help">여러 파일을 선택할 수 있습니다. (이미지: jpg, png, gif 등 / 문서: PDF)</div>
+                        <div id="selectedFiles" class="selected-files"></div>
+
+                        {% if company.contract_files.exists %}
+                            <div class="current-files">
+                                <strong>현재 업로드된 열린업체회원 가입협약서:</strong>
+                                {% for contract_file in company.contract_files.all %}
+                                    <div class="current-file">
+                                        <a href="{{ contract_file.file.url }}" target="_blank">{{ contract_file.name }}</a>
+                                        <label class="delete-checkbox">
+                                            <input type="checkbox" name="delete_contract_file" value="{{ contract_file.id }}">
+                                            파일 삭제
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="fileCampaignAgree">계약 및 하자이행보증증권 발행 캠페인 참여동의서</label>
+                    {% if read_only %}
+                        {% if company.fileCampaignAgree %}
+                            <div class="readonly-display">
+                                <a href="{{ company.fileCampaignAgree.url }}" target="_blank">📎 {{ company.fileCampaignAgree.name }}</a>
+                            </div>
+                        {% else %}
+                            <div class="readonly-display">-</div>
+                        {% endif %}
+                    {% else %}
+                        <input type="file"
+                               id="fileCampaignAgree"
+                               name="fileCampaignAgree"
+                               accept=".jpg,.jpeg,.png,.gif,.bmp,.webp">
+                        {% if company.fileCampaignAgree %}
+                            <div class="current-file">
+                                현재 사진: <a href="{{ company.fileCampaignAgree.url }}" target="_blank">{{ company.fileCampaignAgree.name }}</a>
+                                <label class="delete-checkbox">
+                                    <input type="checkbox" name="delete_fileCampaignAgree" value="1">
+                                    사진 삭제
+                                </label>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 공사 가능한 분야 섹션 -->
+        <div class="form-section">
+            <div class="form-section-title">공사 가능한 분야</div>
+
+            <div class="checkbox-grid">
+                <div class="checkbox-group">
+                    <input type="checkbox"
+                           id="bAptAll"
+                           name="bAptAll"
+                           {% if company.bAptAll %}checked{% endif %}
+                           {% if read_only %}disabled{% endif %}>
+                    <label for="bAptAll">아파트 올수리</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox"
+                           id="bAptPart"
+                           name="bAptPart"
+                           {% if company.bAptPart %}checked{% endif %}
+                           {% if read_only %}disabled{% endif %}>
+                    <label for="bAptPart">아파트 부분수리</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox"
+                           id="bHouseAll"
+                           name="bHouseAll"
+                           {% if company.bHouseAll %}checked{% endif %}
+                           {% if read_only %}disabled{% endif %}>
+                    <label for="bHouseAll">주택 올수리</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox"
+                           id="bHousePart"
+                           name="bHousePart"
+                           {% if company.bHousePart %}checked{% endif %}
+                           {% if read_only %}disabled{% endif %}>
+                    <label for="bHousePart">주택 부분수리</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox"
+                           id="bCommerceAll"
+                           name="bCommerceAll"
+                           {% if company.bCommerceAll %}checked{% endif %}
+                           {% if read_only %}disabled{% endif %}>
+                    <label for="bCommerceAll">상업시설 올수리</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox"
+                           id="bCommercePart"
+                           name="bCommercePart"
+                           {% if company.bCommercePart %}checked{% endif %}
+                           {% if read_only %}disabled{% endif %}>
+                    <label for="bCommercePart">상가 부분수리</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox"
+                           id="bBuild"
+                           name="bBuild"
+                           {% if company.bBuild %}checked{% endif %}
+                           {% if read_only %}disabled{% endif %}>
+                    <label for="bBuild">신축/증축</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox"
+                           id="bExtra"
+                           name="bExtra"
+                           {% if company.bExtra %}checked{% endif %}
+                           {% if read_only %}disabled{% endif %}>
+                    <label for="bExtra">부가서비스</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 기타 정보 섹션 -->
+        <div class="form-section">
+            <div class="form-section-title">기타 정보</div>
+
+            <!-- 읽기 전용 정보 -->
+            <div class="checkbox-grid">
+                <div class="checkbox-group">
+                    <input type="checkbox"
+                           id="bPrivacy"
+                           {% if company.bPrivacy %}checked{% endif %}
+                           disabled>
+                    <label for="bPrivacy">개인정보동의</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox"
+                           id="bCompetition"
+                           {% if company.bCompetition %}checked{% endif %}
+                           disabled>
+                    <label for="bCompetition">경업금지동의</label>
+                </div>
+            </div>
+
+            <!-- 입력 가능한 체크박스 -->
+            <div class="checkbox-grid">
+                <div class="checkbox-group">
+                    <input type="checkbox"
+                           id="bUnion"
+                           name="bUnion"
+                           {% if company.bUnion %}checked{% endif %}
+                           {% if read_only %}disabled{% endif %}>
+                    <label for="bUnion">연합회</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox"
+                           id="bMentor"
+                           name="bMentor"
+                           {% if company.bMentor %}checked{% endif %}
+                           {% if read_only %}disabled{% endif %}>
+                    <label for="bMentor">멘토</label>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sMentee">멘티</label>
+                    <input type="text"
+                           id="sMentee"
+                           name="sMentee"
+                           value="{{ company.sMentee|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="nRefund">선호 환불방식</label>
+                    <select id="nRefund" name="nRefund" {% if read_only %}disabled{% endif %}>
+                        <option value="0" {% if company.nRefund == 0 %}selected{% endif %}>계좌이체</option>
+                        <option value="1" {% if company.nRefund == 1 %}selected{% endif %}>포인트적립</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="sManager">담당 스텝</label>
+                    {% if read_only %}
+                    <input type="text"
+                           value="{{ company.sManager|default:'' }}"
+                           readonly class="readonly-field">
+                    {% else %}
+                    <select id="sManager" name="sManager">
+                        <option value="">선택하세요</option>
+                        {% for staff in staff_list %}
+                            <option value="{{ staff.sNick }}"
+                                    {% if company.sManager == staff.sNick %}selected{% endif %}>
+                                {{ staff.sNick }}({{ staff.sName }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="sMemo">메모</label>
+                <textarea id="sMemo"
+                          name="sMemo"
+                          rows="4"
+                          {% if read_only %}readonly class="readonly-field"{% endif %}>{{ company.sMemo|default:'' }}</textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="dateWithdraw">탈퇴일</label>
+                    <input type="date"
+                           id="dateWithdraw"
+                           name="dateWithdraw"
+                           value="{{ company.dateWithdraw|date:'Y-m-d' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="sWithdraw">탈퇴사유</label>
+                    <input type="text"
+                           id="sWithdraw"
+                           name="sWithdraw"
+                           value="{{ company.sWithdraw|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sPicture">업체사진</label>
+                    <input type="text"
+                           id="sPicture"
+                           name="sPicture"
+                           value="{{ company.sPicture|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="sGallery">갤러리방</label>
+                    <input type="text"
+                           id="sGallery"
+                           name="sGallery"
+                           value="{{ company.sGallery|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="sEstimate">견적방</label>
+                    <input type="text"
+                           id="sEstimate"
+                           name="sEstimate"
+                           value="{{ company.sEstimate|default:'' }}"
+                           {% if read_only %}readonly class="readonly-field"{% endif %}>
+                </div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            {% if not read_only %}
+                <button type="submit" class="btn btn-primary">
+                    {% if action == 'create' %}추가{% else %}수정{% endif %}
+                </button>
+            {% endif %}
+            <a href="{% url 'company:company_list' %}" class="btn btn-secondary">
+                {% if read_only %}← 목록으로 돌아가기{% else %}취소{% endif %}
+            </a>
+        </div>
+
+    </form>
+</div>
+
+{% if not read_only %}
+<script>
+    function generateNames() {
+        const sName1 = document.getElementById('sName1').value.trim();
+
+        if (sName1) {
+            // sName1에서 sName2, sName3 자동 생성
+            // 예: "서울1호 영등포" -> sName2: "서울1호", sName3: "서울1"
+
+            const parts = sName1.split(' ');
+
+            if (parts.length >= 2) {
+                // 첫 번째 부분을 sName2로 (예: "서울1호")
+                document.getElementById('sName2').value = parts[0];
+
+                // 첫 번째 부분에서 숫자와 "호"를 제거하여 sName3 생성
+                // 예: "서울1호" -> "서울1"
+                let sName3 = parts[0].replace(/호$/, ''); // 끝의 "호" 제거
+                document.getElementById('sName3').value = sName3;
+            } else {
+                // 공백이 없는 경우, sName1과 동일하게 설정
+                document.getElementById('sName2').value = sName1;
+
+                // "호"만 제거하여 sName3 생성
+                let sName3 = sName1.replace(/호$/, '');
+                document.getElementById('sName3').value = sName3;
+            }
+        } else {
+            // sName1이 비어있으면 나머지도 비우기
+            document.getElementById('sName2').value = '';
+            document.getElementById('sName3').value = '';
+        }
+    }
+
+    // 금액 포맷팅 함수 (실시간 콤마 추가)
+    function formatMoney(input) {
+        // 숫자가 아닌 문자 제거 (콤마 포함)
+        let value = input.value.replace(/[^0-9]/g, '');
+
+        // 빈 값이면 0으로 설정
+        if (value === '') {
+            value = '0';
+        }
+
+        // 숫자를 정수로 변환
+        let numValue = parseInt(value);
+
+        // 천단위 콤마 추가
+        let formattedValue = numValue.toLocaleString('ko-KR');
+
+        // 입력 필드에 포맷된 값 설정
+        input.value = formattedValue;
+
+        // 숨겨진 필드에 원래 숫자 값 저장
+        let hiddenField = document.getElementById(input.id + '_raw');
+        if (hiddenField) {
+            hiddenField.value = numValue;
+        }
+    }
+
+    // 폼 제출 시 숨겨진 필드 값을 원본 필드로 복사
+    function prepareFormSubmission() {
+        const moneyInputs = ['nJoinFee', 'nDeposit', 'nFixFee', 'nOrderFee'];
+
+        moneyInputs.forEach(function(fieldName) {
+            const visibleField = document.getElementById(fieldName);
+            const hiddenField = document.getElementById(fieldName + '_raw');
+
+            if (visibleField && hiddenField) {
+                // 숨겨진 필드의 값을 원본 필드에 복사 (폼 제출용)
+                visibleField.name = fieldName; // name 속성 유지
+                visibleField.value = hiddenField.value; // 숫자 값만 전송
+                hiddenField.name = ''; // 숨겨진 필드는 전송하지 않음
+            }
+        });
+
+        // 누적된 파일들을 폼에 전달
+        if (accumulatedFiles.length > 0) {
+            const contractFilesInput = document.getElementById('contractFiles');
+
+            // 새로운 파일 입력 필드들을 동적으로 생성
+            const form = contractFilesInput.form;
+
+            // 기존 동적 생성 파일 필드들 제거
+            const existingDynamicInputs = form.querySelectorAll('.dynamic-contract-file');
+            existingDynamicInputs.forEach(input => input.remove());
+
+            // 누적된 파일들을 위한 새로운 input 필드들 생성
+            accumulatedFiles.forEach((file, index) => {
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.name = 'contractFiles';
+                fileInput.className = 'dynamic-contract-file';
+                fileInput.style.display = 'none';
+
+                // DataTransfer를 사용해서 File 객체를 input에 설정
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                fileInput.files = dataTransfer.files;
+
+                form.appendChild(fileInput);
+            });
+
+            console.log('Added', accumulatedFiles.length, 'accumulated files to form');
+        }
+
+        // 다중 파일 업로드 디버깅
+        const contractFilesInput = document.getElementById('contractFiles');
+        if (contractFilesInput) {
+            console.log('Contract files input found:', contractFilesInput);
+            console.log('Selected files count:', contractFilesInput.files.length);
+            for (let i = 0; i < contractFilesInput.files.length; i++) {
+                console.log('File ' + i + ':', contractFilesInput.files[i].name);
+            }
+        }
+
+        return true; // 폼 제출 계속 진행
+    }
+
+    // 누적된 파일들을 저장할 배열
+    let accumulatedFiles = [];
+
+    // 선택된 파일 목록 업데이트 (누적 기능 포함)
+    function updateFileList(input) {
+        const selectedFilesDiv = document.getElementById('selectedFiles');
+        const newFiles = Array.from(input.files);
+
+        if (newFiles.length === 0) {
+            return; // 아무것도 선택하지 않았으면 기존 파일 유지
+        }
+
+        // 새로 선택한 파일들을 누적 배열에 추가 (중복 파일명 체크)
+        newFiles.forEach(newFile => {
+            const isDuplicate = accumulatedFiles.some(existingFile => existingFile.name === newFile.name);
+            if (!isDuplicate) {
+                accumulatedFiles.push(newFile);
+            }
+        });
+
+        // 입력 필드 초기화
+        input.value = '';
+
+        displayFileList();
+    }
+
+    // 파일 목록 표시
+    function displayFileList() {
+        const selectedFilesDiv = document.getElementById('selectedFiles');
+
+        if (accumulatedFiles.length === 0) {
+            selectedFilesDiv.innerHTML = '';
+            return;
+        }
+
+        let html = '<strong>선택된 파일 (' + accumulatedFiles.length + '개):</strong><br>';
+        accumulatedFiles.forEach((file, index) => {
+            const fileType = file.type.toLowerCase().includes('pdf') ? 'pdf' : 'image';
+            const fileTypeClass = 'file-type-' + fileType;
+            const fileIcon = fileType === 'pdf' ? '📄' : '🖼️';
+
+            html += '<div class="selected-file-item">';
+            html += '<span>' + fileIcon + ' ' + file.name + '</span>';
+            html += '<span class="' + fileTypeClass + '">' + fileType.toUpperCase() + '</span>';
+            html += '<button type="button" onclick="removeFile(' + index + ')" style="margin-left: 10px; padding: 2px 6px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">삭제</button>';
+            html += '</div>';
+        });
+
+        selectedFilesDiv.innerHTML = html;
+    }
+
+    // 개별 파일 삭제
+    function removeFile(index) {
+        accumulatedFiles.splice(index, 1);
+        displayFileList();
+    }
+
+    // 페이지 로드 시에도 실행 (수정 모드에서)
+    document.addEventListener('DOMContentLoaded', function() {
+        // 수정 모드에서 기존 값이 있으면 자동 생성하지 않음
+        const sName2 = document.getElementById('sName2').value.trim();
+        const sName3 = document.getElementById('sName3').value.trim();
+
+        // sName2나 sName3가 비어있을 때만 자동 생성
+        if (!sName2 || !sName3) {
+            generateNames();
+        }
+
+        // 금액 필드들 초기 포맷팅
+        const moneyInputs = document.querySelectorAll('.money-input');
+        moneyInputs.forEach(function(input) {
+            formatMoney(input);
+        });
+    });
+</script>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}

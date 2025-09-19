@@ -1,0 +1,631 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}업체 리스트 - PMIS 2.0{% endblock %}
+
+{% block page_title %}업체 리스트{% endblock %}
+{% block page_subtitle %}업체 정보 조회 및 관리{% endblock %}
+
+{% block content %}
+{% if not not_logged_in %}
+{{ block.super }}
+{% endif %}
+
+{% if not not_logged_in %}
+<style>
+    .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .search-section {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .search-input {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        width: 300px;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin: 2px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-warning {
+        background-color: #ffc107;
+        color: black;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .badge-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .badge-warning {
+        background-color: #ffc107;
+        color: black;
+    }
+
+    .badge-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .badge-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .badge-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .badge-light {
+        background-color: #f8f9fa;
+        color: #6c757d;
+        border: 1px solid #dee2e6;
+    }
+
+    .badge-dark {
+        background-color: #343a40;
+        color: white;
+    }
+
+    .badge-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+    }
+
+    th:nth-child(1), td:nth-child(1) { /* No */
+        width: 60px;
+    }
+    th:nth-child(2), td:nth-child(2) { /* 열린업체명 */
+        width: 150px;
+    }
+    th:nth-child(3), td:nth-child(3) { /* 구분(업체타입) */
+        width: 100px;
+        text-align: center;
+    }
+    th:nth-child(4), td:nth-child(4) { /* 활동상태 */
+        width: 100px;
+        text-align: center;
+    }
+    th:nth-child(5), td:nth-child(5) { /* 업체명 */
+        width: 200px;
+    }
+    th:nth-child(6), td:nth-child(6) { /* 건설면허 */
+        width: 120px;
+    }
+    th:nth-child(7), td:nth-child(7) { /* 특장점 */
+        width: 150px;
+    }
+    th:nth-child(8), td:nth-child(8) { /* 대표자 */
+        width: 100px;
+    }
+    th:nth-child(9), td:nth-child(9) { /* 영업담당자 */
+        width: 100px;
+    }
+    th:nth-child(10), td:nth-child(10) { /* 담당 스텝 */
+        width: 100px;
+    }
+
+    th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+
+    tr.selected {
+        background-color: #e3f2fd !important;
+    }
+
+    .empty-message {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+        font-style: italic;
+    }
+
+    .permission-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .search-results-info {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .filter-section {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    .filter-title {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #333;
+    }
+
+    .filter-row {
+        display: flex;
+        gap: 30px;
+        margin-bottom: 15px;
+        align-items: flex-start;
+    }
+
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .filter-group label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0;
+        min-width: 80px;
+    }
+
+    .checkbox-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .checkbox-filters .checkbox-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+
+    .checkbox-filters input[type="checkbox"] {
+        margin-right: 5px;
+    }
+
+    .filter-buttons {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .sortable-header {
+        cursor: pointer;
+        position: relative;
+        user-select: none;
+    }
+
+    .sortable-header:hover {
+        background-color: #e9ecef;
+        color: #007bff;
+    }
+
+    .sort-arrow {
+        font-size: 12px;
+        margin-left: 5px;
+        color: #007bff;
+    }
+
+    .sort-arrow.asc::after {
+        content: "▲";
+    }
+
+    .sort-arrow.desc::after {
+        content: "▼";
+    }
+</style>
+
+<div class="controls">
+    {% if not_logged_in %}
+    <div class="permission-info">
+        <span class="badge badge-info">
+            🔐 로그인이 필요합니다
+        </span>
+        <div style="margin-top: 15px;">
+            <a href="{% url 'accounts:login' %}" class="btn btn-primary">로그인 하기</a>
+        </div>
+    </div>
+    {% elif no_permission %}
+    <div class="permission-info">
+        <span class="badge badge-secondary">
+            🚫 업체 관리 접근 권한이 없습니다 (nCompanyAuthority: {{ company_permission }})
+        </span>
+    </div>
+    {% elif can_write %}
+    <div class="search-section">
+        <form method="get" style="display: flex; gap: 10px;">
+            <input type="text"
+                   name="search"
+                   value="{{ search_query }}"
+                   placeholder="열린업체명, 네이버ID, 업체명, 주소, 건설면허, 강점, 대표자/영업/회계 담당자 정보, 담당 스텝으로 검색..."
+                   class="search-input">
+            <button type="submit" class="btn btn-primary">검색</button>
+            {% if search_query %}
+                <a href="{% url 'company:company_list' %}" class="btn btn-secondary">초기화</a>
+            {% endif %}
+        </form>
+    </div>
+    <div>
+        <a href="{% url 'company:company_create' %}" class="btn btn-primary">+ 새 업체 추가</a>
+        <button id="editBtn" class="btn btn-warning" disabled onclick="editSelected()">수정</button>
+        <button id="deleteBtn" class="btn btn-danger" disabled onclick="deleteSelected()">삭제</button>
+    </div>
+    {% elif company_permission == 1 %}
+    <div class="search-section">
+        <form method="get" style="display: flex; gap: 10px;">
+            <input type="text"
+                   name="search"
+                   value="{{ search_query }}"
+                   placeholder="열린업체명, 네이버ID, 업체명, 주소, 건설면허, 강점, 대표자/영업/회계 담당자 정보, 담당 스텝으로 검색..."
+                   class="search-input">
+            <button type="submit" class="btn btn-primary">검색</button>
+            {% if search_query %}
+                <a href="{% url 'company:company_list' %}" class="btn btn-secondary">초기화</a>
+            {% endif %}
+        </form>
+        <span class="badge badge-info">
+            📖 읽기 전용 모드 (nCompanyAuthority: {{ company_permission }})
+        </span>
+    </div>
+    <div>
+        <button id="viewBtn" class="btn btn-success" disabled onclick="viewSelected()">보기</button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 필터 섹션 -->
+{% if not not_logged_in and not no_permission %}
+<div class="filter-section">
+    <form method="get" id="filterForm">
+        <input type="hidden" name="search" value="{{ search_query }}">
+
+        <div class="filter-row">
+            <div class="filter-group">
+                <label>구분</label>
+                <div class="checkbox-filters">
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="nType" value="0" id="type_0"
+                               {% if '0' in selected_types %}checked{% endif %}>
+                        <label for="type_0">일반토탈</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="nType" value="1" id="type_1"
+                               {% if '1' in selected_types %}checked{% endif %}>
+                        <label for="type_1">고정비토탈</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="nType" value="2" id="type_2"
+                               {% if '2' in selected_types %}checked{% endif %}>
+                        <label for="type_2">부분단종</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="nType" value="3" id="type_3"
+                               {% if '3' in selected_types %}checked{% endif %}>
+                        <label for="type_3">순수단종</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="nType" value="4" id="type_4"
+                               {% if '4' in selected_types %}checked{% endif %}>
+                        <label for="type_4">btoc제휴</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="nType" value="5" id="type_5"
+                               {% if '5' in selected_types %}checked{% endif %}>
+                        <label for="type_5">btob제휴</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <div class="filter-group">
+                <label>활동상태</label>
+                <div class="checkbox-filters">
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="nCondition" value="0" id="condition_0"
+                               {% if '0' in selected_conditions %}checked{% endif %}>
+                        <label for="condition_0">준비중</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="nCondition" value="1" id="condition_1"
+                               {% if '1' in selected_conditions %}checked{% endif %}>
+                        <label for="condition_1">정상</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="nCondition" value="2" id="condition_2"
+                               {% if '2' in selected_conditions %}checked{% endif %}>
+                        <label for="condition_2">일시정지</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="nCondition" value="3" id="condition_3"
+                               {% if '3' in selected_conditions %}checked{% endif %}>
+                        <label for="condition_3">탈퇴</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <div class="filter-group">
+                <label>연합회</label>
+                <div class="checkbox-filters">
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="bUnion" value="true" id="union_true"
+                               {% if 'true' in selected_unions %}checked{% endif %}>
+                        <label for="union_true">연합회</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <div class="filter-group">
+                <label>멘토</label>
+                <div class="checkbox-filters">
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="bMentor" value="true" id="mentor_true"
+                               {% if 'true' in selected_mentors %}checked{% endif %}>
+                        <label for="mentor_true">멘토</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-buttons">
+            <button type="submit" class="btn btn-primary">필터 적용</button>
+            <a href="{% url 'company:company_list' %}" class="btn btn-secondary">필터 초기화</a>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+{% if search_query %}
+<div class="search-results-info">
+    검색어 "{{ search_query }}"에 대한 {{ companies|length }}개의 결과
+</div>
+{% endif %}
+
+<!-- 업체 목록 테이블 -->
+<table>
+    <thead>
+        <tr>
+            <th class="sortable-header" onclick="sortTable('no')">
+                No
+                {% if sort_by == 'no' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
+            <th class="sortable-header" onclick="sortTable('sName2')">
+                열린업체명
+                {% if sort_by == 'sName2' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
+            <th>구분</th>
+            <th>활동상태</th>
+            <th>업체명</th>
+            <th>건설면허</th>
+            <th>특장점</th>
+            <th>대표자</th>
+            <th>영업담당자</th>
+            <th>담당 스텝</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if not_logged_in %}
+        <tr>
+            <td colspan="10" class="empty-message">로그인 후 업체 목록을 확인할 수 있습니다.</td>
+        </tr>
+        {% elif no_permission %}
+        <tr>
+            <td colspan="10" class="empty-message">업체 관리 권한이 없어 목록을 표시할 수 없습니다.</td>
+        </tr>
+        {% else %}
+            {% for company in companies %}
+            <tr onclick="selectRow(this, {{ company.no }})" ondblclick="doubleClickRow({{ company.no }})" data-id="{{ company.no }}">
+                <td>{{ company.no }}</td>
+                <td>{{ company.sName2|default:"-" }}</td>
+                <td>
+                    {% if company.nType == 0 %}
+                        <span class="badge badge-secondary">일반토탈</span>
+                    {% elif company.nType == 1 %}
+                        <span class="badge badge-primary">고정비토탈</span>
+                    {% elif company.nType == 2 %}
+                        <span class="badge badge-info">부분단종</span>
+                    {% elif company.nType == 3 %}
+                        <span class="badge badge-warning">순수단종</span>
+                    {% elif company.nType == 4 %}
+                        <span class="badge badge-success">btoc제휴</span>
+                    {% else %}
+                        <span class="badge badge-dark">btob제휴</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if company.nCondition == 0 %}
+                        <span class="badge badge-light">준비중</span>
+                    {% elif company.nCondition == 1 %}
+                        <span class="badge badge-success">정상</span>
+                    {% elif company.nCondition == 2 %}
+                        <span class="badge badge-warning">일시정지</span>
+                    {% else %}
+                        <span class="badge badge-danger">탈퇴</span>
+                    {% endif %}
+                </td>
+                <td>{{ company.sCompanyName }}</td>
+                <td>{{ company.sBuildLicense|default:"-" }}</td>
+                <td>{{ company.sStrength|truncatechars:30|default:"-" }}</td>
+                <td>{{ company.sCeoName|default:"-" }}</td>
+                <td>{{ company.sSaleName|default:"-" }}</td>
+                <td>{{ company.sManager|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="10" class="empty-message">
+                    {% if search_query %}
+                        검색 조건에 맞는 업체가 없습니다.
+                    {% else %}
+                        등록된 업체가 없습니다.
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        {% endif %}
+    </tbody>
+</table>
+
+<script>
+    let selectedRow = null;
+    let selectedCompanyId = null;
+
+    function selectRow(row, companyId) {
+        // 기존 선택 제거
+        if (selectedRow) {
+            selectedRow.classList.remove('selected');
+        }
+
+        // 새로운 행 선택
+        selectedRow = row;
+        selectedCompanyId = companyId;
+        row.classList.add('selected');
+
+        // 버튼 활성화 (권한에 따라)
+        {% if can_write %}
+        document.getElementById('editBtn').disabled = false;
+        document.getElementById('deleteBtn').disabled = false;
+        {% elif company_permission == 1 %}
+        document.getElementById('viewBtn').disabled = false;
+        {% endif %}
+    }
+
+    function editSelected() {
+        if (selectedCompanyId) {
+            window.location.href = '{% url "company:company_update" 0 %}'.replace('0', selectedCompanyId);
+        }
+    }
+
+    function deleteSelected() {
+        if (selectedCompanyId) {
+            if (confirm('정말로 이 업체를 삭제하시겠습니까?')) {
+                window.location.href = '{% url "company:company_delete" 0 %}'.replace('0', selectedCompanyId);
+            }
+        }
+    }
+
+    function viewSelected() {
+        if (selectedCompanyId) {
+            window.location.href = '{% url "company:company_view" 0 %}'.replace('0', selectedCompanyId);
+        }
+    }
+
+    function doubleClickRow(companyId) {
+        // 더블클릭 시 바로 수정/보기 모드로 이동
+        {% if can_write %}
+        // 수정 권한이 있으면 수정 모드로
+        window.location.href = '{% url "company:company_update" 0 %}'.replace('0', companyId);
+        {% elif company_permission == 1 %}
+        // 읽기 권한만 있으면 보기 모드로
+        window.location.href = '{% url "company:company_view" 0 %}'.replace('0', companyId);
+        {% endif %}
+    }
+
+    function sortTable(field) {
+        const currentUrl = new URL(window.location);
+        const currentSort = currentUrl.searchParams.get('sort');
+        const currentOrder = currentUrl.searchParams.get('order');
+
+        // 현재 정렬 필드와 같으면 정렬 순서 토글, 다르면 오름차순으로 시작
+        let newOrder = 'asc';
+        if (currentSort === field && currentOrder === 'asc') {
+            newOrder = 'desc';
+        }
+
+        // URL 파라미터 설정
+        currentUrl.searchParams.set('sort', field);
+        currentUrl.searchParams.set('order', newOrder);
+
+        // 페이지 이동
+        window.location.href = currentUrl.toString();
+    }
+</script>
+
+{% endif %}
+
+{% endblock %}
