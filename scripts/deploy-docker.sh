@@ -33,15 +33,39 @@ curl -X POST "$JANDI_WEBHOOK" \
     \"connectColor\": \"#2196F3\"
   }" > /dev/null 2>&1
 
-# 2단계: Docker Compose로 서비스 재시작
-echo "🔄 Docker Compose 서비스를 재시작합니다..."
+# 2단계: 실서버용 .env 파일 생성
+echo "⚙️ 실서버용 환경변수 파일을 생성합니다..."
 cd /var/www/testpark
+
+# 실서버용 .env 파일 생성
+cat > .env << 'EOF'
+# Django 실서버 환경 설정
+DEBUG=False
+SECRET_KEY=django-insecure-nlk5agkjp1+7+sp168_46gy#h0gdmh%#5ano(r196@c+p7m-ny
+
+# 네이버 소셜 로그인 설정 (실서버용)
+NAVER_CLIENT_ID=_mw6kojqJVXoWEBqYBKv
+NAVER_CLIENT_SECRET=hHKrIfKoMA
+NAVER_REDIRECT_URI=https://carpenterhosting.cafe24.com/auth/naver/callback/
+
+# CSRF 설정
+CSRF_TRUSTED_ORIGINS=https://carpenterhosting.cafe24.com,http://localhost:8000,http://127.0.0.1:8000
+
+# 잔디 웹훅 설정
+JANDI_WEBHOOK_URL=https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265
+EOF
+
+echo "✅ .env 파일 생성 완료"
+ls -la .env
+
+# 3단계: Docker Compose로 서비스 재시작
+echo "🔄 Docker Compose 서비스를 재시작합니다..."
 
 # TestPark 서비스만 재시작 (웹훅 서버는 그대로 유지)
 docker-compose pull testpark
 docker-compose up -d --no-deps testpark
 
-# 3단계: 헬스 체크
+# 4단계: 헬스 체크
 echo "🔍 애플리케이션 상태를 확인합니다..."
 sleep 5
 
@@ -73,7 +97,7 @@ for i in {1..6}; do
     fi
 done
 
-# 4단계: 사용하지 않는 이미지 정리
+# 5단계: 사용하지 않는 이미지 정리
 echo "🧹 사용하지 않는 Docker 이미지를 정리합니다..."
 BEFORE_CLEANUP=$(docker images --format "table {{.Repository}}\t{{.Tag}}" | wc -l)
 docker image prune -f
