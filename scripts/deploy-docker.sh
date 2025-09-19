@@ -33,11 +33,18 @@ curl -X POST "$JANDI_WEBHOOK" \
     \"connectColor\": \"#2196F3\"
   }" > /dev/null 2>&1
 
-# 2단계: 실서버용 .env 파일 생성
+# 2단계: 실서버용 .env 파일 생성 및 검증
 echo "⚙️ 실서버용 환경변수 파일을 생성합니다..."
 cd /var/www/testpark
 
+# 기존 .env 파일이 있다면 백업
+if [ -f .env ]; then
+    echo "📋 기존 .env 파일 백업 중..."
+    cp .env .env.backup
+fi
+
 # 실서버용 .env 파일 생성
+echo "📝 새로운 .env 파일 생성 중..."
 cat > .env << 'EOF'
 # Django 실서버 환경 설정
 DEBUG=False
@@ -48,15 +55,30 @@ NAVER_CLIENT_ID=_mw6kojqJVXoWEBqYBKv
 NAVER_CLIENT_SECRET=hHKrIfKoMA
 NAVER_REDIRECT_URI=https://carpenterhosting.cafe24.com/auth/naver/callback/
 
-# CSRF 설정
-CSRF_TRUSTED_ORIGINS=https://carpenterhosting.cafe24.com,http://localhost:8000,http://127.0.0.1:8000
+# CSRF 설정 (실서버용)
+CSRF_TRUSTED_ORIGINS=https://carpenterhosting.cafe24.com,http://210.114.22.100:8000,http://localhost:8000,http://127.0.0.1:8000
 
 # 잔디 웹훅 설정
 JANDI_WEBHOOK_URL=https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265
 EOF
 
-echo "✅ .env 파일 생성 완료"
-ls -la .env
+# .env 파일 생성 검증
+if [ -f .env ]; then
+    echo "✅ .env 파일 생성 완료"
+    echo "📊 .env 파일 정보:"
+    ls -la .env
+    echo "📝 .env 파일 내용 미리보기:"
+    echo "--- .env 파일 ---"
+    head -10 .env
+    echo "--- 끝 ---"
+
+    # 파일 권한 설정 (Docker가 읽을 수 있도록)
+    chmod 644 .env
+    echo "🔒 파일 권한 설정 완료 (644)"
+else
+    echo "❌ .env 파일 생성 실패!"
+    exit 1
+fi
 
 # 3단계: Docker Compose로 서비스 재시작
 echo "🔄 Docker Compose 서비스를 재시작합니다..."
@@ -64,6 +86,27 @@ echo "🔄 Docker Compose 서비스를 재시작합니다..."
 # TestPark 서비스만 재시작 (웹훅 서버는 그대로 유지)
 docker-compose pull testpark
 docker-compose up -d --no-deps testpark
+
+# 컨테이너 시작 후 잠시 대기
+echo "⏳ 컨테이너 시작 대기 중..."
+sleep 3
+
+# 환경변수 로딩 검증
+echo "🔍 환경변수 로딩 상태 확인 중..."
+DJANGO_DEBUG=$(docker-compose exec -T testpark python -c "import os; from django.conf import settings; print(f'DEBUG={settings.DEBUG}')" 2>/dev/null || echo "DEBUG=확인불가")
+CSRF_ORIGINS=$(docker-compose exec -T testpark python -c "import os; from django.conf import settings; print(f'CSRF_ORIGINS={len(settings.CSRF_TRUSTED_ORIGINS)} items')" 2>/dev/null || echo "CSRF_ORIGINS=확인불가")
+
+echo "📊 환경변수 확인 결과:"
+echo "  - $DJANGO_DEBUG"
+echo "  - $CSRF_ORIGINS"
+
+if echo "$DJANGO_DEBUG" | grep -q "DEBUG=False"; then
+    echo "✅ 환경변수가 올바르게 로드되었습니다."
+else
+    echo "⚠️ 환경변수 로딩에 문제가 있을 수 있습니다."
+    echo "🔍 컨테이너 로그 확인:"
+    docker-compose logs testpark --tail 5
+fi
 
 # 4단계: 헬스 체크
 echo "🔍 애플리케이션 상태를 확인합니다..."
