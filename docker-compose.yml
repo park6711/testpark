@@ -5,6 +5,11 @@ services:
     container_name: testpark
     ports:
       - "8000:8000"
+    volumes:
+      # 로컬 코드 마운트 (개발용)
+      - .:/app
+    env_file:
+      - .env
     restart: unless-stopped
     networks:
       - testpark-network
