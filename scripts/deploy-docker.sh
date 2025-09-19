@@ -5,12 +5,49 @@
 
 set -e  # 오류 시 스크립트 중단
 
+# 에러 발생 시 잔디 알림 발송하는 트랩 함수
+send_error_notification() {
+    local exit_code=$?
+    local line_number=$1
+    local command="$2"
+
+    echo "❌ 배포 중 오류 발생! (Line: $line_number, Exit Code: $exit_code)"
+
+    # 에러 상세 정보 수집
+    local error_details="라인 $line_number에서 오류 발생\\n명령어: $command\\n종료 코드: $exit_code"
+
+    # 컨테이너 상태 확인
+    local container_status=""
+    if docker-compose ps testpark &>/dev/null; then
+        container_status="\\n\\n📊 현재 컨테이너 상태:\\n$(docker-compose ps testpark 2>&1 || echo '컨테이너 상태 확인 불가')"
+    fi
+
+    # 최근 로그 확인
+    local recent_logs=""
+    if docker-compose logs testpark --tail 5 &>/dev/null; then
+        recent_logs="\\n\\n📋 최근 로그:\\n\\\`\\\`\\\`\\n$(docker-compose logs testpark --tail 5 2>&1 || echo '로그 확인 불가')\\n\\\`\\\`\\\`"
+    fi
+
+    curl -X POST "$JANDI_WEBHOOK" \
+      -H "Content-Type: application/json" \
+      -d "{
+        \"body\": \"❌ TestPark Docker Compose 배포 실패!\\n\\n🔍 오류 정보:\\n$error_details$container_status$recent_logs\\n\\n⚠️ 수동 확인이 필요합니다!\",
+        \"connectColor\": \"#FF4444\"
+      }" > /dev/null 2>&1
+
+    echo "📢 에러 알림 전송 완료!"
+    exit $exit_code
+}
+
+# 에러 발생 시 트랩 설정
+trap 'send_error_notification $LINENO "$BASH_COMMAND"' ERR
+
 echo "🚀 TestPark Docker Compose 배포를 시작합니다..."
 
 # 환경 변수 설정
 COMPOSE_PROJECT="testpark"
 IMAGE_NAME="7171man/testpark:latest"
-JANDI_WEBHOOK="https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b"
+JANDI_WEBHOOK="https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265"
 
 # 배포 시작 알림 (최적화)
 echo "📢 배포 시작 알림을 전송합니다..."
@@ -23,15 +60,20 @@ curl -X POST "$JANDI_WEBHOOK" \
 
 # 1단계: Docker Hub에서 최신 이미지 가져오기
 echo "📥 최신 Docker 이미지를 가져옵니다..."
-docker pull $IMAGE_NAME
+if docker pull $IMAGE_NAME; then
+    echo "✅ Docker 이미지 업데이트 완료!"
 
-# 중간 진행 알림 (간소화)
-curl -X POST "$JANDI_WEBHOOK" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"body\": \"⚡ Docker Compose 배포 진행 중...\\n✅ Docker 이미지 업데이트 완료\\n🔄 컨테이너 재시작 진행 중...\\n\\n이미지: $IMAGE_NAME\",
-    \"connectColor\": \"#2196F3\"
-  }" > /dev/null 2>&1
+    # Docker pull 성공 알림
+    curl -X POST "$JANDI_WEBHOOK" \
+      -H "Content-Type: application/json" \
+      -d "{
+        \"body\": \"⚡ Docker Compose 배포 진행 중...\\n✅ Docker 이미지 업데이트 완료\\n🔄 .env 파일 생성 및 컨테이너 재시작 진행 중...\\n\\n이미지: $IMAGE_NAME\",
+        \"connectColor\": \"#2196F3\"
+      }" > /dev/null 2>&1
+else
+    echo "❌ Docker 이미지 가져오기 실패!"
+    exit 1
+fi
 
 # 2단계: 실서버용 .env 파일 생성 및 검증
 echo "⚙️ 실서버용 환경변수 파일을 생성합니다..."
@@ -84,8 +126,20 @@ fi
 echo "🔄 Docker Compose 서비스를 재시작합니다..."
 
 # TestPark 서비스만 재시작 (웹훅 서버는 그대로 유지)
-docker-compose pull testpark
-docker-compose up -d --no-deps testpark
+if docker-compose pull testpark && docker-compose up -d --no-deps testpark; then
+    echo "✅ 컨테이너 재시작 완료!"
+
+    # 컨테이너 재시작 성공 알림
+    curl -X POST "$JANDI_WEBHOOK" \
+      -H "Content-Type: application/json" \
+      -d "{
+        \"body\": \"⚡ Docker Compose 배포 진행 중...\\n✅ .env 파일 생성 완료\\n✅ 컨테이너 재시작 완료\\n🔍 헬스체크 진행 중...\\n\\n이미지: $IMAGE_NAME\",
+        \"connectColor\": \"#2196F3\"
+      }" > /dev/null 2>&1
+else
+    echo "❌ 컨테이너 재시작 실패!"
+    exit 1
+fi
 
 # 컨테이너 시작 후 잠시 대기
 echo "⏳ 컨테이너 시작 대기 중..."
@@ -105,7 +159,16 @@ if echo "$DJANGO_DEBUG" | grep -q "DEBUG=False"; then
 else
     echo "⚠️ 환경변수 로딩에 문제가 있을 수 있습니다."
     echo "🔍 컨테이너 로그 확인:"
-    docker-compose logs testpark --tail 5
+    CONTAINER_LOGS=$(docker-compose logs testpark --tail 5 2>&1)
+    echo "$CONTAINER_LOGS"
+
+    # 환경변수 로딩 경고 알림
+    curl -X POST "$JANDI_WEBHOOK" \
+      -H "Content-Type: application/json" \
+      -d "{
+        \"body\": \"⚠️ TestPark 환경변수 로딩 경고!\\n\\n🔍 확인 결과:\\n• $DJANGO_DEBUG\\n• $CSRF_ORIGINS\\n\\n📋 컨테이너 로그:\\n\\\`\\\`\\\`\\n$CONTAINER_LOGS\\n\\\`\\\`\\\`\\n\\n💡 배포는 계속 진행하지만 확인이 필요합니다.\",
+        \"connectColor\": \"#FF9800\"
+      }" > /dev/null 2>&1
 fi
 
 # 4단계: 헬스 체크
