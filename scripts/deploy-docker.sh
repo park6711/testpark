@@ -88,7 +88,7 @@ JANDI_WEBHOOK_URL=https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543
 
 # Docker Hub 자격증명 (배포용)
 DOCKER_USERNAME=7171man
-DOCKER_PASSWORD=jeje4211
+DOCKER_PASSWORD=*jeje4211
 EOF
 
 # .env 파일 생성 검증
