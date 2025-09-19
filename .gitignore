@@ -33,3 +33,8 @@ Thumbs.db
 # Build output
 dist/
 build/
+public/build/db.sqlite3
+
+# Claude settings
+.claude/
+.env.backup*

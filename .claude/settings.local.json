@@ -1,7 +1,29 @@
 {
   "permissions": {
     "allow": [
-      "Bash(docker-compose logs:*)"
+      "Bash(docker-compose logs:*)",
+      "Bash(docker restart:*)",
+      "Bash(docker logs:*)",
+      "Read(//etc/apache2/sites-available/**)",
+      "Bash(apache2ctl:*)",
+      "Bash(systemctl reload:*)",
+      "Bash(systemctl status:*)",
+      "Bash(docker:*)",
+      "Bash(a2enmod:*)",
+      "Bash(a2ensite:*)",
+      "Bash(a2dissite:*)",
+      "Bash(curl:*)",
+      "Read(//var/www/html/intea/intea_project/intea_project/**)",
+      "Read(//var/www/html/intea/**)",
+      "Read(//var/log/apache2/**)",
+      "Bash(python3:*)",
+      "Read(//etc/apache2/sites-enabled/**)",
+      "Bash(systemctl restart:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(/var/www/testpark/scripts/deploy-docker.sh:*)"
     ],
     "deny": [],
     "ask": []

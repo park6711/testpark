@@ -17,7 +17,8 @@ class NaverAuthManager:
     def __init__(self):
         self.client_id = settings.NAVER_CLIENT_ID
         self.client_secret = settings.NAVER_CLIENT_SECRET
-        self.redirect_uri = settings.NAVER_REDIRECT_URI
+        self.base_redirect_uri = "https://carpenterhosting.cafe24.com/auth"
+        # 기본 redirect_uri를 base로 사용 (ex: http://domain.com/accounts/)
 
     def generate_state(self) -> str:
         """CSRF 방지용 state 값 생성"""
@@ -34,18 +35,26 @@ class NaverAuthManager:
             return True
         return False
 
-    def get_login_url(self) -> Tuple[str, str]:
+    def get_login_url(self, login_type='company') -> Tuple[str, str]:
         """
         네이버 로그인 URL 생성
+        Args:
+            login_type: 'company' 또는 'staff' - 로그인 타입에 따라 콜백 URL 다름
         Returns:
             (login_url, state): 로그인 URL과 state 값
         """
         state = self.generate_state()
 
+        # 로그인 타입에 따른 콜백 URL 설정
+        if login_type == 'staff':
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/staff/naver/callback/"
+        else:  # company (default)
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/company/naver/callback/"
+
         params = {
             'response_type': 'code',
             'client_id': self.client_id,
-            'redirect_uri': self.redirect_uri,
+            'redirect_uri': redirect_uri,
             'state': state
         }
 
@@ -54,23 +63,31 @@ class NaverAuthManager:
 
         return login_url, state
 
-    def get_access_token(self, code: str, state: str) -> Optional[Dict]:
+    def get_access_token(self, code: str, state: str, login_type='company') -> Optional[Dict]:
         """
         인증 코드로 액세스 토큰 획득
         Args:
             code: 네이버에서 받은 인증 코드
             state: CSRF 검증용 state 값
+            login_type: 'company' 또는 'staff' - redirect_uri 설정용
         Returns:
             토큰 정보 딕셔너리 또는 None
         """
         if not self.verify_state(state):
             return None
 
+        # 로그인 타입에 따른 콜백 URL 설정 (토큰 요청 시도 동일하게)
+        if login_type == 'staff':
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/staff/naver/callback/"
+        else:  # company (default)
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/company/naver/callback/"
+
         token_url = 'https://nid.naver.com/oauth2.0/token'
         data = {
             'grant_type': 'authorization_code',
             'client_id': self.client_id,
             'client_secret': self.client_secret,
+            'redirect_uri': redirect_uri,
             'code': code,
             'state': state
         }
@@ -119,49 +136,89 @@ class NaverAuthManager:
             print(f"네이버 사용자 정보 요청 에러: {e}")
             return None
 
-    def process_naver_login(self, code: str, state: str) -> Tuple[bool, Optional[Dict], Optional[str]]:
+    def process_naver_login(self, code: str, state: str, skip_state_verification: bool = False, login_type='company') -> Tuple[bool, Optional[Dict], Optional[str]]:
         """
         네이버 로그인 전체 프로세스 처리
         Args:
             code: 네이버 인증 코드
             state: CSRF 검증용 state
+            skip_state_verification: state 검증 건너뛰기 (이미 검증된 경우)
+            login_type: 'company' 또는 'staff' - redirect_uri 설정용
         Returns:
             (성공 여부, 사용자 정보, 에러 메시지)
         """
-        # 1. 액세스 토큰 획득
-        token_data = self.get_access_token(code, state)
-        if not token_data:
-            return False, None, "액세스 토큰 획득에 실패했습니다."
+        try:
+            print(f"[DEBUG] 네이버 로그인 처리 시작 - code: {code[:10]}..., state: {state}, type: {login_type}")
 
-        # 2. 사용자 정보 조회
-        access_token = token_data.get('access_token')
-        user_info = self.get_user_info(access_token)
-        if not user_info:
-            return False, None, "사용자 정보 조회에 실패했습니다."
+            # 1. 액세스 토큰 획득 (state 검증 포함 또는 제외)
+            if skip_state_verification:
+                # state 검증을 건너뛰고 토큰 요청
+                # 로그인 타입에 따른 콜백 URL 설정
+                if login_type == 'staff':
+                    redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/staff/naver/callback/"
+                else:  # company (default)
+                    redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/company/naver/callback/"
 
-        # 3. 필수 필드 검증 (email만 필수)
-        if not user_info.get('email'):
-            return False, None, "네이버에서 email 정보를 제공하지 않습니다."
+                token_url = 'https://nid.naver.com/oauth2.0/token'
+                data = {
+                    'grant_type': 'authorization_code',
+                    'client_id': self.client_id,
+                    'client_secret': self.client_secret,
+                    'redirect_uri': redirect_uri,
+                    'code': code,
+                    'state': state
+                }
 
-        # 4. id 필드 처리 (선택사항)
-        if not user_info.get('id'):
-            # email에서 @ 앞부분을 id로 사용
-            email_prefix = user_info['email'].split('@')[0]
-            user_info['id'] = email_prefix
-            print(f"id 필드 없음, 이메일 prefix 사용: {user_info['id']}")
+                response = requests.post(token_url, data=data, timeout=10)
+                response.raise_for_status()
+                token_data = response.json()
 
-        # 5. name 필드 처리 (선택사항)
-        if not user_info.get('name'):
-            if user_info.get('nickname'):
-                user_info['name'] = user_info['nickname']
-                print(f"name 필드 없음, nickname 사용: {user_info['name']}")
+                if 'access_token' not in token_data:
+                    print(f"[ERROR] 토큰 획득 실패: {token_data}")
+                    return False, None, f"토큰 획득 실패: {token_data.get('error_description', '알 수 없는 오류')}"
             else:
-                # 이메일에서 @ 앞부분을 name으로 사용
-                email_prefix = user_info['email'].split('@')[0]
-                user_info['name'] = email_prefix
-                print(f"name/nickname 필드 없음, 이메일 prefix 사용: {user_info['name']}")
+                token_data = self.get_access_token(code, state, login_type)
+                if not token_data:
+                    return False, None, "액세스 토큰 획득에 실패했습니다."
 
-        return True, user_info, None
+            print(f"[DEBUG] 토큰 획득 성공")
+
+            # 2. 사용자 정보 조회
+            access_token = token_data.get('access_token')
+            user_info = self.get_user_info(access_token)
+            if not user_info:
+                return False, None, "사용자 정보 조회에 실패했습니다."
+
+            print(f"[DEBUG] 사용자 정보 조회 성공: {user_info.get('email', 'NO_EMAIL')}")
+
+            # 3. 필수 필드 검증 (email만 필수)
+            if not user_info.get('email'):
+                return False, None, "네이버에서 email 정보를 제공하지 않습니다."
+
+            # 4. id 필드 처리 (선택사항)
+            if not user_info.get('id'):
+                # email에서 @ 앞부분을 id로 사용
+                email_prefix = user_info['email'].split('@')[0]
+                user_info['id'] = email_prefix
+                print(f"[DEBUG] id 필드 없음, 이메일 prefix 사용: {user_info['id']}")
+
+            # 5. name 필드 처리 (선택사항)
+            if not user_info.get('name'):
+                if user_info.get('nickname'):
+                    user_info['name'] = user_info['nickname']
+                    print(f"[DEBUG] name 필드 없음, nickname 사용: {user_info['name']}")
+                else:
+                    # 이메일에서 @ 앞부분을 name으로 사용
+                    email_prefix = user_info['email'].split('@')[0]
+                    user_info['name'] = email_prefix
+                    print(f"[DEBUG] name/nickname 필드 없음, 이메일 prefix 사용: {user_info['name']}")
+
+            print(f"[DEBUG] 네이버 로그인 처리 완료 성공")
+            return True, user_info, None
+
+        except Exception as e:
+            print(f"[ERROR] 네이버 로그인 처리 중 예외 발생: {str(e)}")
+            return False, None, f"로그인 처리 중 오류 발생: {str(e)}"
 
 
 class JandiWebhookManager:

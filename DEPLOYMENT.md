@@ -1,45 +1,110 @@
-# 🚀 TestPark 배포 가이드
+# 🚀 TestPark 종합 배포 및 협업 가이드
 
-TestPark 프로젝트의 자동화된 배포 시스템에 대한 완전한 가이드입니다.
+TestPark 프로젝트의 완전 자동화된 배포 시스템과 다중 로컬 환경 협업 가이드입니다.
 
 ## ⚡ Quick Start
 
-가장 빠른 배포 방법들:
-
+### 🔥 가장 빠른 배포 방법
 ```bash
-# 1. 자동 배포 (권장)
+# 1. 자동 배포 (권장) - 최적화된 알림
 git push origin master
 
-# 2. 웹훅 배포 (즉시 배포)
+# 2. 수동 배포 (긴급시)
 curl -X POST https://carpenterhosting.cafe24.com/deploy
 
-# 3. 수동 배포
+# 3. 로컬 배포 스크립트
 cd /var/www/testpark && bash scripts/deploy.sh
 ```
 
-**배포 상태 확인:**
+### 📊 배포 상태 확인
 ```bash
-# 서비스 상태
-curl http://localhost:8000/
+# 서비스 상태 (TestPark)
+curl https://carpenterhosting.cafe24.com/auth/login/
 
 # 컨테이너 상태
 docker ps -f name=testpark
 
 # 웹훅 서버 상태
 curl https://carpenterhosting.cafe24.com/health
+
+# 네이버 로그인 콜백 확인
+curl -I https://carpenterhosting.cafe24.com/auth/naver/callback/
 ```
+
+## 🎯 최적화된 배포 알림 시스템
+
+### 이전 vs 현재
+| 구분 | 이전 | 현재 |
+|------|------|------|
+| **알림 개수** | 17-23개 | **4-5개** |
+| **GitHub Actions** | 3개 분리 알림 | **1개 통합 알림** |
+| **배포 스크립트** | 11-17개 상세 알림 | **3개 핵심 알림** |
+| **헬스체크** | 6개 대기 알림 | **무음 처리** |
+
+### 새로운 알림 구조
+1. **🎉 빌드 성공 & 배포 시작** - GitHub Actions
+2. **🚀 배포 시작** - 실서버 배포 프로세스 시작
+3. **⚡ 배포 진행 중** - 중간 단계 요약
+4. **🎉 배포 완료** - 최종 결과 + **실서버 확인 요청**
+5. **❌ 배포 실패** (발생시만) - 상세 오류 정보
 
 ## 📋 목차
 
-1. [배포 플로우 개요](#-배포-플로우-개요)
-2. [GitHub Actions 설정](#-github-actions-설정)
-3. [Docker Hub 설정](#-docker-hub-설정)
-4. [서버 환경 구성](#-서버-환경-구성)
-5. [웹훅 서버 설정](#-웹훅-서버-설정)
-6. [알림 설정](#-알림-설정)
-7. [배포 프로세스](#-배포-프로세스)
-8. [모니터링 및 관리](#-모니터링-및-관리)
-9. [트러블슈팅](#-트러블슈팅)
+1. [🌿 다중 로컬 환경 브랜치 전략](#-다중-로컬-환경-브랜치-전략)
+2. [🔄 배포 플로우 개요](#-배포-플로우-개요)
+3. [⚙️ 서버 환경 구성](#-서버-환경-구성)
+4. [🚀 배포 프로세스](#-배포-프로세스)
+5. [🔐 네이버 로그인 설정](#-네이버-로그인-설정)
+6. [📊 모니터링 및 관리](#-모니터링-및-관리)
+7. [🛡️ 보안 설정](#-보안-설정)
+8. [🐛 트러블슈팅](#-트러블슈팅)
+
+## 🌿 다중 로컬 환경 브랜치 전략
+
+### 개발 환경
+- **샘맥북로컬1** (`sam`) - 메인 개발자
+- **루크맥북로컬2** (`luke`) - 서브 개발자
+- **루크윈도우로컬3** (`luke`) - 테스트 환경
+- **실서버** (`carpenterhosting.cafe24.com`) - 프로덕션
+
+### 브랜치 네이밍 규칙
+```
+{작업자}/{작업내용}
+```
+
+#### 예시
+```bash
+# 새 기능 개발
+sam/user-dashboard
+luke/payment-integration
+
+# 버그 수정
+sam/login-bug-fix
+luke/session-timeout-fix
+
+# 긴급 수정
+sam/security-patch
+luke/critical-fix
+```
+
+### 개발 워크플로우
+```bash
+# 1. 최신 master 동기화
+git checkout master && git pull origin master
+
+# 2. 작업 브랜치 생성
+git checkout -b sam/new-feature
+
+# 3. 개발 및 커밋
+git add . && git commit -m "feat: 새 기능 구현"
+
+# 4. 원격 브랜치 푸시
+git push origin sam/new-feature
+
+# 5. GitHub에서 PR 생성 → 리뷰 → 머지 → 자동 배포
+```
+
+**📖 상세 브랜치 전략:** [`docs/BRANCH_STRATEGY.md`](docs/BRANCH_STRATEGY.md)
 
 ## 🔄 배포 플로우 개요
 
@@ -149,87 +214,85 @@ WEBHOOK_DEPLOY_URL=https://carpenterhosting.cafe24.com
 3. 권한: `Read, Write, Delete`
 4. 생성된 토큰을 GitHub Secrets의 `DOCKER_PASSWORD`에 저장
 
-## 🔐 소셜 로그인 설정 (네이버)
+## 🔐 네이버 로그인 설정
 
-### 네이버 개발자 센터 설정 변경
+### ✅ 현재 설정 상태
+- **허용된 콜백 URL**:
+  - `http://localhost:8001/auth/naver/callback/` (로컬 개발용)
+  - `https://carpenterhosting.cafe24.com/auth/naver/callback/` (실서버용)
+- **아파치 프록시**: 통합 VirtualHost에서 `/auth/` → `localhost:8000/auth/` 자동 라우팅
+- **테스트 결과**: ✅ 정상 동작 확인됨
 
-**실서버 배포 시 반드시 필요한 작업입니다:**
+### 네이버 개발자 센터 설정
 
-1. **네이버 개발자 센터 접속**
-   - URL: https://developers.naver.com/apps/
-   - 네이버 계정으로 로그인
+**현재 설정이 올바르게 되어 있으니 변경할 필요 없음:**
 
-2. **애플리케이션 설정 변경**
-   ```
-   애플리케이션 선택 → API 설정 → 네이버 로그인
-   ```
+1. **서비스 URL**: `https://carpenterhosting.cafe24.com`
+2. **Callback URL**: `https://carpenterhosting.cafe24.com/auth/naver/callback/`
 
-3. **URL 설정 업데이트**
-   ```
-   서비스 URL: https://carpenterhosting.cafe24.com
-   Callback URL: https://carpenterhosting.cafe24.com/auth/naver/callback/
-   ```
-
-4. **설정 확인 사항**
-   - ✅ HTTPS 프로토콜 사용
-   - ✅ 도메인 정확히 일치
-   - ✅ `/auth/naver/callback/` 경로 정확히 입력
-   - ✅ 설정 저장 후 적용 대기 (5-10분)
-
-### 현재 코드 설정
-```python
-# testpark_project/settings.py
-NAVER_CLIENT_ID = '_mw6kojqJVXoWEBqYBKv'
-NAVER_CLIENT_SECRET = 'hHKrIfKoMA'
-NAVER_REDIRECT_URI = 'https://carpenterhosting.cafe24.com/auth/naver/callback/'
+### 아파치 통합 설정
+```apache
+# 통합 VirtualHost에서 TestPark 네이버 로그인 자동 라우팅
+ProxyPass /auth/ http://localhost:8000/auth/
+ProxyPassReverse /auth/ http://localhost:8000/auth/
+ProxyPreserveHost On
 ```
 
-**⚠️ 주의**: 네이버 개발자 센터의 설정과 코드의 설정이 정확히 일치해야 소셜 로그인이 정상 작동합니다.
-
-## 🖥️ 서버 환경 구성
-
-### 1. 필요한 소프트웨어 설치
-
+### 로그인 테스트
 ```bash
-# Docker 설치
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
+# 콜백 URL 응답 확인 (302 리다이렉트 = 정상)
+curl -I https://carpenterhosting.cafe24.com/auth/naver/callback/
 
-# Node.js 설치 (웹훅 서버용)
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Git 설치
-sudo apt-get update
-sudo apt-get install git
+# 로그인 페이지 접근 확인
+curl -I https://carpenterhosting.cafe24.com/auth/login/
 ```
 
-### 2. 프로젝트 클론 및 설정
+**⚠️ 중요**: 실서버 배포 후 반드시 실제 네이버 로그인 플로우를 테스트해주세요!
 
+## ⚙️ 서버 환경 구성
+
+### 🏗️ 현재 인프라 상태
+- **서버 IP**: 210.114.22.100
+- **도메인**: carpenterhosting.cafe24.com
+- **아파치**: 통합 VirtualHost (HTTP/HTTPS)
+- **Docker**: TestPark 컨테이너 (포트 8000)
+- **웹훅 서버**: Node.js (포트 8080)
+- **SSL**: Let's Encrypt 인증서
+
+### 🔗 아파치 통합 설정
+
+#### 장점
+- ✅ **단일 파일 관리**: `/etc/apache2/sites-available/unified-vhost.conf`
+- ✅ **일관된 설정**: HTTP/HTTPS 모두 동일한 프록시 규칙
+- ✅ **유지보수 용이**: 한 곳에서 모든 설정 관리
+- ✅ **설정 누락 방지**: 중복 설정 제거
+
+#### 프록시 설정
+```apache
+# TestPark (네이버 로그인 포함)
+ProxyPass /auth/ http://localhost:8000/auth/
+
+# 웹훅 서버 (배포 시스템)
+ProxyPass /deploy-from-github http://localhost:8080/deploy-from-github
+ProxyPass /webhook/dockerhub http://localhost:8080/webhook/dockerhub
+ProxyPass /deploy http://localhost:8080/deploy
+ProxyPass /health http://localhost:8080/health
+
+# 기존 프로젝트
+WSGIScriptAlias /intea (intea 프로젝트)
+WSGIScriptAlias /PMIS (PMIS 프로젝트)
+```
+
+### 📦 Docker 환경
 ```bash
-# 프로젝트 클론
-cd /var/www
-sudo git clone https://github.com/your-username/testpark.git
-sudo chown -R $USER:$USER testpark
-cd testpark
+# TestPark 컨테이너 상태 확인
+docker ps -f name=testpark
 
-# Node.js 의존성 설치
-npm install
-```
+# 컨테이너 로그 확인
+docker logs testpark -f
 
-### 3. 환경 변수 설정
-
-웹훅 서버의 환경 변수는 `scripts/webhook.service` 파일에서 설정:
-
-```ini
-Environment=NODE_ENV=production
-Environment=WEBHOOK_PORT=8080
-Environment=WEBHOOK_SECRET=testpark-webhook-secret
-Environment=DEPLOY_SCRIPT=/var/www/testpark/scripts/deploy.sh
-
-# 카페24 환경에서는 프록시 설정을 통해
-# https://carpenterhosting.cafe24.com/* 요청을
-# localhost:8080/* 으로 포워딩하도록 구성
+# 컨테이너 재시작 (필요시)
+docker restart testpark
 ```
 
 ## 🔗 웹훅 서버 설정
