@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     'join',
     'license',
     'stop',
+    'impossibleterm',
 ]
 
 MIDDLEWARE = [

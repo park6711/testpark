@@ -523,15 +523,271 @@ class StaffNaverLoginView(View):
 
     def get(self, request):
         try:
+            print(f"[DEBUG] 스텝 로그인 시작")
             # 스텝용 콜백 URL 생성
             login_url, state = naver_auth.get_login_url(login_type='staff')
+            print(f"[DEBUG] 스텝 로그인 URL 생성 - state: {state}")
+            print(f"[DEBUG] 스텝 로그인 URL: {login_url}")
             # state를 세션에 저장
             request.session['naver_state'] = state
             request.session['login_type'] = 'staff'
+            print(f"[DEBUG] 세션에 저장된 state: {request.session.get('naver_state')}")
             return redirect(login_url)
 
         except Exception as e:
             messages.error(request, f"스텝 네이버 로그인 연결에 실패했습니다: {str(e)}")
+            return redirect('accounts:login')
+
+
+class TestStaffLoginView(View):
+    """임시 스텝 로그인 (개발용)"""
+
+    def get(self, request):
+        # 임시로 스텝 세션 생성
+        request.session['staff_user'] = {
+            'no': 1,
+            'name': '테스트 스텝',
+            'email': 'test@example.com',
+            'team': '개발팀',
+            'naver_id': 'test_naver_id',
+        }
+        messages.success(request, "임시 스텝 로그인이 완료되었습니다!")
+        return redirect('staff:staff_list')
+
+
+class TestCompanyLoginView(View):
+    """임시 업체 로그인 (개발용)"""
+
+    def get(self, request):
+        from .models import CustomUser
+        from django.contrib.auth import login
+
+        # 테스트 사용자 생성 또는 조회
+        test_user, created = CustomUser.objects.get_or_create(
+            email='test@company.com',
+            defaults={
+                'name': '테스트 업체',
+                'is_naver_linked': True,
+                'naver_id': 'test_company_id'
+            }
+        )
+
+        login(request, test_user)
+        messages.success(request, f"임시 업체 로그인이 완료되었습니다! ({test_user.name})")
+        return redirect('demo:home')
+
+
+class NaverCallbackView(View):
+    """통합 네이버 로그인 콜백 처리 (업체/스텝 구분은 state로 처리)"""
+
+    def get(self, request):
+        print(f"[DEBUG] 통합 네이버 콜백 호출 - URL: {request.get_full_path()}")
+        print(f"[DEBUG] 전체 GET 파라미터: {dict(request.GET)}")
+
+        code = request.GET.get('code')
+        state = request.GET.get('state')
+        error = request.GET.get('error')
+
+        # state에서 로그인 타입 추출
+        if state and ':' in state:
+            original_state, login_type = state.split(':', 1)
+        else:
+            original_state = state
+            login_type = 'company'
+
+        print(f"[DEBUG] 콜백 파라미터 - code: {code[:10] if code else None}..., state: {original_state}, type: {login_type}, error: {error}")
+
+        # 에러 처리
+        if error:
+            print(f"[ERROR] 네이버 로그인 에러: {error}")
+            messages.error(request, f"네이버 로그인이 취소되었습니다: {error}")
+            return redirect('accounts:login')
+
+        if not code or not state:
+            print(f"[ERROR] 필수 파라미터 누락 - code: {bool(code)}, state: {bool(state)}")
+            messages.error(request, "필수 파라미터가 없습니다.")
+            return redirect('accounts:login')
+
+        # state 검증 (추가 보안)
+        session_state = request.session.get('naver_state')
+        print(f"[DEBUG] State 검증 - session: {session_state}, callback: {state}")
+
+        if session_state != state:
+            print(f"[ERROR] State 불일치 - session: {session_state}, callback: {state}")
+            messages.error(request, "잘못된 요청입니다.")
+            return redirect('accounts:login')
+
+        try:
+            # 로그인 타입에 따라 처리 분기
+            if login_type == 'staff':
+                return self._handle_staff_login(request, code, state)
+            else:
+                return self._handle_company_login(request, code, state)
+        except Exception as e:
+            print(f"[ERROR] 콜백 처리 중 예외 발생: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            messages.error(request, f"로그인 처리 중 오류가 발생했습니다: {str(e)}")
+            return redirect('accounts:login')
+        finally:
+            # 세션에서 state 제거
+            if 'naver_state' in request.session:
+                del request.session['naver_state']
+            if 'login_type' in request.session:
+                del request.session['login_type']
+            print(f"[DEBUG] 로그인 세션 정리 완료")
+
+    def _handle_company_login(self, request, code, state):
+        """업체 로그인 처리"""
+        print(f"[DEBUG] 업체 로그인 처리 시작")
+        # 네이버 인증 처리 (state 검증은 이미 완료되었으므로 건너뛰기)
+        success, user_info, error_message = naver_auth.process_naver_login(code, state, skip_state_verification=True)
+
+        if not success:
+            print(f"[ERROR] 네이버 인증 실패: {error_message}")
+            messages.error(request, error_message)
+            return redirect('accounts:login')
+
+        print(f"[DEBUG] 네이버 인증 성공 - 사용자: {user_info.get('email', 'NO_EMAIL')}")
+
+        # 사용자 정보 추출
+        naver_id = user_info['id']
+        naver_email = user_info['email']
+        naver_name = user_info['name']
+
+        # 이미 네이버 ID로 연동된 사용자인지 확인
+        existing_user = CustomUser.objects.filter(naver_id=naver_id).first()
+        if existing_user:
+            print(f"[DEBUG] 기존 연동 사용자 로그인: {existing_user.email}")
+            # 기존 연동 사용자 → 즉시 로그인
+            login(request, existing_user)
+            messages.success(request, f"환영합니다, {existing_user.name}님!")
+
+            # 잔디 알림 발송
+            jandi_webhook.send_login_success(existing_user.name, existing_user.email)
+
+            return redirect('demo:home')
+
+        # 이메일로 기존 사용자 찾기
+        existing_email_user = CustomUser.objects.filter(email=naver_email).first()
+        if not existing_email_user:
+            print(f"[ERROR] 등록되지 않은 이메일: {naver_email}")
+            # DB에 이메일이 없음 → 가입 불가
+            messages.error(
+                request,
+                f"등록되지 않은 이메일입니다: {naver_email}\n"
+                "관리자에게 계정 등록을 요청해주세요."
+            )
+            return redirect('accounts:login')
+
+        print(f"[DEBUG] 기존 사용자 발견, 인증번호 발송: {existing_email_user.email}")
+
+        # 기존 사용자 있음 → 인증번호 발송
+        auth_code = existing_email_user.generate_auth_code()
+
+        # 잔디로 인증번호 발송
+        if jandi_webhook.send_auth_code(existing_email_user.email, auth_code):
+            # 인증 세션 생성
+            session_key = request.session.session_key
+            if not session_key:
+                request.session.save()
+                session_key = request.session.session_key
+
+            # 기존 인증 세션이 있다면 삭제
+            AuthSession.objects.filter(session_key=session_key).delete()
+
+            AuthSession.create_session(
+                session_key=session_key,
+                naver_data=user_info,
+                auth_code=auth_code
+            )
+
+            print(f"[DEBUG] 인증번호 발송 성공, 인증 페이지로 리디렉션")
+            messages.info(request, "인증번호가 잔디로 발송되었습니다. 확인해주세요.")
+            return redirect('accounts:verify_code')
+
+        else:
+            print(f"[ERROR] 인증번호 발송 실패")
+            messages.error(request, "인증번호 발송에 실패했습니다. 다시 시도해주세요.")
+            return redirect('accounts:login')
+
+    def _handle_staff_login(self, request, code, state):
+        """스텝 로그인 처리"""
+        print(f"[DEBUG] 스텝 로그인 처리 시작")
+        # 네이버 인증 처리 (state 검증은 이미 완료되었으므로 건너뛰기)
+        success, user_info, error_message = naver_auth.process_naver_login(code, state, skip_state_verification=True)
+
+        if not success:
+            print(f"[ERROR] 스텝 네이버 인증 실패: {error_message}")
+            messages.error(request, error_message)
+            return redirect('accounts:login')
+
+        print(f"[DEBUG] 스텝 네이버 인증 성공 - 사용자: {user_info.get('email', 'NO_EMAIL')}")
+
+        # 사용자 정보 추출
+        naver_id = user_info['id']
+        naver_email = user_info['email']
+        naver_name = user_info['name']
+
+        # 🔍 Step 1: Staff에서 네이버 ID로 기존 스텝 찾기 (sNaverID0 = naver_id)
+        existing_staff = Staff.objects.filter(sNaverID0=naver_id).first()
+        if existing_staff:
+            print(f"[DEBUG] 기존 연동 스텝 로그인: {existing_staff.sName}")
+            # 이미 네이버 ID가 연동된 스텝 → 즉시 로그인
+            request.session['staff_user'] = {
+                'no': existing_staff.no,
+                'name': existing_staff.sName,
+                'email': existing_staff.sNaverID,  # sNaverID = naver_email
+                'team': existing_staff.sTeam,
+                'naver_id': existing_staff.sNaverID0,  # sNaverID0 = naver_id
+            }
+            messages.success(request, f"환영합니다, {existing_staff.sName}님! (스텝 로그인)")
+            return redirect('staff:staff_list')
+
+        # 🔍 Step 2: 이메일로 기존 스텝 찾기 (sNaverID = naver_email)
+        existing_email_staff = Staff.objects.filter(sNaverID=naver_email).first()
+
+        if not existing_email_staff:
+            print(f"[ERROR] 등록되지 않은 스텝 이메일: {naver_email}")
+            # Staff 테이블에 해당 이메일이 없음 → 가입 불가
+            messages.error(
+                request,
+                f"등록되지 않은 스텝 이메일입니다: {naver_email}\n"
+                "관리자에게 스텝 등록을 요청해주세요."
+            )
+            return redirect('accounts:login')
+
+        print(f"[DEBUG] 기존 스텝 발견, 인증번호 발송: {existing_email_staff.sName}")
+
+        # 🔗 Step 3: 스텝에 대해 잔디 인증번호 발송 및 인증 요구
+        auth_code = existing_email_staff.generate_auth_code()
+
+        # 잔디로 인증번호 발송
+        if jandi_webhook.send_auth_code(existing_email_staff.sNaverID, auth_code):
+            # 스텝용 인증 세션 생성
+            session_key = request.session.session_key
+            if not session_key:
+                request.session.save()
+                session_key = request.session.session_key
+
+            # 기존 인증 세션이 있다면 삭제
+            AuthSession.objects.filter(session_key=session_key).delete()
+
+            AuthSession.create_session(
+                session_key=session_key,
+                naver_data=user_info,
+                auth_code=auth_code,
+                login_type='staff',
+                staff_email=existing_email_staff.sNaverID
+            )
+
+            print(f"[DEBUG] 스텝 인증번호 발송 성공")
+            messages.info(request, f"스텝 인증번호가 잔디로 발송되었습니다. ({existing_email_staff.sName}님)")
+            return redirect('accounts:verify_code')
+
+        else:
+            print(f"[ERROR] 스텝 인증번호 발송 실패")
+            messages.error(request, "스텝 인증번호 발송에 실패했습니다. 다시 시도해주세요.")
             return redirect('accounts:login')
 
 
