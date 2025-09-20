@@ -182,6 +182,30 @@ class Company(models.Model):
         except ImportError:
             print("DEBUG: ImpossibleTerm model not available - skipping ImpossibleTerm table adjustment")
 
+        # PossibleArea 테이블 처리
+        try:
+            from possiblearea.models import PossibleArea
+
+            # 1. 삭제될 Company를 참조하는 PossibleArea들을 완전 삭제
+            # (PossibleArea는 업체와 밀접하게 연관되어 있으므로 연결 해제보다는 삭제가 적합)
+            direct_possi = PossibleArea.objects.filter(noCompany=deleted_company_no)
+            direct_possi_count = direct_possi.count()
+            if direct_possi_count > 0:
+                direct_possi.delete()
+                print(f"DEBUG: Model delete - Deleted {direct_possi_count} PossibleArea records with noCompany = {deleted_company_no}")
+
+            # 2. 삭제될 Company.no보다 큰 번호를 참조하는 PossibleArea들의 noCompany를 1씩 감소
+            higher_possi = PossibleArea.objects.filter(noCompany__gt=deleted_company_no)
+            higher_possi_count = higher_possi.count()
+            if higher_possi_count > 0:
+                for possi in higher_possi:
+                    possi.noCompany -= 1
+                    possi.save()
+                print(f"DEBUG: Model delete - Decremented noCompany for {higher_possi_count} PossibleArea records with noCompany > {deleted_company_no}")
+
+        except ImportError:
+            print("DEBUG: PossibleArea model not available - skipping PossibleArea table adjustment")
+
         # 실제 삭제 수행
         super().delete(*args, **kwargs)
 

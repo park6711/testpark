@@ -29,9 +29,11 @@ urlpatterns = [
     path('join/', include('join.urls')),
     path('stop/', include('stop.urls')),
     path('impossibleterm/', include('impossibleterm.urls')),
+    path('possiblearea/', include('possiblearea.urls')),
     path('', include('demo.urls')),
 ]
 
-# Media files serving in development
+# Static and Media files serving in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

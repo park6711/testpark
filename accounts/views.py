@@ -577,6 +577,51 @@ class TestCompanyLoginView(View):
         return redirect('demo:home')
 
 
+class StaffTempLoginView(View):
+    """스텝 임시 로그인 (네이버 콜백 없이)"""
+
+    def get(self, request):
+        """임시 스텝 로그인 처리"""
+        try:
+            from staff.models import Staff
+
+            # 테스트용 스텝 계정 생성 또는 조회
+            # 실제 환경에서는 적절한 스텝 계정을 사용해야 함
+            staff, created = Staff.objects.get_or_create(
+                sNaverID='temp_staff',
+                defaults={
+                    'sNaverID0': 'temp_staff_id0',
+                    'sName': '임시스텝',
+                    'sTeam': '개발팀',
+                    'sTitle': '임시직급',
+                    'sNick': '임시스텝',
+                    'sPhone1': '010-0000-0000',
+                    'bApproval': True,
+                    'nStaffAuthority': 1,  # 스텝 권한
+                    'nCompanyAuthority': 1,  # 업체 권한
+                }
+            )
+
+            # 세션에 스텝 정보 저장
+            request.session['staff_user'] = {
+                'no': staff.no,
+                'name': staff.sName,
+                'nick': staff.sNick,
+                'naver_id': staff.sNaverID,
+                'authority': staff.nStaffAuthority,
+                'company_authority': staff.nCompanyAuthority,
+            }
+
+            messages.success(request, f'임시 스텝 로그인이 완료되었습니다. (스텝: {staff.sName})')
+
+            # 스텝 메인 페이지로 리다이렉트
+            return redirect('/staff/')
+
+        except Exception as e:
+            messages.error(request, f"임시 스텝 로그인에 실패했습니다: {str(e)}")
+            return redirect('accounts:login')
+
+
 class NaverCallbackView(View):
     """통합 네이버 로그인 콜백 처리 (업체/스텝 구분은 state로 처리)"""
 
