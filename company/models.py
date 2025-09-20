@@ -159,6 +159,29 @@ class Company(models.Model):
         except ImportError:
             print("DEBUG: Stop model not available - skipping Stop table adjustment")
 
+        # ImpossibleTerm 테이블 처리
+        try:
+            from impossibleterm.models import ImpossibleTerm
+
+            # 1. 삭제될 Company를 참조하는 ImpossibleTerm들을 -1로 설정 (연결 해제)
+            direct_impos = ImpossibleTerm.objects.filter(noCompany=deleted_company_no)
+            direct_impos_count = direct_impos.count()
+            if direct_impos_count > 0:
+                direct_impos.update(noCompany=-1)
+                print(f"DEBUG: Model delete - Updated {direct_impos_count} ImpossibleTerm records with noCompany = {deleted_company_no} to -1 (connection removed)")
+
+            # 2. 삭제될 Company.no보다 큰 번호를 참조하는 ImpossibleTerm들의 noCompany를 1씩 감소
+            higher_impos = ImpossibleTerm.objects.filter(noCompany__gt=deleted_company_no)
+            higher_impos_count = higher_impos.count()
+            if higher_impos_count > 0:
+                for impo in higher_impos:
+                    impo.noCompany -= 1
+                    impo.save()
+                print(f"DEBUG: Model delete - Decremented noCompany for {higher_impos_count} ImpossibleTerm records with noCompany > {deleted_company_no}")
+
+        except ImportError:
+            print("DEBUG: ImpossibleTerm model not available - skipping ImpossibleTerm table adjustment")
+
         # 실제 삭제 수행
         super().delete(*args, **kwargs)
 

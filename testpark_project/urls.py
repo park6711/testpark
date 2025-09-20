@@ -28,6 +28,7 @@ urlpatterns = [
     path('license/', include('license.urls')),
     path('join/', include('join.urls')),
     path('stop/', include('stop.urls')),
+    path('impossibleterm/', include('impossibleterm.urls')),
     path('', include('demo.urls')),
 ]
 
