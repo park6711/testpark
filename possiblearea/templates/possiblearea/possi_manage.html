@@ -1,0 +1,2423 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}공사 가능 지역{% endblock %}
+
+{% block page_title %}<span id="dynamic-title">{{ title }}</span>{% endblock %}
+{% block page_subtitle %}<span id="dynamic-subtitle">공사 가능한 지역을 설정합니다.</span>{% endblock %}
+
+{% block content %}
+{% if not not_logged_in %}
+{{ block.super }}
+{% endif %}
+
+{% csrf_token %}
+
+{% if not not_logged_in %}
+<style>
+    .form-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 30px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 25px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+    }
+
+    .construction-types {
+        display: flex;
+        gap: 30px;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .construction-type {
+        flex: 1;
+    }
+
+    /* construction-checkbox CSS 제거됨 (체크박스 기능 제거) */
+
+    .area-management {
+        display: block;
+        margin-top: 15px;
+    }
+
+    .area-section {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        background: white;
+    }
+
+    .area-section-title {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 14px;
+    }
+
+    .area-input-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .area-input-group select {
+        flex: 1;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin: 2px;
+        font-size: 12px;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #0056b3;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #c82333;
+    }
+
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #218838;
+    }
+
+    .area-list {
+        margin-top: 10px;
+    }
+
+    .area-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        margin-bottom: 5px;
+        font-size: 13px;
+    }
+
+    .area-item-name {
+        flex: 1;
+    }
+
+    .area-item-delete {
+        margin-left: 10px;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+    }
+
+    .error-message {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+
+    .help-text {
+        font-size: 12px;
+        color: #666;
+        margin-top: 4px;
+    }
+
+    .company-item:hover {
+        background-color: #f8f9fa !important;
+    }
+
+    .company-item.active {
+        background-color: #f8f9fa !important;
+    }
+
+    .company-search-container {
+        position: relative;
+    }
+
+    #company-search:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+    }
+
+    .area-search:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+    }
+
+    .area-item:hover {
+        background-color: #f8f9fa !important;
+    }
+
+    .area-item.active {
+        background-color: #f8f9fa !important;
+    }
+
+    .area-search-container {
+        position: relative;
+    }
+
+    .dropdown-toggle-btn:hover {
+        background-color: #f8f9fa !important;
+    }
+
+    .area-dropdown-btn:hover {
+        background-color: #f0f0f0 !important;
+    }
+
+    .show-all {
+        font-weight: 500 !important;
+    }
+
+    .show-all:hover {
+        background-color: #e8f5e8 !important;
+    }
+
+    /* 커스텀 모달 스타일 */
+    .custom-modal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .custom-modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        border-radius: 8px;
+        width: 400px;
+        max-width: 90%;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .custom-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .custom-modal-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .custom-modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #aaa;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .custom-modal-close:hover {
+        color: #000;
+    }
+
+    .custom-modal-body {
+        margin-bottom: 20px;
+        line-height: 1.5;
+        color: #555;
+        white-space: pre-line;
+    }
+
+    .custom-modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .custom-modal-btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        min-width: 70px;
+    }
+
+    .custom-modal-btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .custom-modal-btn-primary:hover {
+        background-color: #0056b3;
+    }
+
+    .custom-modal-btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .custom-modal-btn-secondary:hover {
+        background-color: #545b62;
+    }
+
+    /* 수직 스크롤 가능하도록 수정 */
+    .form-container {
+        /* 기본 스크롤이 작동하도록 height 및 overflow 제약 제거 */
+        scroll-behavior: smooth;
+    }
+
+    .form-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .form-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .form-container::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+
+    .form-container::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    .construction-type-container {
+        scroll-margin-top: 20px;
+    }
+
+    .area-section {
+        scroll-margin-top: 10px;
+    }
+
+    /* 스크롤 인디케이터 */
+    .scroll-indicator {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        cursor: pointer;
+        display: none;
+        z-index: 1000;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        transition: all 0.3s ease;
+    }
+
+    .scroll-indicator:hover {
+        background: #0056b3;
+        transform: scale(1.1);
+    }
+
+    .scroll-indicator.show {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 768px) {
+        .construction-types {
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .area-input-group {
+            flex-direction: column;
+        }
+
+        /* 모바일에서 3가지 지역 타입을 세로로 배치 */
+        .construction-type-container div[style*="grid-template-columns"] {
+            display: block !important;
+        }
+
+        .construction-type-container .area-section {
+            margin-bottom: 20px;
+        }
+
+        .form-container {
+            /* 모바일에서도 자유롭게 스크롤 가능하도록 */
+            padding-right: 5px;
+        }
+
+        .scroll-indicator {
+            bottom: 10px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+        }
+    }
+</style>
+
+<div class="form-container">
+    <!-- 업체 선택 -->
+    <div class="form-group">
+        <label class="form-label" for="company-search">
+            열린업체 <span style="color: red;">*</span>
+        </label>
+        <div class="company-search-container" style="position: relative;">
+            <input type="text"
+                   id="company-search"
+                   class="form-control"
+                   placeholder="업체명을 입력하여 검색하세요..."
+                   autocomplete="off"
+                   style="padding-right: 40px;">
+            <div id="search-icon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #666; font-size: 16px;">🔍</div>
+            <div id="company-dropdown" class="company-dropdown" style="
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border: 1px solid #ddd;
+                border-top: none;
+                border-radius: 0 0 4px 4px;
+                max-height: 300px;
+                overflow-y: auto;
+                z-index: 1000;
+                display: none;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            "></div>
+        </div>
+        <input type="hidden" id="company-select" value="">
+        <div id="selected-company" style="
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            border-radius: 4px;
+            display: none;
+            font-size: 14px;
+        ">
+            <span id="selected-company-name"></span>
+            <button type="button" id="clear-company" style="
+                background: none;
+                border: none;
+                float: right;
+                color: #666;
+                cursor: pointer;
+                font-size: 16px;
+            ">✕</button>
+        </div>
+    </div>
+
+    <!-- 공사종류별 지역 설정 -->
+    <div id="construction-types-container">
+    {% for const_type_value, const_type_name in all_construction_types %}
+    <div class="construction-type-container" style="margin-bottom: 30px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; background: #fafafa;">
+        <!-- 공사종류 소제목 및 공사 가능한 분야 체크박스 -->
+        <div class="construction-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 18px; font-weight: bold; color: #333; padding: 10px 15px; background: #e9ecef; border-radius: 6px; border-left: 4px solid #007bff;">
+            <span>{{ const_type_name }}</span>
+
+            <!-- 공사 가능한 분야 체크박스 (일반 업체만) -->
+            <div class="construction-fields" id="fields-{{ const_type_value }}" style="display: none; gap: 15px;">
+                {% if const_type_value == 0 %}
+                    <!-- 올수리 가능한 지역 -->
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: normal;">
+                        <input type="checkbox" id="bAptAll-display" disabled style="transform: scale(0.9);">
+                        아파트 올수리
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: normal;">
+                        <input type="checkbox" id="bHouseAll-display" disabled style="transform: scale(0.9);">
+                        주택 올수리
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: normal;">
+                        <input type="checkbox" id="bCommerceAll-display" disabled style="transform: scale(0.9);">
+                        상가 올수리
+                    </label>
+                {% elif const_type_value == 1 %}
+                    <!-- 부분수리 가능한 지역 -->
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: normal;">
+                        <input type="checkbox" id="bAptPart-display" disabled style="transform: scale(0.9);">
+                        아파트 부분수리
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: normal;">
+                        <input type="checkbox" id="bHousePart-display" disabled style="transform: scale(0.9);">
+                        주택 부분수리
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: normal;">
+                        <input type="checkbox" id="bCommercePart-display" disabled style="transform: scale(0.9);">
+                        상가 부분수리
+                    </label>
+                {% elif const_type_value == 2 %}
+                    <!-- 신축/증축 가능한 지역 -->
+                    <label style="display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: normal;">
+                        <input type="checkbox" id="bBuild-display" disabled style="transform: scale(0.9);">
+                        신축/증축
+                    </label>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 지역 관리 섹션 (3가지를 가로로 배치) -->
+        <div class="area-management" id="management-{{ const_type_value }}" style="display: block;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 15px;">
+
+                <!-- 추가지역 (광역지역 + 시군구지역) -->
+                <div class="area-section">
+                    <div class="area-section-title" style="background: #28a745; color: white; padding: 8px 12px; border-radius: 4px; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                        추가지역 <span id="additional-count-{{ const_type_value }}">(0)</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px; text-align: center;">광역지역 + 시군구지역</div>
+                    <div class="area-search-container" style="position: relative; margin-bottom: 8px;">
+                        <input type="text"
+                               id="additional-area-search-{{ const_type_value }}"
+                               class="form-control area-search"
+                               placeholder="지역명을 입력하여 검색하세요..."
+                               data-area-type="0"
+                               data-const-type="{{ const_type_value }}"
+                               autocomplete="off"
+                               style="padding-right: 40px;">
+                        <div class="search-icon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #666; font-size: 14px;">🔍</div>
+                        <div id="additional-area-dropdown-{{ const_type_value }}" class="area-dropdown" style="
+                            position: absolute;
+                            top: 100%;
+                            left: 0;
+                            right: 0;
+                            background: white;
+                            border: 1px solid #ddd;
+                            border-top: none;
+                            border-radius: 0 0 4px 4px;
+                            max-height: 200px;
+                            overflow-y: auto;
+                            z-index: 1000;
+                            display: none;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        "></div>
+                        <input type="hidden" id="additional-area-{{ const_type_value }}" value="">
+                    </div>
+                    <button type="button" class="btn btn-success btn-sm" style="width: 100%; margin-bottom: 10px;" onclick="addArea({{ const_type_value }}, 0, 'additional-area-{{ const_type_value }}')">추가</button>
+                    <div class="area-list" id="additional-list-{{ const_type_value }}" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 5px; border-radius: 4px; background: white;"></div>
+                </div>
+
+                <!-- 업체제외지역 (시군구지역만) -->
+                <div class="area-section">
+                    <div class="area-section-title" style="background: #dc3545; color: white; padding: 8px 12px; border-radius: 4px; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                        업체제외지역 <span id="company-exclude-count-{{ const_type_value }}">(0)</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px; text-align: center;">시군구지역만</div>
+                    <div class="area-search-container" style="position: relative; margin-bottom: 8px;">
+                        <input type="text"
+                               id="company-exclude-area-search-{{ const_type_value }}"
+                               class="form-control area-search"
+                               placeholder="시군구 지역명을 입력하여 검색하세요..."
+                               data-area-type="1"
+                               data-const-type="{{ const_type_value }}"
+                               autocomplete="off"
+                               style="padding-right: 40px;">
+                        <div class="search-icon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #666; font-size: 14px;">🔍</div>
+                        <div id="company-exclude-area-dropdown-{{ const_type_value }}" class="area-dropdown" style="
+                            position: absolute;
+                            top: 100%;
+                            left: 0;
+                            right: 0;
+                            background: white;
+                            border: 1px solid #ddd;
+                            border-top: none;
+                            border-radius: 0 0 4px 4px;
+                            max-height: 200px;
+                            overflow-y: auto;
+                            z-index: 1000;
+                            display: none;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        "></div>
+                        <input type="hidden" id="company-exclude-area-{{ const_type_value }}" value="">
+                    </div>
+                    <button type="button" class="btn btn-success btn-sm" style="width: 100%; margin-bottom: 10px;" onclick="addArea({{ const_type_value }}, 1, 'company-exclude-area-{{ const_type_value }}')">추가</button>
+                    <div class="area-list" id="company-exclude-list-{{ const_type_value }}" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 5px; border-radius: 4px; background: white;"></div>
+                </div>
+
+                <!-- 스텝제외지역 (시군구지역만) -->
+                <div class="area-section">
+                    <div class="area-section-title" style="background: #ffc107; color: #333; padding: 8px 12px; border-radius: 4px; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                        스텝제외지역 <span id="staff-exclude-count-{{ const_type_value }}">(0)</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px; text-align: center;">시군구지역만</div>
+                    <div class="area-search-container" style="position: relative; margin-bottom: 8px;">
+                        <input type="text"
+                               id="staff-exclude-area-search-{{ const_type_value }}"
+                               class="form-control area-search"
+                               placeholder="시군구 입력 또는 화살표 클릭..."
+                               data-area-type="2"
+                               data-const-type="{{ const_type_value }}"
+                               autocomplete="off"
+                               style="padding-right: 80px;">
+                        <div class="dropdown-controls" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex; gap: 4px;">
+                            <button type="button" class="area-dropdown-btn" data-area-type="2" data-const-type="{{ const_type_value }}" style="
+                                background: none;
+                                border: none;
+                                padding: 4px 8px;
+                                cursor: pointer;
+                                color: #666;
+                                font-size: 12px;
+                                border-radius: 3px;
+                            " title="지역 목록 보기">▼</button>
+                            <div class="search-icon" style="color: #666; font-size: 12px; padding: 4px;">🔍</div>
+                        </div>
+                        <div id="staff-exclude-area-dropdown-{{ const_type_value }}" class="area-dropdown" style="
+                            position: absolute;
+                            top: 100%;
+                            left: 0;
+                            right: 0;
+                            background: white;
+                            border: 1px solid #ddd;
+                            border-top: none;
+                            border-radius: 0 0 4px 4px;
+                            max-height: 200px;
+                            overflow-y: auto;
+                            z-index: 1000;
+                            display: none;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        "></div>
+                        <input type="hidden" id="staff-exclude-area-{{ const_type_value }}" value="">
+                    </div>
+                    <button type="button" class="btn btn-success btn-sm" style="width: 100%; margin-bottom: 10px;" onclick="addArea({{ const_type_value }}, 2, 'staff-exclude-area-{{ const_type_value }}')">추가</button>
+                    <div class="area-list" id="staff-exclude-list-{{ const_type_value }}" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 5px; border-radius: 4px; background: white;"></div>
+                </div>
+            </div>
+
+            <!-- 계산된 지역들 표시 섹션 (2개를 가로로 배치) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
+
+                <!-- 업체요청지역 (계산결과) -->
+                <div class="area-section">
+                    <div class="area-section-title" style="background: #17a2b8; color: white; padding: 8px 12px; border-radius: 4px; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                        업체요청지역 <span id="company-request-count-{{ const_type_value }}">(0)</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px; text-align: center;">추가지역 - 업체제외지역</div>
+                    <textarea id="company-request-list-{{ const_type_value }}"
+                             style="width: 100%; min-height: 120px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa; font-size: 13px; line-height: 1.4; resize: vertical;"
+                             readonly
+                             placeholder="계산된 지역이 여기에 표시됩니다..."></textarea>
+                </div>
+
+                <!-- 실제할당지역 (계산결과) -->
+                <div class="area-section">
+                    <div class="area-section-title" style="background: #6f42c1; color: white; padding: 8px 12px; border-radius: 4px; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                        실제할당지역 <span id="actual-assigned-count-{{ const_type_value }}">(0)</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px; text-align: center;">추가지역 - 업체제외지역 - 스텝제외지역</div>
+                    <textarea id="actual-assigned-list-{{ const_type_value }}"
+                             style="width: 100%; min-height: 120px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa; font-size: 13px; line-height: 1.4; resize: vertical;"
+                             readonly
+                             placeholder="계산된 지역이 여기에 표시됩니다..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- btoc제휴 업체 전용 부가서비스 지역 관리 섹션 -->
+    <div id="btoc-additional-services" class="construction-type-container" style="margin-bottom: 30px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; background: #fafafa; display: none;">
+
+        <!-- 지역 관리 섹션 (3가지를 가로로 배치) -->
+        <div class="area-management" id="management-3" style="display: block;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 15px;">
+
+                <!-- 추가지역 (광역지역 + 시군구지역) -->
+                <div class="area-section">
+                    <div class="area-section-title" style="background: #28a745; color: white; padding: 8px 12px; border-radius: 4px; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                        추가지역 <span id="additional-count-3">(0)</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px; text-align: center;">광역지역 + 시군구지역</div>
+                    <div class="area-search-container" style="position: relative; margin-bottom: 8px;">
+                        <input type="text"
+                               id="additional-area-search-3"
+                               class="form-control area-search"
+                               placeholder="지역명을 입력하여 검색하세요..."
+                               data-area-type="0"
+                               data-const-type="3"
+                               autocomplete="off"
+                               style="padding-right: 40px;">
+                        <div class="search-icon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #666; font-size: 14px;">🔍</div>
+                        <div id="additional-area-dropdown-3" class="area-dropdown" style="
+                            position: absolute;
+                            top: 100%;
+                            left: 0;
+                            right: 0;
+                            background: white;
+                            border: 1px solid #ddd;
+                            border-top: none;
+                            border-radius: 0 0 4px 4px;
+                            max-height: 200px;
+                            overflow-y: auto;
+                            z-index: 1000;
+                            display: none;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        "></div>
+                        <input type="hidden" id="additional-area-3" value="">
+                    </div>
+                    <button type="button" class="btn btn-success btn-sm" style="width: 100%; margin-bottom: 10px;" onclick="addArea(3, 0, 'additional-area-3')">추가</button>
+                    <div class="area-list" id="additional-list-3" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 5px; border-radius: 4px; background: white;"></div>
+                </div>
+
+                <!-- 업체제외지역 (시군구지역만) -->
+                <div class="area-section">
+                    <div class="area-section-title" style="background: #dc3545; color: white; padding: 8px 12px; border-radius: 4px; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                        업체제외지역 <span id="company-exclude-count-3">(0)</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px; text-align: center;">시군구지역만</div>
+                    <div class="area-search-container" style="position: relative; margin-bottom: 8px;">
+                        <input type="text"
+                               id="company-exclude-area-search-3"
+                               class="form-control area-search"
+                               placeholder="지역명을 입력하여 검색하세요..."
+                               data-area-type="1"
+                               data-const-type="3"
+                               autocomplete="off"
+                               style="padding-right: 40px;">
+                        <div class="search-icon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #666; font-size: 14px;">🔍</div>
+                        <div id="company-exclude-area-dropdown-3" class="area-dropdown" style="
+                            position: absolute;
+                            top: 100%;
+                            left: 0;
+                            right: 0;
+                            background: white;
+                            border: 1px solid #ddd;
+                            border-top: none;
+                            border-radius: 0 0 4px 4px;
+                            max-height: 200px;
+                            overflow-y: auto;
+                            z-index: 1000;
+                            display: none;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        "></div>
+                        <input type="hidden" id="company-exclude-area-3" value="">
+                    </div>
+                    <button type="button" class="btn btn-success btn-sm" style="width: 100%; margin-bottom: 10px;" onclick="addArea(3, 1, 'company-exclude-area-3')">추가</button>
+                    <div class="area-list" id="company-exclude-list-3" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 5px; border-radius: 4px; background: white;"></div>
+                </div>
+
+                <!-- 스텝제외지역 (시군구지역만) -->
+                <div class="area-section">
+                    <div class="area-section-title" style="background: #fd7e14; color: white; padding: 8px 12px; border-radius: 4px; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                        스텝제외지역 <span id="staff-exclude-count-3">(0)</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px; text-align: center;">시군구지역만</div>
+                    <div class="area-search-container" style="position: relative; margin-bottom: 8px;">
+                        <input type="text"
+                               id="staff-exclude-area-search-3"
+                               class="form-control area-search"
+                               placeholder="지역명을 입력하여 검색하세요..."
+                               data-area-type="2"
+                               data-const-type="3"
+                               autocomplete="off"
+                               style="padding-right: 40px;">
+                        <div class="search-icon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #666; font-size: 14px;">🔍</div>
+                        <div id="staff-exclude-area-dropdown-3" class="area-dropdown" style="
+                            position: absolute;
+                            top: 100%;
+                            left: 0;
+                            right: 0;
+                            background: white;
+                            border: 1px solid #ddd;
+                            border-top: none;
+                            border-radius: 0 0 4px 4px;
+                            max-height: 200px;
+                            overflow-y: auto;
+                            z-index: 1000;
+                            display: none;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        "></div>
+                        <input type="hidden" id="staff-exclude-area-3" value="">
+                    </div>
+                    <button type="button" class="btn btn-success btn-sm" style="width: 100%; margin-bottom: 10px;" onclick="addArea(3, 2, 'staff-exclude-area-3')">추가</button>
+                    <div class="area-list" id="staff-exclude-list-3" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 5px; border-radius: 4px; background: white;"></div>
+                </div>
+            </div>
+
+            <!-- 계산된 지역들 표시 섹션 (2개를 가로로 배치) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; border-top: 2px solid #007bff; padding-top: 20px;">
+
+                <!-- 업체요청지역 (계산결과) -->
+                <div class="area-section">
+                    <div class="area-section-title" style="background: #17a2b8; color: white; padding: 8px 12px; border-radius: 4px; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                        업체요청지역 <span id="company-request-count-3">(0)</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px; text-align: center;">추가지역 - 업체제외지역</div>
+                    <textarea id="company-request-list-3"
+                             style="width: 100%; min-height: 120px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa; font-size: 13px; line-height: 1.4; resize: vertical;"
+                             readonly
+                             placeholder="계산된 지역이 여기에 표시됩니다..."></textarea>
+                </div>
+
+                <!-- 실제할당지역 (계산결과) -->
+                <div class="area-section">
+                    <div class="area-section-title" style="background: #6f42c1; color: white; padding: 8px 12px; border-radius: 4px; font-weight: bold; text-align: center; margin-bottom: 10px;">
+                        실제할당지역 <span id="actual-assigned-count-3">(0)</span>
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 8px; text-align: center;">추가지역 - 업체제외지역 - 스텝제외지역</div>
+                    <textarea id="actual-assigned-list-3"
+                             style="width: 100%; min-height: 120px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa; font-size: 13px; line-height: 1.4; resize: vertical;"
+                             readonly
+                             placeholder="계산된 지역이 여기에 표시됩니다..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+<!-- 스크롤 인디케이터 버튼 -->
+<button id="scroll-indicator" class="scroll-indicator" title="위로 스크롤">
+    ↑
+</button>
+
+<script>
+let currentCompanyId = null;
+let currentCompanyName = null;
+let currentCompanyType = null;
+let allCompanies = [];
+let filteredCompanies = [];
+let allAreas = [];
+let cityAreas = [];
+
+// 업체 데이터 초기화 (defer로 전체 로드 대기)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAll);
+} else {
+    initializeAll();
+}
+
+function initializeAll() {
+    console.log('PMIS 2.0 초기화 시작');
+    try {
+        initializeCompanySearch();
+        initializeAreaData();
+        initializeAreaSearch();
+        initializeScrollManagement();
+
+        // URL 파라미터에서 검색어가 있으면 자동 검색
+        const searchQuery = '{{ search_query|default:"" }}';
+        if (searchQuery) {
+            setTimeout(() => {
+                autoSearchCompany(searchQuery);
+            }, 100);
+        }
+
+        console.log('초기화 완료');
+    } catch (error) {
+        console.error('초기화 오류:', error);
+    }
+}
+
+function initializeAreaData() {
+    // 전체 지역 데이터 (3단계 계층 구조)
+    const rawCityAreas = [];
+    {% for area in city_areas %}
+    rawCityAreas.push({
+        id: {{ area.no }},
+        name: '{{ area.get_full_name }}',
+        city: '{{ area.sCity }}',
+        searchText: '{{ area.get_full_name }} {{ area.sState }} {{ area.sCity }}'.toLowerCase()
+    });
+    {% endfor %}
+
+    // 지역 타입 분류 및 아이콘 설정
+    const processedCityAreas = rawCityAreas.map(area => {
+        const hasParentheses = area.city.includes('(') && area.city.includes(')');
+        const areaId = area.id;
+        const lastDigit = areaId % 10;
+        const secondLastDigit = Math.floor((areaId % 100) / 10);
+
+        if (hasParentheses) {
+            // 구 (예: 덕양구, 분당구)
+            return {
+                ...area,
+                type: 'district',
+                level: 3,
+                icon: '🏢',
+                description: '구'
+            };
+        } else if (lastDigit === 0 && secondLastDigit >= 1 && secondLastDigit <= 9) {
+            // 통합시 상위 (예: 고양시, 성남시)
+            return {
+                ...area,
+                type: 'integrated_city',
+                level: 2,
+                icon: '🏢',
+                description: '통합시'
+            };
+        } else {
+            // 일반 시군구
+            return {
+                ...area,
+                type: 'city',
+                level: 2,
+                icon: '🏢',
+                description: '시군구'
+            };
+        }
+    });
+
+    allAreas = [
+        {id: 0, name: '전국', type: 'nationwide', level: 0, searchText: '전국', icon: '🌍', description: '모든 지역 포함'},
+        {% for area in all_areas %}
+            {% if area.sCity == "" and area.no != 0 %}
+            {id: {{ area.no }}, name: '{{ area.sState }}', type: 'metro', level: 1, searchText: '{{ area.sState }}'.toLowerCase(), icon: '🏛️'},
+            {% endif %}
+        {% endfor %}
+        ...processedCityAreas
+    ];
+
+    // 시군구지역만 (통합시 상위 + 하위구 + 일반 시군구)
+    cityAreas = allAreas.filter(area => area.type === 'city' || area.type === 'integrated_city' || area.type === 'district');
+}
+
+function initializeAreaSearch() {
+    const areaSearchInputs = document.querySelectorAll('.area-search');
+
+    areaSearchInputs.forEach(input => {
+        const areaType = input.dataset.areaType;
+        const constType = input.dataset.constType;
+        const dropdownId = getAreaDropdownId(areaType, constType);
+        const dropdown = document.getElementById(dropdownId);
+
+        if (!dropdown) return;
+
+        // 검색 입력 이벤트
+        input.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            if (query.length > 0) {
+                filterAndShowAreas(query, areaType, constType);
+            } else {
+                hideAreaDropdown(dropdownId);
+            }
+        });
+
+        // 포커스 이벤트 - 모든 지역 표시
+        input.addEventListener('focus', function() {
+            const query = this.value.toLowerCase().trim();
+            if (query.length > 0) {
+                filterAndShowAreas(query, areaType, constType);
+            } else {
+                // 검색어가 없으면 모든 지역 표시
+                showAllAreas(areaType, constType);
+            }
+        });
+
+        // 클릭 이벤트 - 모든 지역 표시
+        input.addEventListener('click', function() {
+            const query = this.value.toLowerCase().trim();
+            if (query.length > 0) {
+                filterAndShowAreas(query, areaType, constType);
+            } else {
+                // 검색어가 없으면 모든 지역 표시
+                showAllAreas(areaType, constType);
+            }
+        });
+
+        // 키보드 네비게이션
+        input.addEventListener('keydown', function(e) {
+            const items = dropdown.querySelectorAll('.area-item');
+            const active = dropdown.querySelector('.area-item.active');
+            let activeIndex = -1;
+
+            if (active) {
+                activeIndex = Array.from(items).indexOf(active);
+            }
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const nextIndex = Math.min(activeIndex + 1, items.length - 1);
+                setActiveAreaItem(items, nextIndex);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prevIndex = Math.max(activeIndex - 1, 0);
+                setActiveAreaItem(items, prevIndex);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (active) {
+                    selectArea(active.dataset.areaId, active.dataset.areaName, areaType, constType);
+                }
+            } else if (e.key === 'Escape') {
+                hideAreaDropdown(dropdownId);
+            }
+        });
+    });
+
+    // 지역 드롭다운 버튼 이벤트
+    document.querySelectorAll('.area-dropdown-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const areaType = this.dataset.areaType;
+            const constType = this.dataset.constType;
+            const dropdownId = getAreaDropdownId(areaType, constType);
+            const dropdown = document.getElementById(dropdownId);
+
+            if (dropdown.style.display === 'block') {
+                hideAreaDropdown(dropdownId);
+            } else {
+                showAllAreas(areaType, constType);
+            }
+        });
+
+        // 호버 효과
+        btn.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f0f0f0';
+        });
+        btn.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = 'transparent';
+        });
+    });
+
+    // 외부 클릭으로 드롭다운 닫기
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.area-search-container')) {
+            document.querySelectorAll('.area-dropdown').forEach(dropdown => {
+                dropdown.style.display = 'none';
+            });
+        }
+    });
+}
+
+function getAreaDropdownId(areaType, constType) {
+    const areaTypeMap = {
+        '0': 'additional-area-dropdown',
+        '1': 'company-exclude-area-dropdown',
+        '2': 'staff-exclude-area-dropdown'
+    };
+    return `${areaTypeMap[areaType]}-${constType}`;
+}
+
+function filterAndShowAreas(query, areaType, constType) {
+    const areas = areaType === '0' ? allAreas : cityAreas;
+    const filteredAreas = areas.filter(area =>
+        area.searchText.includes(query)
+    );
+
+    // 정확한 매치를 위해 정렬
+    filteredAreas.sort((a, b) => {
+        const aStartsWith = a.name.toLowerCase().startsWith(query);
+        const bStartsWith = b.name.toLowerCase().startsWith(query);
+
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+
+        return a.name.localeCompare(b.name);
+    });
+
+    showAreaDropdown(filteredAreas, query, areaType, constType);
+}
+
+function showAllAreas(areaType, constType) {
+    const areas = areaType === '0' ? allAreas : cityAreas;
+    showAreaDropdown(areas, '', areaType, constType);
+}
+
+function showAreaDropdown(areas, query, areaType, constType) {
+    const dropdownId = getAreaDropdownId(areaType, constType);
+    const dropdown = document.getElementById(dropdownId);
+
+    dropdown.innerHTML = '';
+    dropdown.style.display = 'block';
+
+    if (areas.length === 0) {
+        const noResult = document.createElement('div');
+        noResult.className = 'area-item no-result';
+        noResult.style.cssText = 'padding: 12px; color: #666; font-style: italic;';
+        noResult.textContent = '검색 결과가 없습니다.';
+        dropdown.appendChild(noResult);
+        return;
+    }
+
+    // 전체 보기 링크 추가 (검색된 결과가 15개 이상이고 전체 목록이 아닌 경우)
+    const originalAreas = areaType === '0' ? allAreas : cityAreas;
+    const searchInputId = getAreaSearchInputId(areaType, constType);
+    const searchValue = document.getElementById(searchInputId).value.trim();
+
+    if (areas.length >= 15 && searchValue && areas.length < originalAreas.length) {
+        const showAllItem = document.createElement('div');
+        showAllItem.className = 'area-item show-all';
+        showAllItem.style.cssText = 'padding: 8px 12px; cursor: pointer; border-bottom: 2px solid #28a745; background: #f8fff8; color: #28a745; font-weight: 500;';
+        showAllItem.innerHTML = `📋 전체 ${originalAreas.length}개 지역 보기`;
+        showAllItem.addEventListener('click', function() {
+            document.getElementById(searchInputId).value = '';
+            showAllAreas(areaType, constType);
+        });
+        dropdown.appendChild(showAllItem);
+    }
+
+    areas.forEach((area, index) => {
+        const item = document.createElement('div');
+        item.className = 'area-item';
+        item.dataset.areaId = area.id;
+        item.dataset.areaName = area.name;
+        item.style.cssText = `
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        `;
+
+        const levelText = {
+        0: '전국',
+        1: '광역지역',
+        2: area.type === 'integrated_city' ? '통합시' : '시군구지역',
+        3: '구'
+    };
+
+    item.innerHTML = `
+            <div style="font-weight: 500; color: #333;">
+                ${area.icon} ${highlightQuery(area.name, query)}
+            </div>
+            <div style="font-size: 11px; color: #888; margin-top: 2px;">
+                ${levelText[area.level] || '지역'}
+                ${(area.name === '전국' && area.description) ? ` - ${area.description}` : ''}
+            </div>
+        `;
+
+        // 호버 효과
+        item.addEventListener('mouseenter', function() {
+            setActiveAreaItem(dropdown.querySelectorAll('.area-item'), index);
+        });
+
+        item.addEventListener('click', function() {
+            selectArea(area.id, area.name, areaType, constType);
+        });
+
+        dropdown.appendChild(item);
+    });
+
+    // 첫 번째 항목을 기본 활성화
+    if (areas.length > 0) {
+        setActiveAreaItem(dropdown.querySelectorAll('.area-item'), 0);
+    }
+}
+
+function hideAreaDropdown(dropdownId) {
+    document.getElementById(dropdownId).style.display = 'none';
+}
+
+function setActiveAreaItem(items, index) {
+    items.forEach(item => item.classList.remove('active'));
+    if (items[index] && !items[index].classList.contains('no-result')) {
+        items[index].classList.add('active');
+        items[index].style.backgroundColor = '#f8f9fa';
+    }
+
+    // 비활성화된 항목들의 배경색 리셋
+    items.forEach((item, i) => {
+        if (i !== index) {
+            item.style.backgroundColor = 'white';
+        }
+    });
+}
+
+function selectArea(areaId, areaName, areaType, constType) {
+    const searchInputId = getAreaSearchInputId(areaType, constType);
+    const hiddenInputId = getAreaHiddenInputId(areaType, constType);
+    const dropdownId = getAreaDropdownId(areaType, constType);
+
+    // UI 업데이트
+    document.getElementById(searchInputId).value = areaName;
+    document.getElementById(hiddenInputId).value = areaId;
+
+    hideAreaDropdown(dropdownId);
+}
+
+function getAreaSearchInputId(areaType, constType) {
+    const areaTypeMap = {
+        '0': 'additional-area-search',
+        '1': 'company-exclude-area-search',
+        '2': 'staff-exclude-area-search'
+    };
+    return `${areaTypeMap[areaType]}-${constType}`;
+}
+
+function getAreaHiddenInputId(areaType, constType) {
+    const areaTypeMap = {
+        '0': 'additional-area',
+        '1': 'company-exclude-area',
+        '2': 'staff-exclude-area'
+    };
+    return `${areaTypeMap[areaType]}-${constType}`;
+}
+
+function initializeCompanySearch() {
+    // 업체 데이터 수집
+    allCompanies = [
+        {% for company in companies %}
+        {
+            id: {{ company.no }},
+            name: '{{ company.sName2|default:company.sName1 }}',
+            type: '{{ company.get_nType_display }}',
+            searchText: '{{ company.sName2|default:company.sName1 }} {{ company.get_nType_display }}'.toLowerCase(),
+            // 공사 가능한 분야 정보
+            bAptAll: {% if company.bAptAll %}true{% else %}false{% endif %},
+            bHouseAll: {% if company.bHouseAll %}true{% else %}false{% endif %},
+            bCommerceAll: {% if company.bCommerceAll %}true{% else %}false{% endif %},
+            bAptPart: {% if company.bAptPart %}true{% else %}false{% endif %},
+            bHousePart: {% if company.bHousePart %}true{% else %}false{% endif %},
+            bCommercePart: {% if company.bCommercePart %}true{% else %}false{% endif %},
+            bBuild: {% if company.bBuild %}true{% else %}false{% endif %}
+        },
+        {% endfor %}
+    ];
+
+    const searchInput = document.getElementById('company-search');
+    const dropdown = document.getElementById('company-dropdown');
+    const selectedDiv = document.getElementById('selected-company');
+    const clearBtn = document.getElementById('clear-company');
+
+    // 검색 입력 이벤트
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        if (query.length > 0) {
+            filterAndShowCompanies(query);
+        } else {
+            hideDropdown();
+        }
+    });
+
+    // 포커스/클릭 이벤트 - 모든 업체 표시
+    searchInput.addEventListener('focus', function() {
+        const query = this.value.toLowerCase().trim();
+        if (query.length > 0) {
+            filterAndShowCompanies(query);
+        } else {
+            // 검색어가 없으면 모든 업체 표시
+            showAllCompanies();
+        }
+    });
+
+    // 클릭 이벤트 - 모든 업체 표시
+    searchInput.addEventListener('click', function() {
+        const query = this.value.toLowerCase().trim();
+        if (query.length > 0) {
+            filterAndShowCompanies(query);
+        } else {
+            // 검색어가 없으면 모든 업체 표시
+            showAllCompanies();
+        }
+    });
+
+    // 외부 클릭으로 드롭다운 닫기
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.company-search-container')) {
+            hideDropdown();
+        }
+    });
+
+    // 선택 해제 버튼
+    clearBtn.addEventListener('click', function() {
+        clearCompanySelection();
+    });
+
+    // 키보드 네비게이션
+    searchInput.addEventListener('keydown', function(e) {
+        const items = dropdown.querySelectorAll('.company-item');
+        const active = dropdown.querySelector('.company-item.active');
+        let activeIndex = -1;
+
+        if (active) {
+            activeIndex = Array.from(items).indexOf(active);
+        }
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const nextIndex = Math.min(activeIndex + 1, items.length - 1);
+            setActiveItem(items, nextIndex);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const prevIndex = Math.max(activeIndex - 1, 0);
+            setActiveItem(items, prevIndex);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (active) {
+                selectCompany(active.dataset.companyId, active.dataset.companyName, active.dataset.companyType);
+            }
+        } else if (e.key === 'Escape') {
+            hideDropdown();
+        }
+    });
+}
+
+// 자동 업체 검색 (URL 파라미터로 전달된 검색어 처리)
+function autoSearchCompany(searchQuery) {
+    const searchInput = document.getElementById('company-search');
+    if (searchInput && searchQuery) {
+        // 검색 입력 필드에 검색어 설정
+        searchInput.value = searchQuery;
+
+        // 검색 실행
+        filterAndShowCompanies(searchQuery.toLowerCase());
+
+        // 정확히 일치하는 업체가 있으면 자동 선택
+        const exactMatch = allCompanies.find(company =>
+            company.name.toLowerCase() === searchQuery.toLowerCase()
+        );
+
+        if (exactMatch) {
+            setTimeout(() => {
+                selectCompany(exactMatch.id, exactMatch.name, exactMatch.type);
+                hideDropdown();
+            }, 200);
+        }
+    }
+}
+
+function filterAndShowCompanies(query) {
+    filteredCompanies = allCompanies.filter(company =>
+        company.searchText.includes(query)
+    );
+
+    // 정확한 매치를 위해 정렬
+    filteredCompanies.sort((a, b) => {
+        const aStartsWith = a.name.toLowerCase().startsWith(query);
+        const bStartsWith = b.name.toLowerCase().startsWith(query);
+
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+
+        return a.name.localeCompare(b.name);
+    });
+
+    showDropdown();
+}
+
+function showAllCompanies() {
+    filteredCompanies = [...allCompanies];
+    showDropdown();
+}
+
+function showDropdown() {
+    const dropdown = document.getElementById('company-dropdown');
+    dropdown.innerHTML = '';
+    dropdown.style.display = 'block';
+
+    if (filteredCompanies.length === 0) {
+        const noResult = document.createElement('div');
+        noResult.className = 'company-item no-result';
+        noResult.style.cssText = 'padding: 12px; color: #666; font-style: italic;';
+        noResult.textContent = '검색 결과가 없습니다.';
+        dropdown.appendChild(noResult);
+        return;
+    }
+
+    filteredCompanies.forEach((company, index) => {
+        const item = document.createElement('div');
+        item.className = 'company-item';
+        item.dataset.companyId = company.id;
+        item.dataset.companyName = company.name;
+        item.dataset.companyType = company.type;
+        item.style.cssText = `
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        `;
+
+        item.innerHTML = `
+            <div style="font-weight: 500; color: #333;">${highlightQuery(company.name, document.getElementById('company-search').value)}</div>
+            <div style="font-size: 12px; color: #666; margin-top: 2px;">${company.type}</div>
+        `;
+
+        // 호버 효과
+        item.addEventListener('mouseenter', function() {
+            setActiveItem(dropdown.querySelectorAll('.company-item'), index);
+        });
+
+        item.addEventListener('click', function() {
+            selectCompany(company.id, company.name, company.type);
+        });
+
+        dropdown.appendChild(item);
+    });
+
+    // 첫 번째 항목을 기본 활성화
+    if (filteredCompanies.length > 0) {
+        setActiveItem(dropdown.querySelectorAll('.company-item'), 0);
+    }
+}
+
+function hideDropdown() {
+    document.getElementById('company-dropdown').style.display = 'none';
+}
+
+function setActiveItem(items, index) {
+    items.forEach(item => item.classList.remove('active'));
+    if (items[index] && !items[index].classList.contains('no-result')) {
+        items[index].classList.add('active');
+        items[index].style.backgroundColor = '#f8f9fa';
+    }
+
+    // 비활성화된 항목들의 배경색 리셋
+    items.forEach((item, i) => {
+        if (i !== index) {
+            item.style.backgroundColor = 'white';
+        }
+    });
+}
+
+function highlightQuery(text, query) {
+    if (!query) return text;
+    const regex = new RegExp(`(${query})`, 'gi');
+    return text.replace(regex, '<strong style="background: #fff3cd;">$1</strong>');
+}
+
+function selectCompany(companyId, companyName, companyType) {
+    currentCompanyId = companyId;
+    currentCompanyName = companyName;
+    currentCompanyType = companyType;
+
+    // UI 업데이트
+    document.getElementById('company-search').value = '';
+    document.getElementById('company-select').value = companyId;
+    document.getElementById('selected-company-name').innerHTML = `
+        <strong>${companyName}</strong> <span style="color: #666;">(${companyType})</span>
+    `;
+    document.getElementById('selected-company').style.display = 'block';
+
+    // 타이틀 업데이트
+    updatePageTitle(companyName, companyType);
+
+    // 업체 타입에 따라 공사종류 필터링
+    filterConstructionTypesByCompanyType(companyType);
+
+    // 이전 데이터 먼저 지우기
+    clearAllData();
+
+    hideDropdown();
+
+    // 공사 가능한 분야 체크박스 업데이트
+    updateConstructionFieldsDisplay(companyId, companyType);
+
+    loadPossiData(companyId).then(() => {
+        // 회사 선택 후 공사종류 섹션으로 스크롤
+        setTimeout(() => {
+            scrollToSection('construction-types-container');
+        }, 300);
+    }).catch(error => {
+        console.error('데이터 로드 실패:', error);
+    });
+}
+
+// 공사 가능한 분야 체크박스 업데이트
+function updateConstructionFieldsDisplay(companyId, companyType) {
+    // 일반 업체(nType 0~3)만 표시
+    if (['일반토탈', '고정비토탈', '순수단종', '부분단종'].includes(companyType)) {
+        // 회사 정보를 allCompanies에서 찾기
+        const company = allCompanies.find(c => c.id == companyId);
+        if (!company) {
+            console.error('Company not found:', companyId);
+            return;
+        }
+
+        // 체크박스 필드 표시
+        document.querySelectorAll('.construction-fields').forEach(field => {
+            field.style.display = 'flex';
+        });
+
+        // 올수리 관련 체크박스 업데이트
+        const bAptAllCheckbox = document.getElementById('bAptAll-display');
+        const bHouseAllCheckbox = document.getElementById('bHouseAll-display');
+        const bCommerceAllCheckbox = document.getElementById('bCommerceAll-display');
+
+        if (bAptAllCheckbox) bAptAllCheckbox.checked = company.bAptAll || false;
+        if (bHouseAllCheckbox) bHouseAllCheckbox.checked = company.bHouseAll || false;
+        if (bCommerceAllCheckbox) bCommerceAllCheckbox.checked = company.bCommerceAll || false;
+
+        // 부분수리 관련 체크박스 업데이트
+        const bAptPartCheckbox = document.getElementById('bAptPart-display');
+        const bHousePartCheckbox = document.getElementById('bHousePart-display');
+        const bCommercePartCheckbox = document.getElementById('bCommercePart-display');
+
+        if (bAptPartCheckbox) bAptPartCheckbox.checked = company.bAptPart || false;
+        if (bHousePartCheckbox) bHousePartCheckbox.checked = company.bHousePart || false;
+        if (bCommercePartCheckbox) bCommercePartCheckbox.checked = company.bCommercePart || false;
+
+        // 신축/증축 관련 체크박스 업데이트
+        const bBuildCheckbox = document.getElementById('bBuild-display');
+        if (bBuildCheckbox) bBuildCheckbox.checked = company.bBuild || false;
+
+        // 섹션 show/hide 로직
+        // 올수리 섹션
+        const allRepairHasValue = company.bAptAll || company.bHouseAll || company.bCommerceAll;
+        const allRepairSection = document.getElementById('management-0');
+        if (allRepairSection) {
+            allRepairSection.style.display = allRepairHasValue ? 'block' : 'none';
+        }
+
+        // 부분수리 섹션
+        const partRepairHasValue = company.bAptPart || company.bHousePart || company.bCommercePart;
+        const partRepairSection = document.getElementById('management-1');
+        if (partRepairSection) {
+            partRepairSection.style.display = partRepairHasValue ? 'block' : 'none';
+        }
+
+        // 신축/증축 섹션
+        const buildSection = document.getElementById('management-2');
+        if (buildSection) {
+            buildSection.style.display = company.bBuild ? 'block' : 'none';
+        }
+    } else {
+        // btoc제휴나 btob제휴 업체는 체크박스 숨기기
+        document.querySelectorAll('.construction-fields').forEach(field => {
+            field.style.display = 'none';
+        });
+    }
+}
+
+// 업체 타입에 따라 공사종류 필터링
+function filterConstructionTypesByCompanyType(companyType) {
+    // 모든 공사종류 컨테이너 숨기기 (부가서비스 제외)
+    const allContainers = document.querySelectorAll('.construction-type-container:not(#btoc-additional-services)');
+    allContainers.forEach(container => {
+        container.style.display = 'none';
+    });
+
+    // btoc제휴 전용 부가서비스 섹션 관리
+    const btocSection = document.getElementById('btoc-additional-services');
+
+    // 업체 타입별 표시할 공사종류 결정
+    let allowedTypes = [];
+
+    if (companyType === '일반토탈' || companyType === '고정비토탈' ||
+        companyType === '순수단종' || companyType === '부분단종') {
+        // nType 0,1,2: 올수리(0), 부분수리(1), 신축/증축(2)
+        allowedTypes = [0, 1, 2];
+        // btoc제휴 섹션 숨기기
+        if (btocSection) {
+            btocSection.style.display = 'none';
+        }
+    } else if (companyType === 'btoc제휴') {
+        // btoc제휴 업체는 일반 공사종류 숨기고 전용 부가서비스 섹션만 표시
+        allowedTypes = [];
+        if (btocSection) {
+            btocSection.style.display = 'block';
+        }
+    }
+
+    // 해당하는 공사종류만 표시 (btoc제휴가 아닌 경우만)
+    allowedTypes.forEach(typeValue => {
+        // 체크박스 대신 management div로 찾기
+        const managementDiv = document.getElementById(`management-${typeValue}`);
+        if (managementDiv) {
+            const container = managementDiv.closest('.construction-type-container');
+            if (container) {
+                container.style.display = 'block';
+            }
+        }
+    });
+}
+
+function clearCompanySelection() {
+    currentCompanyId = null;
+    currentCompanyName = null;
+    currentCompanyType = null;
+    document.getElementById('company-search').value = '';
+    document.getElementById('company-select').value = '';
+    document.getElementById('selected-company').style.display = 'none';
+
+    // 타이틀 리셋
+    updatePageTitle(null, null);
+
+    // 공사 가능한 분야 체크박스 숨기기
+    document.querySelectorAll('.construction-fields').forEach(field => {
+        field.style.display = 'none';
+    });
+
+    // 업체 선택 해제 시 기본 공사종류들을 다시 표시 (btoc 제외)
+    const normalContainers = document.querySelectorAll('.construction-type-container:not(#btoc-additional-services)');
+    normalContainers.forEach(container => {
+        container.style.display = 'block';
+    });
+
+    // 모든 관리 섹션 다시 표시
+    document.querySelectorAll('.area-management').forEach(section => {
+        section.style.display = 'block';
+    });
+
+    // btoc제휴 전용 부가서비스 섹션은 숨기기
+    const btocSection = document.getElementById('btoc-additional-services');
+    if (btocSection) {
+        btocSection.style.display = 'none';
+    }
+
+    // 모든 데이터 초기화
+    clearAllData();
+
+    hideDropdown();
+}
+
+function updatePageTitle(companyName, companyType) {
+    const titleElement = document.getElementById('dynamic-title');
+    const subtitleElement = document.getElementById('dynamic-subtitle');
+
+    if (companyName) {
+        // 클릭 가능한 업체명 링크 생성
+        const companyLink = `<span class="company-link" onclick="goToCompanyView()" style="color: #007bff; cursor: pointer; text-decoration: underline;">${companyName}</span>`;
+
+        // btoc제휴 업체인 경우 "서비스 가능 지역"으로 표시
+        if (companyType === 'btoc제휴') {
+            titleElement.innerHTML = `서비스 가능 지역(${companyLink})`;
+            subtitleElement.textContent = '서비스 가능한 지역을 설정합니다.';
+        } else {
+            titleElement.innerHTML = `공사 가능 지역(${companyLink})`;
+            subtitleElement.textContent = '공사 가능한 지역을 설정합니다.';
+        }
+    } else {
+        titleElement.textContent = '공사 가능 지역';
+        subtitleElement.textContent = '공사 가능한 지역을 설정합니다.';
+    }
+}
+
+// 업체명 클릭 시 Company 수정/보기 화면으로 이동
+function goToCompanyView() {
+    if (currentCompanyId) {
+        // Company 수정 화면으로 이동 (company:company_update URL 사용)
+        window.location.href = `/company/update/${currentCompanyId}/`;
+    } else {
+        alert('선택된 업체가 없습니다.');
+    }
+}
+
+// 공사종류별 섹션은 항상 표시됨 (체크박스 제거됨)
+
+// 공사 가능 지역 데이터 로드
+function loadPossiData(companyId) {
+    console.log(`DEBUG: Loading data for companyId=${companyId}`);
+    return fetch(`/possiblearea/data/?company_id=${companyId}`)
+        .then(response => {
+            console.log('DEBUG: Fetch response:', response);
+            return response.json();
+        })
+        .then(data => {
+            console.log('DEBUG: Received data:', data);
+            if (data.success) {
+                console.log('DEBUG: About to call displayPossiData with:', data.data);
+                displayPossiData(data.data);
+                return data;
+            } else {
+                console.error('DEBUG: Data load failed:', data.error);
+                alert('데이터 로드 실패: ' + data.error);
+                throw new Error(data.error);
+            }
+        })
+        .catch(error => {
+            console.error('DEBUG: Fetch error:', error);
+            alert('데이터 로드 중 오류가 발생했습니다.');
+            throw error;
+        });
+}
+
+// 데이터 표시
+function displayPossiData(data) {
+    console.log('DEBUG: displayPossiData called with data:', data);
+    console.log('DEBUG: Data keys:', Object.keys(data));
+
+    // 디버깅: 모든 count 요소가 존재하는지 확인
+    console.log('DEBUG: Checking all count elements:');
+    for (let i = 0; i <= 3; i++) {
+        console.log(`additional-count-${i}:`, document.getElementById(`additional-count-${i}`));
+        console.log(`company-exclude-count-${i}:`, document.getElementById(`company-exclude-count-${i}`));
+        console.log(`staff-exclude-count-${i}:`, document.getElementById(`staff-exclude-count-${i}`));
+    }
+
+    // 체크박스 제거됨 - 모든 섹션은 항상 표시됨
+
+    Object.keys(data).forEach(constType => {
+        const constData = data[constType];
+        console.log(`DEBUG: Processing constType=${constType}, data:`, constData);
+
+        // btoc제휴 전용 부가서비스(3)인 경우 특별 처리
+        if (constType === '3') {
+            const btocContainer = document.getElementById('btoc-additional-services');
+            if (!btocContainer) {
+                console.log('DEBUG: btoc-additional-services container not found, skipping');
+                return; // 이 경우에만 스킵
+            }
+            // btoc제휴 섹션은 체크박스가 없으므로 바로 데이터 표시
+            console.log('DEBUG: Processing btoc data, container display:', btocContainer.style.display);
+        } else {
+            // 일반 공사종류 섹션은 항상 표시됨 (체크박스 제거됨)
+            const managementDiv = document.getElementById(`management-${constType}`);
+            if (!managementDiv) {
+                console.log(`DEBUG: Skipping constType=${constType} - management section not found`);
+                return; // 이 경우에만 스킵
+            }
+            console.log(`DEBUG: Found management section for constType=${constType}`);
+        }
+
+        // 해당 공사종류에 데이터가 있는지 확인 (계산된 지역 포함)
+        const hasData = (constData.areas.additional?.length > 0) ||
+                       (constData.areas.company_exclude?.length > 0) ||
+                       (constData.areas.staff_exclude?.length > 0) ||
+                       (constData.areas.company_request?.length > 0) ||
+                       (constData.areas.actual_assigned?.length > 0);
+
+        // 체크박스 제거됨 - 모든 섹션은 항상 표시됨
+
+        // 추가지역 표시
+        displayAreaList(constType, 'additional', constData.areas.additional || []);
+
+        // 업체제외지역 표시
+        console.log(`DEBUG: company_exclude data for ${constType}:`, constData.areas.company_exclude);
+        displayAreaList(constType, 'company_exclude', constData.areas.company_exclude || []);
+
+        // 스텝제외지역 표시
+        console.log(`DEBUG: staff_exclude data for ${constType}:`, constData.areas.staff_exclude);
+        displayAreaList(constType, 'staff_exclude', constData.areas.staff_exclude || []);
+
+        // 업체요청지역 표시 (계산결과)
+        displayAreaList(constType, 'company_request', constData.areas.company_request || []);
+
+        // 실제할당지역 표시 (계산결과)
+        displayAreaList(constType, 'actual_assigned', constData.areas.actual_assigned || []);
+    });
+}
+
+// 지역 목록 표시
+function displayAreaList(constType, areaType, areas) {
+    console.log(`DEBUG displayAreaList: constType=${constType}, areaType=${areaType}, areas.length=${areas?.length || 0}`);
+
+    const listId = getListId(areaType, constType);
+    const listElement = document.getElementById(listId);
+
+    if (!listElement) {
+        console.log(`DEBUG displayAreaList: listElement not found for listId=${listId}`);
+        return;
+    }
+
+    // 계산된 지역들은 텍스트 영역에 표시
+    const isCalculatedArea = areaType === 'company_request' || areaType === 'actual_assigned';
+
+    if (isCalculatedArea) {
+        // 계산된 지역을 textarea에 표시
+        const areaNames = areas.map(area => area.display_name || area.area_name);
+        listElement.value = areaNames.join('\n');
+
+        // 개수 업데이트
+        const countElement = document.getElementById(areaType.replace(/_/g, '-') + '-count-' + constType);
+        if (countElement) {
+            countElement.textContent = `(${areas.length})`;
+        }
+    } else {
+        // 기존 입력된 지역들은 기존 방식대로 표시
+        listElement.innerHTML = '';
+
+        areas.forEach(area => {
+            const areaItem = document.createElement('div');
+            areaItem.className = 'area-item';
+            areaItem.dataset.areaId = area.area_id;
+
+            // 입력된 지역: 삭제 버튼과 함께 표시
+            areaItem.innerHTML = `
+                <span class="area-item-name">${area.display_name || area.area_name}</span>
+                <button type="button" class="btn btn-danger area-item-delete" onclick="deleteArea(${area.id})">삭제</button>
+            `;
+
+            areaItem.dataset.areaId = area.area_id;
+            listElement.appendChild(areaItem);
+        });
+
+        // 수동 입력 지역들의 개수 업데이트
+        let countDisplay;
+        if (areaType === 'additional' || areaType === 'company_exclude' || areaType === 'staff_exclude') {
+            // 추가지역, 업체제외지역, 스텝제외지역: 단순히 리스트의 전체 개수를 표시
+            countDisplay = `(${areas.length})`;
+        } else {
+            // 기타 지역 타입: 기존 로직 유지
+            countDisplay = `(${countValidAreas(areas)})`;
+        }
+        const countElementId = areaType.replace(/_/g, '-') + '-count-' + constType;
+        const countElement = document.getElementById(countElementId);
+
+        // 특별 디버깅: staff_exclude 문제 해결
+        if (areaType === 'staff_exclude') {
+            console.log(`SPECIAL DEBUG staff_exclude: constType=${constType}, elementId=${countElementId}`);
+            console.log(`SPECIAL DEBUG: Looking for element with ID: ${countElementId}`);
+            console.log(`SPECIAL DEBUG: Element found:`, countElement);
+            console.log(`SPECIAL DEBUG: Areas data:`, areas);
+            console.log(`SPECIAL DEBUG: Count display:`, countDisplay);
+
+            // 강제로 다른 방법으로 요소 찾기 시도
+            const alternativeElement = document.querySelector(`#${countElementId}`);
+            console.log(`SPECIAL DEBUG: Alternative query result:`, alternativeElement);
+
+            // company_exclude와 동일한 방식으로 강제 처리
+            if (!countElement && !alternativeElement) {
+                // btoc 섹션의 경우 DOM 구조가 다를 수 있으므로 직접 찾기
+                if (constType === '3') {
+                    const btocContainer = document.getElementById('btoc-additional-services');
+                    if (btocContainer) {
+                        const staffExcludeSection = btocContainer.querySelector('.area-section:nth-child(3)');
+                        if (staffExcludeSection) {
+                            const titleSpan = staffExcludeSection.querySelector('.area-section-title span');
+                            if (titleSpan) {
+                                titleSpan.textContent = countDisplay;
+                                console.log(`SPECIAL DEBUG: Force updated btoc staff-exclude count to ${countDisplay}`);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        console.log(`DEBUG: areaType=${areaType}, constType=${constType}, elementId=${countElementId}, element=`, countElement, `countDisplay=${countDisplay}`);
+        if (countElement) {
+            countElement.textContent = countDisplay;
+            console.log(`DEBUG: Updated element with count ${countDisplay}`);
+        } else {
+            console.log(`DEBUG: Element not found: ${countElementId}`);
+            // 공통 fallback: 섹션별로 직접 찾기
+            let foundElement = null;
+
+            // 방법 1: btoc 섹션에서 찾기 (constType === '3')
+            if (constType === '3') {
+                const btocContainer = document.getElementById('btoc-additional-services');
+                if (btocContainer) {
+                    // 섹션 순서: 추가지역(1번째), 업체제외지역(2번째), 스텝제외지역(3번째)
+                    let sectionIndex = 1;
+                    if (areaType === 'company_exclude') sectionIndex = 2;
+                    if (areaType === 'staff_exclude') sectionIndex = 3;
+
+                    const targetSection = btocContainer.querySelector(`.area-section:nth-child(${sectionIndex})`);
+                    if (targetSection) {
+                        foundElement = targetSection.querySelector('.area-section-title span');
+                        console.log(`DEBUG: Found btoc section ${sectionIndex} span:`, foundElement);
+                    }
+                }
+            }
+
+            // 방법 2: 일반 섹션에서 찾기 (constType !== '3')
+            if (!foundElement && constType !== '3') {
+                const managementSection = document.getElementById(`management-${constType}`);
+                if (managementSection) {
+                    // 섹션 순서: 추가지역(1번째), 업체제외지역(2번째), 스텝제외지역(3번째)
+                    let sectionIndex = 1;
+                    if (areaType === 'company_exclude') sectionIndex = 2;
+                    if (areaType === 'staff_exclude') sectionIndex = 3;
+
+                    const targetSection = managementSection.querySelector(`.area-section:nth-child(${sectionIndex})`);
+                    if (targetSection) {
+                        foundElement = targetSection.querySelector('.area-section-title span');
+                        console.log(`DEBUG: Found regular section ${sectionIndex} span:`, foundElement);
+                    }
+                }
+            }
+
+            // 찾은 요소에 업데이트
+            if (foundElement) {
+                foundElement.textContent = countDisplay;
+                console.log(`DEBUG: Force updated area count to ${countDisplay} for ${areaType} in section ${constType}`);
+            } else {
+                console.log(`DEBUG: Could not find any fallback element for ${areaType} in section ${constType}`);
+            }
+        }
+    }
+}
+
+// 계층 아이콘 반환 (3단계 계층 지원)
+function getHierarchyIcon(areaId) {
+    if (areaId == 0) return '🌍'; // 전국
+    if (areaId >= 1000 && areaId < 10000 && areaId % 1000 == 0) return '🏛️'; // 광역지역
+
+    // 통합시 하위 구 확인 (예: 2021, 2121, 2131 등)
+    const lastDigit = areaId % 10;
+    const secondLastDigit = Math.floor((areaId % 100) / 10);
+    if (lastDigit >= 1 && lastDigit <= 9 && secondLastDigit >= 1 && secondLastDigit <= 9) {
+        return '🏢'; // 구
+    }
+
+    // 통합시 상위 확인 (예: 2020, 2120, 2130 등)
+    if (areaId % 10 == 0 && Math.floor((areaId % 100) / 10) >= 1) {
+        return '🏢'; // 통합시
+    }
+
+    return '🏢'; // 일반 시군구
+}
+
+// 지역 계층 확인 (3단계 계층 지원)
+function checkAreaHierarchy(areaId, existingAreas) {
+    const warnings = [];
+    const areaIdNum = parseInt(areaId);
+
+    // 전국 선택 시 경고
+    if (areaIdNum == 0) {
+        warnings.push('⚠️ 전국을 선택하면 모든 지역이 포함됩니다.');
+        if (existingAreas.length > 0) {
+            warnings.push(`⚠️ 기존 등록된 모든 지역이 중복됩니다.`);
+        }
+        return warnings;
+    }
+
+    // 광역지역 선택 시 하위 시군구/구 중복 체크 (직접 차단)
+    if (areaIdNum >= 1000 && areaIdNum < 10000 && areaIdNum % 1000 == 0) {
+        const cityStart = areaIdNum;
+        const cityEnd = areaIdNum + 999;
+        const conflictAreas = existingAreas.filter(area =>
+            area.area_id > cityStart && area.area_id <= cityEnd
+        );
+
+        if (conflictAreas.length > 0) {
+            // 직접 alert로 차단하고 함수 종료
+            alert(`계층 구조 충돌: 선택한 광역지역이 이미 등록된 하위 지역들(${conflictAreas.map(a => a.area_name).join(', ')})을 포함합니다.`);
+            return null; // null을 반환하여 addArea에서 중단하도록 함
+        }
+    }
+
+    // 통합시 선택 시 하위 구 중복 체크 (직접 차단)
+    const lastDigit = areaIdNum % 10;
+    const secondLastDigit = Math.floor((areaIdNum % 100) / 10);
+    if (lastDigit == 0 && secondLastDigit >= 1 && secondLastDigit <= 9) {
+        // 통합시 (예: 2020, 2120, 2130)
+        const districtStart = areaIdNum;
+        const districtEnd = areaIdNum + 9;
+        const conflictDistricts = existingAreas.filter(area =>
+            area.area_id > districtStart && area.area_id <= districtEnd
+        );
+
+        if (conflictDistricts.length > 0) {
+            // 직접 alert로 차단하고 함수 종료
+            alert(`계층 구조 충돌: 선택한 지역이 이미 등록된 하위 구들(${conflictDistricts.map(a => a.area_name).join(', ')})을 포함합니다.`);
+            return null; // null을 반환하여 addArea에서 중단하도록 함
+        }
+    }
+
+    // 하위 구 선택 시 상위 통합시 중복 체크 (직접 차단)
+    if (lastDigit >= 1 && lastDigit <= 9 && secondLastDigit >= 1 && secondLastDigit <= 9) {
+        // 하위 구 (예: 2021, 2121, 2131)
+        const parentCityId = Math.floor(areaIdNum / 10) * 10;
+        const conflictParent = existingAreas.find(area => area.area_id === parentCityId);
+
+        if (conflictParent) {
+            // 직접 alert로 차단하고 함수 종료
+            alert(`계층 구조 충돌: 선택한 지역이 이미 등록된 ${conflictParent.area_name}에 포함됩니다.`);
+            return null; // null을 반환하여 addArea에서 중단하도록 함
+        }
+    }
+
+    // 시군구지역 선택 시 상위 광역지역 중복 체크 (직접 차단)
+    if (areaIdNum >= 1000 && areaIdNum < 10000) {
+        const metroAreaId = Math.floor(areaIdNum / 1000) * 1000;
+        const conflictMetro = existingAreas.find(area => area.area_id === metroAreaId);
+
+        if (conflictMetro) {
+            // 직접 alert로 차단하고 함수 종료
+            alert(`계층 구조 충돌: 선택한 지역이 이미 등록된 ${conflictMetro.area_name}에 포함됩니다.`);
+            return null; // null을 반환하여 addArea에서 중단하도록 함
+        }
+    }
+
+    return warnings;
+}
+
+// 통합시 여부 확인 함수
+function isIntegratedCity(areaId) {
+    const areaIdNum = parseInt(areaId);
+    const lastDigit = areaIdNum % 10;
+    const secondLastDigit = Math.floor((areaIdNum % 100) / 10);
+
+    // 통합시 패턴: 끝자리가 0이고 끝에서 두번째 자리가 1-9인 경우 (예: 2020, 2120, 2130)
+    return lastDigit === 0 && secondLastDigit >= 1 && secondLastDigit <= 9 && areaIdNum > 1000;
+}
+
+// 광역지역 여부 확인 함수
+function isMetroArea(areaId) {
+    const areaIdNum = parseInt(areaId);
+    // 광역지역 패턴: 1000의 배수이고 10000 미만 (예: 1000, 2000, 3000)
+    return areaIdNum >= 1000 && areaIdNum < 10000 && areaIdNum % 1000 === 0;
+}
+
+// 유효 지역 개수 계산 (광역지역과 통합시 제외)
+function countValidAreas(areas) {
+    if (!areas || !Array.isArray(areas)) return 0;
+
+    return areas.filter(area => {
+        const areaId = area.area_id;
+        return !isMetroArea(areaId) && !isIntegratedCity(areaId);
+    }).length;
+}
+
+// 추가지역을 모두 하위 지역이 없는 시군구지역으로 분개한 개수 계산
+function countExpandedAreas(areas) {
+    if (!areas || !Array.isArray(areas)) return 0;
+
+    let expandedCount = 0;
+
+    areas.forEach(area => {
+        const areaId = area.area_id;
+
+        if (areaId === 0) {
+            // 전국: 모든 하위지역이 없는 시군구지역 개수
+            // 실제로는 전체 cityAreas에서 통합시를 제외한 개수
+            expandedCount += cityAreas.filter(cityArea => !isIntegratedCity(cityArea.id)).length;
+        } else if (isMetroArea(areaId)) {
+            // 광역지역: 해당 광역의 하위 시군구 중 통합시가 아닌 것들 + 통합시의 하위 구들
+            const metroStart = areaId;
+            const metroEnd = areaId + 999;
+
+            cityAreas.forEach(cityArea => {
+                if (cityArea.id > metroStart && cityArea.id <= metroEnd) {
+                    if (isIntegratedCity(cityArea.id)) {
+                        // 통합시인 경우 하위 구들의 개수를 더함
+                        const integrationStart = cityArea.id;
+                        const integrationEnd = cityArea.id + 9;
+                        const districtCount = cityAreas.filter(district =>
+                            district.id > integrationStart &&
+                            district.id <= integrationEnd &&
+                            district.type === 'district'
+                        ).length;
+                        expandedCount += districtCount;
+                    } else {
+                        // 일반 시군구인 경우 1개
+                        expandedCount += 1;
+                    }
+                }
+            });
+        } else if (isIntegratedCity(areaId)) {
+            // 통합시: 하위 구들의 개수
+            const integrationStart = areaId;
+            const integrationEnd = areaId + 9;
+            const districtCount = cityAreas.filter(district =>
+                district.id > integrationStart &&
+                district.id <= integrationEnd &&
+                district.type === 'district'
+            ).length;
+            expandedCount += districtCount;
+        } else {
+            // 일반 시군구나 구: 1개
+            expandedCount += 1;
+        }
+    });
+
+    return expandedCount;
+}
+
+// 지역 추가
+async function addArea(constructionType, areaType, selectId) {
+    // 새로운 방식으로 hidden input에서 값 가져오기
+    const hiddenInputId = getAreaHiddenInputId(areaType.toString(), constructionType.toString());
+    const areaId = document.getElementById(hiddenInputId).value;
+    if (!currentCompanyId) {
+        alert('먼저 업체를 선택해주세요.');
+        return;
+    }
+
+    if (!areaId) {
+        alert('지역을 선택해주세요.');
+        return;
+    }
+
+    // 검색 입력 초기화
+    const searchInputId = getAreaSearchInputId(areaType.toString(), constructionType.toString());
+    document.getElementById(searchInputId).value = '';
+    document.getElementById(hiddenInputId).value = '';
+
+    // 업체제외지역(1)과 스텝제외지역(2)에서 통합시 선택 시에는 계층 구조 검사 건너뛰기
+    const skipHierarchyCheck = (areaType === 1 || areaType === 2) && isIntegratedCity(areaId);
+
+    if (!skipHierarchyCheck) {
+        // 계층 구조 검사
+        const listId = getListId(getAreaTypeString(areaType), constructionType);
+        const existingAreas = getCurrentAreaList(listId);
+        const warnings = checkAreaHierarchy(areaId, existingAreas);
+
+        // checkAreaHierarchy가 null을 반환하면 이미 차단되었으므로 중단
+        if (warnings === null) {
+            return;
+        }
+
+        if (warnings.length > 0) {
+            const proceed = await confirm(warnings.join('\n') + '\n\n계속 진행하시겠습니까?');
+            if (!proceed) return;
+        }
+    }
+
+    const data = {
+        company_id: currentCompanyId,
+        construction_type: constructionType,
+        area_type: areaType,
+        area_id: areaId
+    };
+
+    fetch('/possiblearea/data/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 성공 시 입력 초기화 및 데이터 재로드 (자동 확장 포함하여 조용히 처리)
+            loadPossiData(currentCompanyId).then(() => {
+                // 데이터 로드 완료 후 해당 지역 리스트로 스크롤
+                setTimeout(() => {
+                    scrollToAreaList(constructionType, getAreaTypeString(areaType));
+                }, 300);
+            });
+        } else {
+            alert('추가 실패: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('추가 중 오류가 발생했습니다.');
+    });
+}
+
+// 지역 삭제
+function deleteArea(possiId) {
+
+    const data = {
+        possi_id: possiId
+    };
+
+    fetch('/possiblearea/data/', {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 성공 시 데이터 재로드
+            loadPossiData(currentCompanyId);
+        } else {
+            alert('삭제 실패: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('삭제 중 오류가 발생했습니다.');
+    });
+}
+
+// 리스트 ID 반환
+function getListId(areaType, constType) {
+    const areaTypeMap = {
+        'additional': 'additional-list',
+        'company_exclude': 'company-exclude-list',
+        'staff_exclude': 'staff-exclude-list',
+        'company_request': 'company-request-list',
+        'actual_assigned': 'actual-assigned-list'
+    };
+    return `${areaTypeMap[areaType]}-${constType}`;
+}
+
+// 모든 데이터 초기화
+function clearAllData() {
+    document.querySelectorAll('.area-list').forEach(list => {
+        list.innerHTML = '';
+    });
+
+    // 체크박스 제거됨 - 모든 섹션은 항상 표시됨
+}
+
+// 현재 지역 목록 가져오기
+function getCurrentAreaList(listId) {
+    const areas = [];
+    const listElement = document.getElementById(listId);
+    if (listElement) {
+        const items = listElement.querySelectorAll('.area-item');
+        items.forEach(item => {
+            const deleteBtn = item.querySelector('.area-item-delete');
+            if (deleteBtn) {
+                const onclick = deleteBtn.getAttribute('onclick');
+                const possiId = onclick.match(/deleteArea\((\d+)\)/)?.[1];
+                if (possiId) {
+                    areas.push({
+                        id: possiId,
+                        area_name: item.querySelector('.area-item-name').textContent.trim(),
+                        area_id: parseInt(item.dataset.areaId || '0')
+                    });
+                }
+            }
+        });
+    }
+    return areas;
+}
+
+// 지역 타입 문자열 반환
+function getAreaTypeString(areaType) {
+    const typeMap = {
+        0: 'additional',
+        1: 'company_exclude',
+        2: 'staff_exclude'
+    };
+    return typeMap[areaType] || 'additional';
+}
+
+// 특정 공사종류 데이터 초기화
+// clearConstructionTypeData 함수 제거됨 (체크박스 기능 제거로 인해 불필요)
+
+// 스크롤 관리 초기화
+function initializeScrollManagement() {
+    const formContainer = document.querySelector('.form-container');
+    const scrollIndicator = document.getElementById('scroll-indicator');
+
+    if (!formContainer || !scrollIndicator) return;
+
+    // 스크롤 이벤트 리스너
+    formContainer.addEventListener('scroll', function() {
+        // 스크롤이 100px 이상 내려가면 스크롤 인디케이터 표시
+        if (formContainer.scrollTop > 100) {
+            scrollIndicator.classList.add('show');
+        } else {
+            scrollIndicator.classList.remove('show');
+        }
+    });
+
+    // 스크롤 인디케이터 클릭 이벤트
+    scrollIndicator.addEventListener('click', function() {
+        formContainer.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+
+    console.log('스크롤 관리 초기화 완료');
+}
+
+// 특정 섹션으로 스크롤
+function scrollToSection(sectionId) {
+    const formContainer = document.querySelector('.form-container');
+    const targetSection = document.getElementById(sectionId);
+
+    if (formContainer && targetSection) {
+        const containerRect = formContainer.getBoundingClientRect();
+        const targetRect = targetSection.getBoundingClientRect();
+        const scrollTop = formContainer.scrollTop;
+
+        // 대상 섹션의 위치 계산
+        const targetPosition = scrollTop + targetRect.top - containerRect.top - 20;
+
+        formContainer.scrollTo({
+            top: targetPosition,
+            behavior: 'smooth'
+        });
+    }
+}
+
+// 공사종류 섹션으로 스크롤
+function scrollToConstructionType(constructionType) {
+    scrollToSection(`management-${constructionType}`);
+}
+
+// 지역 추가 후 해당 리스트로 스크롤
+function scrollToAreaList(constructionType, areaType) {
+    const listId = getListId(areaType, constructionType);
+    scrollToSection(listId);
+}
+</script>
+
+<!-- 커스텀 모달 HTML -->
+<div id="custom-alert-modal" class="custom-modal">
+    <div class="custom-modal-content">
+        <div class="custom-modal-header">
+            <h3 class="custom-modal-title">알림</h3>
+            <button class="custom-modal-close" onclick="closeCustomAlert()">&times;</button>
+        </div>
+        <div class="custom-modal-body" id="custom-alert-message"></div>
+        <div class="custom-modal-footer">
+            <button class="custom-modal-btn custom-modal-btn-primary" onclick="closeCustomAlert()">확인</button>
+        </div>
+    </div>
+</div>
+
+<div id="custom-confirm-modal" class="custom-modal">
+    <div class="custom-modal-content">
+        <div class="custom-modal-header">
+            <h3 class="custom-modal-title">확인</h3>
+            <button class="custom-modal-close" onclick="closeCustomConfirm(false)">&times;</button>
+        </div>
+        <div class="custom-modal-body" id="custom-confirm-message"></div>
+        <div class="custom-modal-footer">
+            <button class="custom-modal-btn custom-modal-btn-secondary" onclick="closeCustomConfirm(false)">취소</button>
+            <button class="custom-modal-btn custom-modal-btn-primary" onclick="closeCustomConfirm(true)">확인</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 커스텀 모달 함수들
+let customConfirmCallback = null;
+
+function customAlert(message, title = '알림') {
+    document.getElementById('custom-alert-message').innerHTML = message;
+    document.querySelector('#custom-alert-modal .custom-modal-title').textContent = title;
+    document.getElementById('custom-alert-modal').style.display = 'block';
+}
+
+function closeCustomAlert() {
+    document.getElementById('custom-alert-modal').style.display = 'none';
+}
+
+function customConfirm(message, title = '확인') {
+    return new Promise((resolve) => {
+        document.getElementById('custom-confirm-message').innerHTML = message;
+        document.querySelector('#custom-confirm-modal .custom-modal-title').textContent = title;
+        document.getElementById('custom-confirm-modal').style.display = 'block';
+        customConfirmCallback = resolve;
+    });
+}
+
+function closeCustomConfirm(result) {
+    document.getElementById('custom-confirm-modal').style.display = 'none';
+    if (customConfirmCallback) {
+        customConfirmCallback(result);
+        customConfirmCallback = null;
+    }
+}
+
+// 기존 alert와 confirm 함수를 오버라이드
+window.originalAlert = window.alert;
+window.originalConfirm = window.confirm;
+
+window.alert = function(message) {
+    customAlert(message);
+};
+
+window.confirm = function(message) {
+    return customConfirm(message);
+};
+
+// 모달 외부 클릭 시 닫기
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('custom-modal')) {
+        if (e.target.id === 'custom-alert-modal') {
+            closeCustomAlert();
+        } else if (e.target.id === 'custom-confirm-modal') {
+            closeCustomConfirm(false);
+        }
+    }
+});
+
+// ESC 키로 모달 닫기 및 전체화면 종료 메시지 방지
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        e.preventDefault(); // 브라우저 기본 동작 방지
+        e.stopPropagation(); // 이벤트 전파 방지
+
+        // 커스텀 모달이 열려있으면 닫기
+        if (document.getElementById('custom-alert-modal').style.display === 'block') {
+            closeCustomAlert();
+        } else if (document.getElementById('custom-confirm-modal').style.display === 'block') {
+            closeCustomConfirm(false);
+        }
+
+        return false; // 추가 방지
+    }
+});
+
+// 전체화면 관련 이벤트 방지
+document.addEventListener('fullscreenchange', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+});
+
+document.addEventListener('webkitfullscreenchange', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+});
+
+document.addEventListener('mozfullscreenchange', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+});
+
+document.addEventListener('MSFullscreenChange', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+});
+
+// F11 키 방지
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'F11') {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+    }
+});
+</script>
+
+<!-- 드롭다운 수정 스크립트 -->
+<script src="/static/js/dropdown-fix.js"></script>
+
+<!-- 계층적 지역 관리 스크립트 -->
+<script src="/static/js/area-hierarchy.js"></script>
+
+{% endblock %}

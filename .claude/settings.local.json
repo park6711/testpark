@@ -33,7 +33,8 @@
       "Bash(/Users/sewookpark/Documents/testpark/impossibleterm/release_view.py )",
       "Bash(/Users/sewookpark/Documents/testpark/impossibleterm/views.py)",
       "Bash(do)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(docker-compose exec:*)"
     ],
     "deny": [],
     "ask": []

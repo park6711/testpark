@@ -76,6 +76,8 @@ INSTALLED_APPS = [
     'license',
     'stop',
     'impossibleterm',
+    'area',
+    'possiblearea',
 ]
 
 MIDDLEWARE = [
