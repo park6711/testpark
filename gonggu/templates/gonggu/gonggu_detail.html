@@ -13,12 +13,16 @@
 {% endblock %}
 
 {% block content %}
+{% if form_type == 'edit' %}
+<!-- 페이지 헤더 -->
+<div class="page-header">
+    <h1 class="page-title">공동구매 수정</h1>
+    <p class="page-subtitle">공동구매 정보를 수정합니다 (값 변경 시 자동 저장됩니다)</p>
+</div>
+{% endif %}
+
 <!-- 페이지 액션 버튼 -->
 <div class="page-actions">
-    {% if form_type == 'edit' %}
-        <button type="submit" form="gongguForm" class="btn btn-primary">수정 완료</button>
-        <button type="button" onclick="cancelEdit()" class="btn btn-secondary">취소</button>
-    {% endif %}
     <a href="{% url 'gonggu:gonggu_list' %}" class="btn btn-secondary">목록으로</a>
 </div>
 
@@ -103,12 +107,19 @@
             <div class="section-header">
                 <h3 class="section-title">공동구매 참여업체</h3>
                 <div class="add-company-controls">
-                    <select id="companySelect" class="form-control company-select">
-                        <option value="">업체를 선택하세요</option>
-                        {% for company in available_companies %}
-                        <option value="{{ company.no }}">{{ company.sName2|default:company.sName1 }}</option>
-                        {% endfor %}
-                    </select>
+                    <div class="searchable-dropdown" id="companyDropdown">
+                        <input type="text"
+                               id="companySearchInput"
+                               class="form-control company-search-input"
+                               placeholder="업체명을 입력하여 검색..."
+                               autocomplete="off">
+                        <div class="dropdown-list" id="companyDropdownList">
+                            <div class="dropdown-item" data-value="">업체를 선택하세요</div>
+                            {% for company in available_companies %}
+                            <div class="dropdown-item" data-value="{{ company.no }}" data-name="{{ company.sName2|default:company.sName1 }}">{{ company.sName2|default:company.sName1 }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
                     <button type="button" class="btn btn-success btn-sm" onclick="addGongguCompany()">+ 참여업체 추가</button>
                 </div>
             </div>
@@ -122,13 +133,8 @@
                     </div>
                     <div class="company-form-content">
                         <div class="form-group">
-                            <label>업체명:</label>
-                            <span>{{ gonggu_company.get_company_name }}</span>
-                        </div>
-                        <div class="form-group">
                             <div class="area-section">
-                                <label>공구가능지역:</label>
-                                <button type="button" class="btn btn-primary btn-sm" onclick="manageAreas({{ gonggu_company.no }})">공동구매 가능 지역</button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="manageAreas({{ gonggu_company.no }})">공동구매 가능 지역 ({{ gonggu_company.area_count|default:0 }})</button>
                                 <div class="assigned-areas-display">
                                     {% for area in areas %}
                                         {% if area.noGongguCompany == gonggu_company.no and area.nType == 2 %}
@@ -143,7 +149,6 @@
                 {% empty %}
                 <div class="empty-company-state">
                     <p>참여업체가 없습니다.</p>
-                    <button type="button" class="btn btn-primary" onclick="addGongguCompany()">첫 번째 참여업체 추가</button>
                 </div>
                 {% endfor %}
             </div>
@@ -280,9 +285,6 @@
         {% else %}
         <div class="empty-state">
             <p>참여업체가 없습니다.</p>
-            {% if can_edit %}
-            <button class="btn btn-primary" onclick="addGongguCompany()">첫 번째 참여업체 추가</button>
-            {% endif %}
         </div>
         {% endif %}
     </div>
@@ -473,9 +475,58 @@ textarea.form-control {
     align-items: center;
 }
 
-.company-select {
+/* 검색 가능한 드롭다운 스타일 */
+.searchable-dropdown {
+    position: relative;
     min-width: 200px;
     max-width: 300px;
+}
+
+.company-search-input {
+    min-width: 200px;
+    max-width: 300px;
+}
+
+.dropdown-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.dropdown-list.show {
+    display: block;
+}
+
+.dropdown-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+    font-size: 14px;
+    color: #333;
+    background: white;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.dropdown-item.highlighted {
+    background-color: #007bff;
+    color: white;
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
 }
 
 /* 참여업체 스타일 */
@@ -674,6 +725,15 @@ textarea.form-control {
     background-color: #545b62;
 }
 
+.btn-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #1e7e34;
+}
+
 .btn-danger {
     background-color: #dc3545;
     color: white;
@@ -726,13 +786,253 @@ textarea.form-control {
 </style>
 
 <script>
-function cancelEdit() {
-    window.location.href = '{% url "gonggu:gonggu_list" %}';
+// 자동 저장 기능
+let autoSaveTimeout;
+const AUTO_SAVE_DELAY = 1000; // 1초 후 자동 저장
+
+function initAutoSave() {
+    // 모든 폼 요소에 이벤트 리스너 추가
+    const formElements = document.querySelectorAll('#gongguForm input, #gongguForm select, #gongguForm textarea');
+
+    formElements.forEach(element => {
+        element.addEventListener('input', handleFormChange);
+        element.addEventListener('change', handleFormChange);
+    });
+}
+
+function handleFormChange(event) {
+    // 기존 타이머 취소
+    if (autoSaveTimeout) {
+        clearTimeout(autoSaveTimeout);
+    }
+
+    // 새 타이머 설정
+    autoSaveTimeout = setTimeout(() => {
+        autoSaveForm();
+    }, AUTO_SAVE_DELAY);
+
+    // 시각적 피드백 (저장 중 표시)
+    showSavingIndicator();
+}
+
+function autoSaveForm() {
+    const form = document.getElementById('gongguForm');
+    const formData = new FormData(form);
+
+    fetch(form.action || window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            showToast('자동 저장되었습니다.', 'success');
+            hideSavingIndicator();
+        } else {
+            showToast('저장 중 오류가 발생했습니다.', 'error');
+            hideSavingIndicator();
+        }
+    })
+    .catch(error => {
+        console.error('Auto-save error:', error);
+        showToast('네트워크 오류가 발생했습니다.', 'error');
+        hideSavingIndicator();
+    });
+}
+
+function showSavingIndicator() {
+    // 기존 인디케이터 제거
+    const existing = document.querySelector('.saving-indicator');
+    if (existing) existing.remove();
+
+    // 새 인디케이터 추가
+    const indicator = document.createElement('div');
+    indicator.className = 'saving-indicator';
+    indicator.textContent = '저장 중...';
+    indicator.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #ffc107;
+        color: #333;
+        padding: 8px 16px;
+        border-radius: 4px;
+        z-index: 9999;
+        font-size: 14px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    `;
+    document.body.appendChild(indicator);
+}
+
+function hideSavingIndicator() {
+    const indicator = document.querySelector('.saving-indicator');
+    if (indicator) {
+        indicator.remove();
+    }
+}
+
+// 페이지 로드 시 자동 저장 기능 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    {% if form_type == 'edit' %}
+    initAutoSave();
+    initSearchableDropdown();
+    {% endif %}
+});
+
+// 검색 가능한 드롭다운 초기화
+function initSearchableDropdown() {
+    const searchInput = document.getElementById('companySearchInput');
+    const dropdownList = document.getElementById('companyDropdownList');
+    const dropdownItems = dropdownList.querySelectorAll('.dropdown-item');
+    let selectedValue = '';
+    let selectedText = '';
+    let highlightedIndex = -1;
+
+    // 입력 이벤트 처리
+    searchInput.addEventListener('input', function() {
+        const searchValue = this.value.toLowerCase();
+        let visibleItems = [];
+        let hasVisibleItems = false;
+
+        dropdownItems.forEach((item, index) => {
+            const itemText = item.textContent.toLowerCase();
+            const shouldShow = searchValue === '' || itemText.includes(searchValue);
+
+            item.style.display = shouldShow ? 'block' : 'none';
+            item.classList.remove('highlighted');
+
+            if (shouldShow) {
+                visibleItems.push(item);
+                hasVisibleItems = true;
+            }
+        });
+
+        // 첫 번째 매칭 항목 하이라이트 (검색어가 있을 때만)
+        if (visibleItems.length > 0 && searchValue) {
+            visibleItems[0].classList.add('highlighted');
+            highlightedIndex = 0;
+        } else {
+            highlightedIndex = -1;
+        }
+
+        // 드롭다운 표시 (검색어가 있거나 포커스된 상태일 때)
+        if (hasVisibleItems) {
+            dropdownList.classList.add('show');
+        } else {
+            dropdownList.classList.remove('show');
+        }
+    });
+
+    // 포커스 이벤트 처리 - 클릭/포커스 시 모든 업체 표시
+    searchInput.addEventListener('focus', function() {
+        showAllCompanies();
+        dropdownList.classList.add('show');
+    });
+
+    // 클릭 이벤트 처리 - 클릭 시 모든 업체 표시
+    searchInput.addEventListener('click', function() {
+        showAllCompanies();
+        dropdownList.classList.add('show');
+    });
+
+    // 모든 업체 표시 함수
+    function showAllCompanies() {
+        dropdownItems.forEach(item => {
+            item.style.display = 'block';
+            item.classList.remove('highlighted');
+        });
+        highlightedIndex = -1;
+    }
+
+    // 키보드 네비게이션
+    searchInput.addEventListener('keydown', function(e) {
+        const visibleItems = Array.from(dropdownItems).filter(item => item.style.display !== 'none');
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (highlightedIndex < visibleItems.length - 1) {
+                if (highlightedIndex >= 0) {
+                    visibleItems[highlightedIndex].classList.remove('highlighted');
+                }
+                highlightedIndex++;
+                visibleItems[highlightedIndex].classList.add('highlighted');
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (highlightedIndex > 0) {
+                visibleItems[highlightedIndex].classList.remove('highlighted');
+                highlightedIndex--;
+                visibleItems[highlightedIndex].classList.add('highlighted');
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (highlightedIndex >= 0 && visibleItems[highlightedIndex]) {
+                selectItem(visibleItems[highlightedIndex]);
+            }
+        } else if (e.key === 'Escape') {
+            dropdownList.classList.remove('show');
+            highlightedIndex = -1;
+        }
+    });
+
+    // 항목 클릭 이벤트
+    dropdownItems.forEach(item => {
+        item.addEventListener('click', function() {
+            selectItem(this);
+        });
+    });
+
+    // 항목 선택 함수
+    function selectItem(item) {
+        selectedValue = item.dataset.value;
+        selectedText = item.textContent;
+
+        // "업체를 선택하세요" 선택 시 초기화
+        if (selectedValue === '') {
+            searchInput.value = '';
+            selectedText = '';
+        } else {
+            searchInput.value = selectedText;
+        }
+
+        dropdownList.classList.remove('show');
+
+        // 모든 항목의 하이라이트 제거
+        dropdownItems.forEach(dropdownItem => {
+            dropdownItem.classList.remove('highlighted');
+        });
+
+        highlightedIndex = -1;
+    }
+
+    // 선택된 값 가져오기 함수
+    window.getSelectedCompanyId = function() {
+        return selectedValue;
+    };
+
+    // 선택 초기화 함수
+    window.clearCompanySelection = function() {
+        selectedValue = '';
+        selectedText = '';
+        searchInput.value = '';
+        dropdownList.classList.remove('show');
+    };
+
+    // 외부 클릭으로 드롭다운 닫기
+    document.addEventListener('click', function(e) {
+        if (!document.getElementById('companyDropdown').contains(e.target)) {
+            dropdownList.classList.remove('show');
+            highlightedIndex = -1;
+        }
+    });
 }
 
 function addGongguCompany() {
-    const companySelect = document.getElementById('companySelect');
-    const selectedCompanyId = companySelect.value;
+    const selectedCompanyId = window.getSelectedCompanyId();
+    const searchInput = document.getElementById('companySearchInput');
+    const selectedCompanyName = searchInput.value;
 
     if (!selectedCompanyId) {
         showToast('업체를 선택해주세요.', 'error');
@@ -742,9 +1042,10 @@ function addGongguCompany() {
     // 중복 확인
     const existingCompanies = document.querySelectorAll('#gongguCompanyList .company-form-item');
     for (let item of existingCompanies) {
-        const companyName = item.querySelector('.company-form-content span').textContent;
-        const selectedCompanyName = companySelect.options[companySelect.selectedIndex].text;
-        if (companyName === selectedCompanyName) {
+        const companyHeaderText = item.querySelector('.company-form-header strong').textContent;
+        // "참여업체: " 부분을 제거하고 업체명만 비교
+        const existingCompanyName = companyHeaderText.replace('참여업체: ', '');
+        if (existingCompanyName === selectedCompanyName) {
             showToast('이미 추가된 업체입니다.', 'error');
             return;
         }
@@ -765,6 +1066,8 @@ function addGongguCompany() {
     .then(data => {
         if (data.success) {
             showToast('참여업체가 추가되었습니다.', 'success');
+            // 검색 입력 초기화
+            window.clearCompanySelection();
             // 페이지 새로고침하여 추가된 업체 표시
             setTimeout(() => {
                 window.location.reload();
@@ -784,8 +1087,30 @@ function removeGongguCompany(gongguCompanyId) {
         return;
     }
 
-    // TODO: 참여업체 제거 API 호출 구현
-    showToast('참여업체 제거 기능은 추후 구현 예정입니다.', 'info');
+    // AJAX로 서버에 GongguCompany 제거 요청
+    fetch(`/gonggu/company/${gongguCompanyId}/remove/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('참여업체가 제거되었습니다.', 'success');
+            // 페이지 새로고침하여 제거된 업체 반영
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showToast(data.error || '업체 제거 중 오류가 발생했습니다.', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('네트워크 오류가 발생했습니다.', 'error');
+    });
 }
 
 function manageAreas(gongguCompanyId) {

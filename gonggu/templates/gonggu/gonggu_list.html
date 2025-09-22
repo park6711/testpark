@@ -64,8 +64,8 @@
             <!-- 관리 버튼 -->
             {% if current_staff and current_staff.nOrderAuthority >= 2 %}
             <div class="action-group">
-                <button onclick="editSelectedGonggu()" class="btn btn-warning" id="editBtn" style="display:none;">공동구매 수정</button>
                 <a href="{% url 'gonggu:gonggu_create' %}" class="btn btn-success">+ 공동구매 생성</a>
+                <button id="editGongguBtn" class="btn btn-warning" onclick="editSelectedGonggu(); return false;" disabled>공동구매 수정</button>
             </div>
             {% endif %}
         </div>
@@ -76,9 +76,6 @@
     <table class="data-table">
         <thead>
             <tr>
-                {% if current_staff and current_staff.nOrderAuthority >= 2 %}
-                <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
-                {% endif %}
                 <th>번호</th>
                 <th>단계구분</th>
                 <th>구분</th>
@@ -97,9 +94,6 @@
         <tbody>
             {% for item in gonggu_data %}
             <tr class="data-row" data-id="{{ item.gonggu.no }}">
-                {% if current_staff and current_staff.nOrderAuthority >= 2 %}
-                <td><input type="checkbox" class="gonggu-checkbox" value="{{ item.gonggu.no }}" onchange="updateEditButton()"></td>
-                {% endif %}
                 <td>{{ item.gonggu.no }}</td>
                 <td>
                     {% if item.gonggu.nStepType == 0 %}
@@ -125,9 +119,21 @@
                 </td>
                 <td>{{ item.gonggu.sNo|default:'-' }}</td>
                 <td class="gonggu-name">{{ item.gonggu.sName|default:'-' }}</td>
-                <td>{{ item.gonggu.sStrength|default:'-' }}</td>
+                <td class="strength-field">
+                    {% if item.strength_tooltip and item.strength_tooltip != item.strength %}
+                    <span class="strength-text-with-tooltip" title="{{ item.strength_tooltip }}">{{ item.strength }}</span>
+                    {% else %}
+                    {{ item.strength|default:'-' }}
+                    {% endif %}
+                </td>
                 <td>{{ item.company }}</td>
-                <td class="area-assignments">{{ item.areas }}</td>
+                <td class="area-assignments">
+                    {% if item.areas_tooltip %}
+                    <span class="area-text-with-tooltip" title="{{ item.areas_tooltip }}">{{ item.areas }}</span>
+                    {% else %}
+                    {{ item.areas }}
+                    {% endif %}
+                </td>
                 <td>
                     {% if item.gonggu.nCommentNow > 0 %}
                         <span class="comment-count">{{ item.gonggu.nCommentNow }}</span>
@@ -149,13 +155,13 @@
                 </td>
                 {% if current_staff and current_staff.nOrderAuthority >= 2 %}
                 <td>
-                    <button onclick="deleteGonggu({{ item.gonggu.no }})" class="btn btn-sm btn-outline-danger">삭제</button>
+                    <button onclick="deleteGonggu({{ item.gonggu.no }}, {{ item.gonggu_company_id|default:'null' }})" class="btn btn-sm btn-outline-danger">삭제</button>
                 </td>
                 {% endif %}
             </tr>
             {% empty %}
             <tr>
-                <td colspan="{% if current_staff and current_staff.nOrderAuthority >= 2 %}12{% else %}10{% endif %}" class="text-center">검색 결과가 없습니다.</td>
+                <td colspan="{% if current_staff and current_staff.nOrderAuthority >= 2 %}11{% else %}9{% endif %}" class="text-center">검색 결과가 없습니다.</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -275,6 +281,15 @@
     background-color: #f8f9fa;
 }
 
+.data-row.selected {
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196f3;
+}
+
+.data-row.selected:hover {
+    background-color: #bbdefb;
+}
+
 .gonggu-name {
     text-align: left;
     font-weight: 500;
@@ -337,6 +352,17 @@
 
 .btn-warning:hover {
     background-color: #e0a800;
+}
+
+.btn:disabled {
+    background-color: #6c757d;
+    color: #fff;
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.btn:disabled:hover {
+    background-color: #6c757d;
 }
 
 .btn-sm {
@@ -412,22 +438,172 @@
         padding: 8px 4px;
     }
 }
+
+/* 지역 툴팁 스타일 */
+.area-text-with-tooltip {
+    position: relative;
+    cursor: help;
+    border-bottom: 1px dotted #999;
+}
+
+.area-text-with-tooltip:hover::after {
+    content: attr(title);
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    margin-top: 5px;
+}
+
+.area-text-with-tooltip:hover::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-bottom-color: #333;
+    z-index: 1000;
+    margin-top: -5px;
+}
+
+/* 특징 필드 및 툴팁 스타일 */
+.strength-field {
+    text-align: left;
+    max-width: 200px;
+    word-break: break-word;
+}
+
+.strength-text-with-tooltip {
+    position: relative;
+    cursor: help;
+    border-bottom: 1px dotted #999;
+}
+
+.strength-text-with-tooltip:hover::after {
+    content: attr(title);
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: pre-wrap;
+    max-width: 300px;
+    word-break: break-word;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    margin-top: 5px;
+}
+
+.strength-text-with-tooltip:hover::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-bottom-color: #333;
+    z-index: 1000;
+    margin-top: -5px;
+}
+
+/* 커스텀 다이얼로그 스타일 */
+.custom-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.custom-dialog-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+    min-width: 300px;
+}
+
+.custom-dialog-content p {
+    margin: 0 0 20px 0;
+    font-size: 16px;
+    color: #333;
+}
+
+.custom-dialog-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
 </style>
 
 <script>
-// 폼 자동 제출
-document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+// 폼 자동 제출 (필터 체크박스만)
+document.querySelectorAll('.filter-section input[type="checkbox"]').forEach(checkbox => {
     checkbox.addEventListener('change', function() {
         document.getElementById('filterForm').submit();
     });
 });
 
-// 더블클릭으로 권한에 따라 수정/보기 페이지로 이동
-document.querySelectorAll('.data-row').forEach(row => {
-    row.addEventListener('dblclick', function(e) {
-        // 체크박스 클릭 시에는 더블클릭 이벤트 무시
-        if (e.target.type === 'checkbox') return;
+// 행 선택 기능
+let selectedGongguId = null;
 
+// 수정 버튼 상태 업데이트
+function updateEditButtonState() {
+    const editBtn = document.getElementById('editGongguBtn');
+    if (selectedGongguId) {
+        editBtn.disabled = false;
+        console.log('Button enabled for gonggu:', selectedGongguId);
+    } else {
+        editBtn.disabled = true;
+        console.log('Button disabled');
+    }
+}
+
+document.querySelectorAll('.data-row').forEach(row => {
+    // 단일 클릭으로 행 선택
+    row.addEventListener('click', function(e) {
+        // 기존 선택 해제
+        document.querySelectorAll('.data-row').forEach(r => r.classList.remove('selected'));
+
+        // 현재 행 선택
+        this.classList.add('selected');
+        selectedGongguId = this.dataset.id;
+        console.log('Selected gonggu ID:', selectedGongguId);
+
+        // 버튼 상태 업데이트
+        updateEditButtonState();
+    });
+
+    // 더블클릭으로 권한에 따라 수정/보기 페이지로 이동
+    row.addEventListener('dblclick', function(e) {
         const gongguId = this.dataset.id;
         {% if current_staff and current_staff.nOrderAuthority >= 2 %}
             // 수정 권한이 있으면 수정 모드로
@@ -439,65 +615,69 @@ document.querySelectorAll('.data-row').forEach(row => {
     });
 });
 
-// 전체 선택/해제
-function toggleSelectAll() {
-    const selectAll = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('.gonggu-checkbox');
-
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAll.checked;
-    });
-
-    updateEditButton();
-}
-
-// 수정 버튼 표시/숨김
-function updateEditButton() {
-    const checkboxes = document.querySelectorAll('.gonggu-checkbox:checked');
-    const editBtn = document.getElementById('editBtn');
-
-    if (checkboxes.length === 1) {
-        editBtn.style.display = 'inline-block';
-    } else {
-        editBtn.style.display = 'none';
-    }
-
-    // 전체 선택 체크박스 상태 업데이트
-    const selectAll = document.getElementById('selectAll');
-    const allCheckboxes = document.querySelectorAll('.gonggu-checkbox');
-    const checkedCheckboxes = document.querySelectorAll('.gonggu-checkbox:checked');
-
-    if (checkedCheckboxes.length === 0) {
-        selectAll.indeterminate = false;
-        selectAll.checked = false;
-    } else if (checkedCheckboxes.length === allCheckboxes.length) {
-        selectAll.indeterminate = false;
-        selectAll.checked = true;
-    } else {
-        selectAll.indeterminate = true;
-    }
-}
-
-// 선택된 공동구매 수정
+// 수정 버튼 클릭 함수를 전역으로 정의
 function editSelectedGonggu() {
-    const checkboxes = document.querySelectorAll('.gonggu-checkbox:checked');
-
-    if (checkboxes.length !== 1) {
-        showToast('수정할 공동구매를 하나만 선택해주세요.', 'error');
-        return;
+    console.log('editSelectedGonggu called, selectedGongguId:', selectedGongguId);
+    if (selectedGongguId) {
+        console.log('Navigating to edit page for gonggu:', selectedGongguId);
+        window.location.href = `/gonggu/${selectedGongguId}/?edit=1`;
+    } else {
+        const gongguId = prompt('수정할 공동구매 번호를 입력하세요:');
+        if (gongguId && gongguId.trim()) {
+            window.location.href = `/gonggu/${gongguId.trim()}/?edit=1`;
+        }
     }
+    return false; // 기본 동작 방지
+}
 
-    const gongguId = checkboxes[0].value;
-    window.location.href = `/gonggu/${gongguId}/?edit=1`;
+// 테이블 외부 클릭 시 선택 해제
+document.addEventListener('click', function(e) {
+    // 테이블 행이나 액션 그룹 버튼이 아닌 곳을 클릭했을 때만
+    if (!e.target.closest('.data-row') && !e.target.closest('.action-group')) {
+        // 모든 선택 해제
+        document.querySelectorAll('.data-row').forEach(r => r.classList.remove('selected'));
+        selectedGongguId = null;
+        updateEditButtonState();
+    }
+});
+
+
+// 커스텀 확인 다이얼로그
+function showConfirmDialog(message, onConfirm) {
+    const dialog = document.createElement('div');
+    dialog.className = 'custom-dialog-overlay';
+    dialog.innerHTML = `
+        <div class="custom-dialog-content">
+            <p>${message}</p>
+            <div class="custom-dialog-buttons">
+                <button class="btn btn-secondary" onclick="this.closest('.custom-dialog-overlay').remove()">취소</button>
+                <button class="btn btn-danger" id="confirmBtn">확인</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(dialog);
+    document.getElementById('confirmBtn').onclick = function() {
+        dialog.remove();
+        onConfirm();
+    };
 }
 
 // 공동구매 삭제
-function deleteGonggu(gongguId) {
-    if (!confirm('정말로 이 공동구매를 삭제하시겠습니까?')) {
-        return;
+function deleteGonggu(gongguId, gongguCompanyId) {
+    showConfirmDialog('정말로 이 공동구매를 삭제하시겠습니까?', function() {
+        doDeleteGonggu(gongguId, gongguCompanyId);
+    });
+}
+
+function doDeleteGonggu(gongguId, gongguCompanyId) {
+    // gongguCompanyId가 있으면 URL에 쿼리 파라미터로 추가
+    let url = `/gonggu/${gongguId}/delete/`;
+    if (gongguCompanyId && gongguCompanyId !== null) {
+        url += `?gonggu_company_id=${gongguCompanyId}`;
     }
 
-    fetch(`/gonggu/${gongguId}/delete/`, {
+    fetch(url, {
         method: 'POST',
         headers: {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
@@ -560,6 +740,7 @@ function showToast(message, type = 'info') {
         }, 300);
     }, 3000);
 }
+
 </script>
 
 {% csrf_token %}

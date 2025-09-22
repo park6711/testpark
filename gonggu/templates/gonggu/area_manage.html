@@ -6,35 +6,62 @@
 
 {% block content %}
 {% csrf_token %}
+
+<!-- 페이지 헤더 -->
+<div class="page-header">
+    <h1 class="page-title">공동구매 가능 지역</h1>
+    <p class="page-subtitle">참여업체별 지역 설정 및 관리</p>
+</div>
+
 <!-- 페이지 액션 버튼 -->
 <div class="page-actions">
-    <button type="button" onclick="closeAreaManage()" class="btn btn-secondary">닫기</button>
+    <a href="/gonggu/{{ gonggu.no }}/?edit=1" class="btn btn-secondary">닫기</a>
 </div>
 
 <!-- 페이지 정보 -->
 <div class="page-info">
-    <p><strong>공동구매:</strong> {{ gonggu.sName }}</p>
+    <p><strong>공동구매:</strong> {{ gonggu.sNo }} {{ gonggu.sName }}</p>
     <p><strong>참여업체:</strong> {{ gonggu_company.get_company_name }}</p>
 </div>
 
 <div class="area-manage-container">
     <!-- 추가지역 섹션 -->
     <div class="area-section">
-        <h3 class="section-title">추가지역 (전국, 광역지역, 시군구지역 모두 가능)</h3>
+        <h3 class="section-title">추가지역 (<span id="additionalAreaCount">{{ additional_areas|length }}</span>)</h3>
         <div class="area-input-group">
-            <select id="additionalAreaSelect" class="form-control">
-                <option value="">지역을 선택하세요</option>
-                {% for area in all_areas %}
-                <option value="{{ area.no }}">{{ area.get_full_name }}</option>
-                {% endfor %}
-            </select>
+            <div class="searchable-select-container">
+                <input type="text" id="additionalAreaSearch" class="form-control searchable-input" placeholder="지역을 검색하거나 선택하세요" autocomplete="off">
+                <div id="additionalAreaDropdown" class="searchable-dropdown" style="display: none;">
+                    {% for area in all_areas %}
+                    <div class="dropdown-item" data-value="{{ area.no }}" data-text="{{ area.get_full_name }}">
+                        {% if area.no == 0 %}
+                            🌍 {{ area.get_full_name }}
+                        {% elif area.no|floatformat:0|length == 4 and area.no|divisibleby:1000 %}
+                            🏛️ {{ area.get_full_name }}
+                        {% elif area.no == 2020 or area.no == 2120 or area.no == 2170 or area.no == 2150 or area.no == 2130 or area.no == 2230 or area.no == 5130 %}
+                            🏙️ {{ area.get_full_name }}
+                        {% elif '(' in area.get_full_name and ('고양시(' in area.get_full_name or '안양시(' in area.get_full_name or '안산시(' in area.get_full_name or '성남시(' in area.get_full_name or '수원시(' in area.get_full_name or '용인시(' in area.get_full_name or '창원시(' in area.get_full_name) %}
+                            🏘️ {{ area.get_full_name }}
+                        {% else %}
+                            🏢 {{ area.get_full_name }}
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" id="additionalAreaSelect" value="">
+            </div>
             <button type="button" onclick="addArea(0)" class="btn btn-success">추가</button>
         </div>
         <div class="area-list" id="additionalAreaList">
             {% for area in additional_areas %}
             <div class="area-item" data-area-id="{{ area.noArea }}" data-type="0">
                 <span class="area-name">
-                    {% if area.noArea == 0 %}🌍{% elif area.noArea|floatformat:0|length == 4 and area.noArea|divisibleby:1000 %}🏛️{% else %}🏢{% endif %}
+                    {% if area.noArea == 0 %}🌍
+                    {% elif area.noArea|floatformat:0|length == 4 and area.noArea|divisibleby:1000 %}🏛️
+                    {% elif area.noArea == 2020 or area.noArea == 2120 or area.noArea == 2170 or area.noArea == 2150 or area.noArea == 2130 or area.noArea == 2230 or area.noArea == 5130 %}🏙️
+                    {% elif '(' in area.get_area_name %}🏘️
+                    {% else %}🏢
+                    {% endif %}
                     {{ area.get_area_name }}
                 </span>
                 <button type="button" onclick="removeArea({{ area.noArea }}, 0)" class="btn btn-danger btn-xs">×</button>
@@ -45,21 +72,41 @@
 
     <!-- 제외지역 섹션 -->
     <div class="area-section">
-        <h3 class="section-title">제외지역 (시군구지역 중 통합시 제외)</h3>
+        <h3 class="section-title">제외지역 (<span id="excludedAreaCount">{{ excluded_areas|length }}</span>)</h3>
         <div class="area-input-group">
-            <select id="excludedAreaSelect" class="form-control">
-                <option value="">지역을 선택하세요</option>
-                {% for area in filtered_areas %}
-                <option value="{{ area.no }}">{{ area.get_full_name }}</option>
-                {% endfor %}
-            </select>
+            <div class="searchable-select-container">
+                <input type="text" id="excludedAreaSearch" class="form-control searchable-input" placeholder="지역을 검색하거나 선택하세요" autocomplete="off">
+                <div id="excludedAreaDropdown" class="searchable-dropdown" style="display: none;">
+                    {% for area in filtered_areas %}
+                    <div class="dropdown-item" data-value="{{ area.no }}" data-text="{{ area.get_full_name }}">
+                        {% if area.no == 0 %}
+                            🌍 {{ area.get_full_name }}
+                        {% elif area.no|floatformat:0|length == 4 and area.no|divisibleby:1000 %}
+                            🏛️ {{ area.get_full_name }}
+                        {% elif area.no == 2020 or area.no == 2120 or area.no == 2170 or area.no == 2150 or area.no == 2130 or area.no == 2230 or area.no == 5130 %}
+                            🏙️ {{ area.get_full_name }}
+                        {% elif '(' in area.get_full_name and ('고양시(' in area.get_full_name or '안양시(' in area.get_full_name or '안산시(' in area.get_full_name or '성남시(' in area.get_full_name or '수원시(' in area.get_full_name or '용인시(' in area.get_full_name or '창원시(' in area.get_full_name) %}
+                            🏘️ {{ area.get_full_name }}
+                        {% else %}
+                            🏢 {{ area.get_full_name }}
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" id="excludedAreaSelect" value="">
+            </div>
             <button type="button" onclick="addArea(1)" class="btn btn-success">추가</button>
         </div>
         <div class="area-list" id="excludedAreaList">
             {% for area in excluded_areas %}
             <div class="area-item" data-area-id="{{ area.noArea }}" data-type="1">
                 <span class="area-name">
-                    {% if area.noArea == 0 %}🌍{% elif area.noArea|floatformat:0|length == 4 and area.noArea|divisibleby:1000 %}🏛️{% else %}🏢{% endif %}
+                    {% if area.noArea == 0 %}🌍
+                    {% elif area.noArea|floatformat:0|length == 4 and area.noArea|divisibleby:1000 %}🏛️
+                    {% elif area.noArea == 2020 or area.noArea == 2120 or area.noArea == 2170 or area.noArea == 2150 or area.noArea == 2130 or area.noArea == 2230 or area.noArea == 5130 %}🏙️
+                    {% elif '(' in area.get_area_name %}🏘️
+                    {% else %}🏢
+                    {% endif %}
                     {{ area.get_area_name }}
                 </span>
                 <button type="button" onclick="removeArea({{ area.noArea }}, 1)" class="btn btn-danger btn-xs">×</button>
@@ -70,7 +117,7 @@
 
     <!-- 실제할당지역 섹션 -->
     <div class="area-section">
-        <h3 class="section-title">계산된 실제할당지역 (시군구지역 중 통합시 제외)</h3>
+        <h3 class="section-title">실제할당지역 (<span id="assignedAreaCount">{{ assigned_areas|length }}</span>)</h3>
         <div class="calculated-info">
             <p class="info-text">실제할당지역 = 추가지역 - 제외지역</p>
         </div>
@@ -78,10 +125,14 @@
             {% for area in assigned_areas %}
             <div class="area-item assigned" data-area-id="{{ area.noArea }}" data-type="2">
                 <span class="area-name">
-                    {% if area.noArea == 0 %}🌍{% elif area.noArea|floatformat:0|length == 4 and area.noArea|divisibleby:1000 %}🏛️{% else %}🏢{% endif %}
+                    {% if area.noArea == 0 %}🌍
+                    {% elif area.noArea|floatformat:0|length == 4 and area.noArea|divisibleby:1000 %}🏛️
+                    {% elif area.noArea == 2020 or area.noArea == 2120 or area.noArea == 2170 or area.noArea == 2150 or area.noArea == 2130 or area.noArea == 2230 or area.noArea == 5130 %}🏙️
+                    {% elif '(' in area.get_area_name %}🏘️
+                    {% else %}🏢
+                    {% endif %}
                     {{ area.get_area_name }}
                 </span>
-                <span class="area-type-badge">실제할당</span>
             </div>
             {% endfor %}
         </div>
@@ -202,7 +253,7 @@
 
 /* 버튼 스타일 */
 .btn {
-    padding: 8px 16px;
+    padding: 10px 24px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -211,6 +262,7 @@
     display: inline-block;
     transition: all 0.3s ease;
     font-weight: 500;
+    min-width: 80px;
 }
 
 .btn-primary {
@@ -259,6 +311,54 @@
     border: 1px solid #ced4da;
     border-radius: 4px;
     font-size: 14px;
+    max-width: 300px; /* 드롭박스 최대 너비 제한 */
+}
+
+/* 검색 가능한 드롭다운 스타일 */
+.searchable-select-container {
+    position: relative;
+    flex: 1;
+    max-width: 400px;
+}
+
+.searchable-input {
+    width: 100%;
+    cursor: text;
+}
+
+.searchable-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ced4da;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.dropdown-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.dropdown-item:hover,
+.dropdown-item.highlighted {
+    background-color: #f8f9fa;
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item.hidden {
+    display: none;
 }
 
 .form-control:focus {
@@ -308,11 +408,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     updateAssignedAreas();
+
+    // 검색 기능 초기화
+    initSearchableDropdown('additionalAreaSearch', 'additionalAreaDropdown', 'additionalAreaSelect');
+    initSearchableDropdown('excludedAreaSearch', 'excludedAreaDropdown', 'excludedAreaSelect');
 });
 
 function addArea(areaType) {
     const selectId = areaType === 0 ? 'additionalAreaSelect' : 'excludedAreaSelect';
+    const searchId = areaType === 0 ? 'additionalAreaSearch' : 'excludedAreaSearch';
     const select = document.getElementById(selectId);
+    const searchInput = document.getElementById(searchId);
 
     if (!select.value) {
         showToast('지역을 선택해주세요.', 'error');
@@ -320,7 +426,7 @@ function addArea(areaType) {
     }
 
     const areaId = parseInt(select.value);
-    const areaText = select.options[select.selectedIndex].text;
+    const areaText = searchInput.value;
 
     // AJAX로 서버에 지역 추가 요청
     fetch(`/gonggu/company/{{ gonggu_company.no }}/area-manage/`, {
@@ -363,6 +469,9 @@ function addArea(areaType) {
                 currentExcludedAreas.add(areaId);
             }
 
+            // 카운트 업데이트
+            updateAreaCounts();
+
             // 실제할당지역 새로고침
             setTimeout(() => {
                 window.location.reload();
@@ -380,6 +489,7 @@ function addArea(areaType) {
 
     // 선택 초기화
     select.value = '';
+    searchInput.value = '';
 }
 
 function removeArea(areaId, areaType) {
@@ -415,6 +525,9 @@ function removeArea(areaId, areaType) {
                 currentExcludedAreas.delete(areaId);
             }
 
+            // 카운트 업데이트
+            updateAreaCounts();
+
             // 실제할당지역 새로고침
             setTimeout(() => {
                 window.location.reload();
@@ -438,10 +551,42 @@ function updateAssignedAreas() {
     console.log('제외지역:', Array.from(currentExcludedAreas));
 }
 
+function updateAreaCounts() {
+    // 추가지역 카운트 업데이트
+    const additionalCount = document.querySelectorAll('#additionalAreaList .area-item').length;
+    document.getElementById('additionalAreaCount').textContent = additionalCount;
+
+    // 제외지역 카운트 업데이트
+    const excludedCount = document.querySelectorAll('#excludedAreaList .area-item').length;
+    document.getElementById('excludedAreaCount').textContent = excludedCount;
+
+    // 실제할당지역 카운트는 페이지 새로고침 후 업데이트됨
+}
+
 // saveAreas 함수는 더 이상 필요하지 않음 (개별 추가/삭제로 대체)
 
 function closeAreaManage() {
-    window.history.back();
+    try {
+        console.log('closeAreaManage called');
+
+        // 가장 간단한 방법: window.history.back() 사용 후 새로고침 시도
+        if (window.opener) {
+            // 팝업 창인 경우
+            window.opener.location.reload();
+            window.close();
+        } else {
+            // 일반 페이지인 경우
+            window.history.back();
+            // 뒤로가기 후 약간의 지연을 두고 새로고침 시도
+            setTimeout(() => {
+                window.location.reload();
+            }, 100);
+        }
+    } catch (error) {
+        console.error('Error in closeAreaManage:', error);
+        // 오류 발생 시 기본 뒤로가기
+        window.history.back();
+    }
 }
 
 // 토스트 알림
@@ -482,6 +627,109 @@ function showToast(message, type = 'info') {
             document.body.removeChild(toast);
         }, 300);
     }, 3000);
+}
+
+// 검색 가능한 드롭다운 기능
+function initSearchableDropdown(searchInputId, dropdownId, hiddenSelectId) {
+    const searchInput = document.getElementById(searchInputId);
+    const dropdown = document.getElementById(dropdownId);
+    const hiddenSelect = document.getElementById(hiddenSelectId);
+    const dropdownItems = dropdown.querySelectorAll('.dropdown-item');
+
+    let highlightedIndex = -1;
+
+    // 검색 입력 처리
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        let visibleCount = 0;
+        highlightedIndex = -1;
+
+        dropdownItems.forEach(function(item, index) {
+            const text = item.textContent.toLowerCase();
+            if (text.includes(searchTerm)) {
+                item.classList.remove('hidden');
+                item.classList.remove('highlighted');
+                visibleCount++;
+            } else {
+                item.classList.add('hidden');
+                item.classList.remove('highlighted');
+            }
+        });
+
+        if (visibleCount > 0) {
+            dropdown.style.display = 'block';
+        } else {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    // 포커스 시 드롭다운 표시
+    searchInput.addEventListener('focus', function() {
+        dropdown.style.display = 'block';
+    });
+
+    // 키보드 네비게이션
+    searchInput.addEventListener('keydown', function(e) {
+        const visibleItems = Array.from(dropdownItems).filter(item => !item.classList.contains('hidden'));
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            highlightedIndex = Math.min(highlightedIndex + 1, visibleItems.length - 1);
+            updateHighlight(visibleItems);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            highlightedIndex = Math.max(highlightedIndex - 1, -1);
+            updateHighlight(visibleItems);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (highlightedIndex >= 0 && visibleItems[highlightedIndex]) {
+                selectItem(visibleItems[highlightedIndex]);
+            }
+        } else if (e.key === 'Escape') {
+            dropdown.style.display = 'none';
+            highlightedIndex = -1;
+        }
+    });
+
+    // 드롭다운 아이템 클릭 처리
+    dropdownItems.forEach(function(item) {
+        item.addEventListener('click', function() {
+            selectItem(this);
+        });
+    });
+
+    // 외부 클릭 시 드롭다운 숨기기
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+            highlightedIndex = -1;
+        }
+    });
+
+    function updateHighlight(visibleItems) {
+        visibleItems.forEach(function(item, index) {
+            if (index === highlightedIndex) {
+                item.classList.add('highlighted');
+            } else {
+                item.classList.remove('highlighted');
+            }
+        });
+    }
+
+    function selectItem(item) {
+        const value = item.getAttribute('data-value');
+        const text = item.getAttribute('data-text');
+
+        searchInput.value = text;
+        hiddenSelect.value = value;
+        dropdown.style.display = 'none';
+        highlightedIndex = -1;
+
+        // 모든 아이템의 하이라이트 제거
+        dropdownItems.forEach(function(dropdownItem) {
+            dropdownItem.classList.remove('highlighted');
+        });
+    }
 }
 </script>
 

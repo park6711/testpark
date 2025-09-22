@@ -532,7 +532,6 @@
                     <div class="area-section-title" style="background: #28a745; color: white; padding: 8px 12px; border-radius: 4px; font-weight: bold; text-align: center; margin-bottom: 10px;">
                         추가지역 <span id="additional-count-{{ const_type_value }}">(0)</span>
                     </div>
-                    <div style="font-size: 12px; color: #666; margin-bottom: 8px; text-align: center;">광역지역 + 시군구지역</div>
                     <div class="area-search-container" style="position: relative; margin-bottom: 8px;">
                         <input type="text"
                                id="additional-area-search-{{ const_type_value }}"
@@ -693,7 +692,6 @@
                     <div class="area-section-title" style="background: #28a745; color: white; padding: 8px 12px; border-radius: 4px; font-weight: bold; text-align: center; margin-bottom: 10px;">
                         추가지역 <span id="additional-count-3">(0)</span>
                     </div>
-                    <div style="font-size: 12px; color: #666; margin-bottom: 8px; text-align: center;">광역지역 + 시군구지역</div>
                     <div class="area-search-container" style="position: relative; margin-bottom: 8px;">
                         <input type="text"
                                id="additional-area-search-3"
@@ -1124,20 +1122,9 @@ function showAreaDropdown(areas, query, areaType, constType) {
             transition: background-color 0.2s;
         `;
 
-        const levelText = {
-        0: '전국',
-        1: '광역지역',
-        2: area.type === 'integrated_city' ? '통합시' : '시군구지역',
-        3: '구'
-    };
-
     item.innerHTML = `
             <div style="font-weight: 500; color: #333;">
                 ${area.icon} ${highlightQuery(area.name, query)}
-            </div>
-            <div style="font-size: 11px; color: #888; margin-top: 2px;">
-                ${levelText[area.level] || '지역'}
-                ${(area.name === '전국' && area.description) ? ` - ${area.description}` : ''}
             </div>
         `;
 

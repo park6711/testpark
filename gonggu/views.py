@@ -105,20 +105,53 @@ def gonggu_list(request):
                         area_names.append(f"지역{area_entry.noArea}")
 
                 # 지역 정보 포매팅
-                areas_text = ', '.join(sorted(set(area_names))) if area_names else '-'
+                unique_area_names = sorted(set(area_names))
+                if len(unique_area_names) > 1:
+                    areas_text = f"{unique_area_names[0]}~({len(unique_area_names)})"
+                    areas_tooltip = ', '.join(unique_area_names)
+                elif len(unique_area_names) == 1:
+                    areas_text = unique_area_names[0]
+                    areas_tooltip = unique_area_names[0]
+                else:
+                    areas_text = '-'
+                    areas_tooltip = ''
+
+                # 특징 정보 포매팅 (20자 제한)
+                strength_full = gonggu.sStrength or ''
+                if len(strength_full) > 20:
+                    strength_text = strength_full[:20]
+                    strength_tooltip = strength_full
+                else:
+                    strength_text = strength_full
+                    strength_tooltip = strength_full
 
                 gonggu_data.append({
                     'gonggu': gonggu,
                     'company': company_name,
                     'areas': areas_text,
+                    'areas_tooltip': areas_tooltip,
+                    'strength': strength_text,
+                    'strength_tooltip': strength_tooltip,
                     'gonggu_company_id': gonggu_company.no
                 })
         else:
             # 참여업체가 없는 경우 공구만 표시
+            # 특징 정보 포매팅 (20자 제한)
+            strength_full = gonggu.sStrength or ''
+            if len(strength_full) > 20:
+                strength_text = strength_full[:20]
+                strength_tooltip = strength_full
+            else:
+                strength_text = strength_full
+                strength_tooltip = strength_full
+
             gonggu_data.append({
                 'gonggu': gonggu,
                 'company': '-',
                 'areas': '-',
+                'areas_tooltip': '',
+                'strength': strength_text,
+                'strength_tooltip': strength_tooltip,
                 'gonggu_company_id': None
             })
 
@@ -156,7 +189,7 @@ def gonggu_create(request):
                 nCommentNow=request.POST.get('nCommentNow', 0)
             )
             messages.success(request, '공동구매가 생성되었습니다.')
-            return redirect('gonggu:gonggu_detail', pk=gonggu.no)
+            return redirect(f'/gonggu/{gonggu.no}/?edit=1')
         except Exception as e:
             messages.error(request, f'공동구매 생성 중 오류가 발생했습니다: {str(e)}')
 
@@ -194,9 +227,17 @@ def gonggu_detail(request, pk):
             gonggu.nCommentNow = request.POST.get('nCommentNow', gonggu.nCommentNow)
             gonggu.save()
 
+            # AJAX 요청인 경우 JSON 응답 반환
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': True, 'message': '자동 저장되었습니다.'})
+
             messages.success(request, '공동구매가 수정되었습니다.')
             return redirect('gonggu:gonggu_detail', pk=gonggu.no)
         except Exception as e:
+            # AJAX 요청인 경우 JSON 응답 반환
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': f'저장 중 오류가 발생했습니다: {str(e)}'})
+
             messages.error(request, f'공동구매 수정 중 오류가 발생했습니다: {str(e)}')
 
     # 관련 업체 및 지역 정보
@@ -206,6 +247,11 @@ def gonggu_detail(request, pk):
     # 모든 관련 지역 정보 (모든 참여업체의 지역)
     gonggu_company_ids = [gc.no for gc in gonggu_companies]
     areas = GongguArea.objects.filter(noGongguCompany__in=gonggu_company_ids)
+
+    # 각 참여업체별 실제할당지역 개수 계산 및 객체에 추가
+    for gc in gonggu_companies:
+        assigned_count = GongguArea.objects.filter(noGongguCompany=gc.no, nType=2).count()
+        gc.area_count = assigned_count
 
     # 편집 모드일 때 사용 가능한 업체 목록 제공
     available_companies = []
@@ -237,9 +283,43 @@ def gonggu_delete(request, pk):
 
     if request.method == 'POST':
         try:
+            from .models import GongguCompany, GongguArea
+
             gonggu = get_object_or_404(Gonggu, no=pk)
-            gonggu.delete()
-            return JsonResponse({'success': True, 'message': '공동구매가 삭제되었습니다.'})
+
+            # 쿼리 파라미터에서 특정 GongguCompany ID 확인
+            gonggu_company_id = request.GET.get('gonggu_company_id')
+
+            # 해당 공구와 연결된 GongguCompany 개수 확인
+            gonggu_companies = GongguCompany.objects.filter(noGonggu=gonggu.no)
+            company_count = gonggu_companies.count()
+
+            if company_count > 1:
+                # 여러 개의 GongguCompany가 있으면: 특정 GongguCompany만 삭제
+                if gonggu_company_id:
+                    try:
+                        target_company = GongguCompany.objects.get(no=gonggu_company_id, noGonggu=gonggu.no)
+                        # 해당 GongguCompany를 참조하는 모든 GongguArea 삭제
+                        GongguArea.objects.filter(noGongguCompany=target_company.no).delete()
+                        target_company.delete()
+                        return JsonResponse({'success': True, 'message': '참여업체가 삭제되었습니다.'})
+                    except GongguCompany.DoesNotExist:
+                        return JsonResponse({'error': '해당 참여업체를 찾을 수 없습니다.'}, status=404)
+                else:
+                    return JsonResponse({'error': '삭제할 참여업체가 지정되지 않았습니다.'}, status=400)
+            elif company_count == 1:
+                # 1개의 GongguCompany가 있으면: GongguCompany, 관련 GongguArea, Gonggu 모두 삭제
+                for company in gonggu_companies:
+                    # 해당 GongguCompany를 참조하는 모든 GongguArea 삭제
+                    GongguArea.objects.filter(noGongguCompany=company.no).delete()
+                gonggu_companies.delete()
+                gonggu.delete()
+                return JsonResponse({'success': True, 'message': '공동구매와 참여업체가 삭제되었습니다.'})
+            else:
+                # GongguCompany가 없으면: Gonggu만 삭제
+                gonggu.delete()
+                return JsonResponse({'success': True, 'message': '공동구매가 삭제되었습니다.'})
+
         except Exception as e:
             return JsonResponse({'error': f'삭제 중 오류가 발생했습니다: {str(e)}'}, status=500)
 
@@ -350,6 +430,62 @@ def area_manage(request, gonggu_company_id):
                     return JsonResponse({'success': True, 'message': '삭제되었습니다.'})
 
                 except GongguArea.DoesNotExist:
+                    # 직접 매치가 안되는 경우, 통합시 확장된 하위 구일 수 있음
+                    if area_type == 1:  # 제외지역인 경우만
+                        # 통합시 역매핑 (하위 구 -> 통합시 본체)
+                        integrated_city_reverse_mapping = {
+                            2021: 2020, 2022: 2020, 2023: 2020,  # 덕양구, 일산동구, 일산서구 -> 고양시
+                            2121: 2120, 2122: 2120, 2123: 2120,  # 분당구, 수정구, 중원구 -> 성남시
+                            2171: 2170, 2172: 2170,              # 동안구, 만안구 -> 안양시
+                            2151: 2150, 2152: 2150,              # 단원구, 상록구 -> 안산시
+                            2131: 2130, 2132: 2130, 2133: 2130, 2134: 2130,  # 권선구, 영통구, 장안구, 팔달구 -> 수원시
+                            2231: 2230, 2232: 2230, 2233: 2230,  # 기흥구, 수지구, 처인구 -> 용인시
+                            5131: 5130, 5132: 5130, 5133: 5130, 5134: 5130, 5135: 5130  # 창원시 하위 구들 -> 창원시
+                        }
+
+                        # 통합시 매핑
+                        integrated_city_mapping = {
+                            2020: [2021, 2022, 2023],  # 고양시 -> [덕양구, 일산동구, 일산서구]
+                            2120: [2121, 2122, 2123],  # 성남시 -> [분당구, 수정구, 중원구]
+                            2170: [2171, 2172],        # 안양시 -> [동안구, 만안구]
+                            2150: [2151, 2152],        # 안산시 -> [단원구, 상록구]
+                            2130: [2131, 2132, 2133, 2134],  # 수원시 -> [권선구, 영통구, 장안구, 팔달구]
+                            2230: [2231, 2232, 2233],  # 용인시 -> [기흥구, 수지구, 처인구]
+                            5130: [5131, 5132, 5133, 5134, 5135]  # 창원시 -> [마산합포구, 마산회원구, 성산구, 의창구, 진해구]
+                        }
+
+                        parent_city_id = integrated_city_reverse_mapping.get(area_id)
+                        if parent_city_id:
+                            try:
+                                # 통합시 본체 레코드 확인
+                                gonggu_area = GongguArea.objects.get(
+                                    noGongguCompany=gonggu_company_id,
+                                    nType=area_type,
+                                    noArea=parent_city_id
+                                )
+
+                                # 통합시의 하위 구 목록에서 현재 삭제하려는 구를 제외한 나머지 구들을 개별 등록
+                                remaining_sub_areas = [sub for sub in integrated_city_mapping[parent_city_id] if sub != area_id]
+
+                                # 기존 통합시 레코드 삭제
+                                gonggu_area.delete()
+
+                                # 나머지 하위 구들을 개별적으로 추가
+                                for sub_area_id in remaining_sub_areas:
+                                    GongguArea.objects.create(
+                                        noGongguCompany=gonggu_company_id,
+                                        nType=area_type,
+                                        noArea=sub_area_id
+                                    )
+
+                                # 실제할당지역 자동 계산
+                                calculate_assigned_areas_auto(gonggu_company_id)
+
+                                return JsonResponse({'success': True, 'message': '삭제되었습니다.'})
+
+                            except GongguArea.DoesNotExist:
+                                pass
+
                     return JsonResponse({'success': False, 'error': '존재하지 않는 데이터입니다.'})
 
             return JsonResponse({'success': False, 'error': '잘못된 요청입니다.'})
@@ -358,31 +494,82 @@ def area_manage(request, gonggu_company_id):
             return JsonResponse({'error': f'처리 중 오류가 발생했습니다: {str(e)}'}, status=500)
 
     # GET 요청 - 지역 관리 페이지 표시
-    # 모든 지역 가져오기 (추가지역용) - Area.no 올림차순 정렬
-    all_areas = Area.objects.all().order_by('no')
+    # 모든 지역 가져오기 (추가지역용) - 특정 순서로 정렬
+    # 1. 전국 (no=0)
+    nationwide = Area.objects.filter(no=0)
 
-    # 시군구지역 중 통합시 제외 (제외지역용) - Area.no 올림차순 정렬
-    # 통합시: 하위에 구가 있는 시 (고양시, 성남시, 안양시, 안산시, 수원시, 용인시, 창원시 등)
-    # Area 모델의 is_integrated_city() 메서드를 사용하여 동적으로 필터링
-    all_city_areas = Area.objects.filter(
-        sCity__isnull=False
-    ).exclude(
-        sCity__exact=''
-    )
+    # 2. 광역지역 - 요청된 순서대로
+    metropolitan_order = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 12000, 13000, 14000, 15000, 16000]
+    # 서울, 경기, 인천, 부산, 경남, 울산, 대구, 경북, 대전, 충남, 광주광역시, 전남, 전북, 강원, 제주
+    metropolitan_areas = []
+    for area_no in metropolitan_order:
+        try:
+            area = Area.objects.get(no=area_no)
+            metropolitan_areas.append(area)
+        except Area.DoesNotExist:
+            pass
 
-    # 통합시가 아닌 시군구지역만 필터링
-    filtered_areas = []
-    for area in all_city_areas:
-        if not area.is_integrated_city():
-            filtered_areas.append(area)
+    # 3. 나머지 시군구지역 (no 순서대로)
+    city_areas = Area.objects.exclude(no=0).exclude(no__in=metropolitan_order).order_by('no')
 
-    # Area.no 올림차순으로 정렬
-    filtered_areas = sorted(filtered_areas, key=lambda x: x.no, reverse=False)
+    # 전체 리스트 조합
+    all_areas = list(nationwide) + metropolitan_areas + list(city_areas)
 
-    # 현재 저장된 지역들
-    additional_areas = GongguArea.objects.filter(noGongguCompany=gonggu_company_id, nType=0)
-    excluded_areas = GongguArea.objects.filter(noGongguCompany=gonggu_company_id, nType=1)
-    assigned_areas = GongguArea.objects.filter(noGongguCompany=gonggu_company_id, nType=2)
+    # 제외지역용 필터링된 지역 (전국, 광역지역만 제외)
+    # 제외할 지역 목록: 전국과 광역지역만
+    exclude_ids = [0]  # 전국
+
+    # 광역지역 제외 (서울, 경기, 인천, 부산, 경남, 울산, 대구, 경북, 대전, 충남, 충북, 광주광역시, 전남, 전북, 강원, 제주)
+    metropolitan_ids = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000, 16000]
+    exclude_ids.extend(metropolitan_ids)
+
+    # 모든 시군구지역만 필터링, Area.no 올림차순 정렬
+    # (통합시 본체, 통합시 하위 구, 일반 시군구 모두 포함)
+    filtered_areas = Area.objects.exclude(no__in=exclude_ids).order_by('no')
+
+    # 현재 저장된 지역들 (추가된 순서대로 표시)
+    additional_areas = GongguArea.objects.filter(noGongguCompany=gonggu_company_id, nType=0).order_by('no')
+    excluded_areas_raw = GongguArea.objects.filter(noGongguCompany=gonggu_company_id, nType=1).order_by('no')
+    assigned_areas = GongguArea.objects.filter(noGongguCompany=gonggu_company_id, nType=2).order_by('noArea')  # 지역 ID 올림차순
+
+    # 제외지역에서 통합시를 하위 구들로 확장하여 표시
+    excluded_areas_expanded = []
+    integrated_city_mapping = {
+        2020: [2021, 2022, 2023],  # 고양시 -> [덕양구, 일산동구, 일산서구]
+        2120: [2121, 2122, 2123],  # 성남시 -> [분당구, 수정구, 중원구]
+        2170: [2171, 2172],        # 안양시 -> [동안구, 만안구]
+        2150: [2151, 2152],        # 안산시 -> [단원구, 상록구]
+        2130: [2131, 2132, 2133, 2134],  # 수원시 -> [권선구, 영통구, 장안구, 팔달구]
+        2230: [2231, 2232, 2233],  # 용인시 -> [기흥구, 수지구, 처인구]
+        5130: [5131, 5132, 5133, 5134, 5135]  # 창원시 -> [마산합포구, 마산회원구, 성산구, 의창구, 진해구]
+    }
+
+    for excluded_area in excluded_areas_raw:
+        area_id = excluded_area.noArea
+        if area_id in integrated_city_mapping:
+            # 통합시인 경우 하위 구들로 확장
+            for sub_area_id in integrated_city_mapping[area_id]:
+                try:
+                    sub_area = Area.objects.get(no=sub_area_id)
+                    # 가짜 GongguArea 객체 생성 (표시용)
+                    class FakeGongguArea:
+                        def __init__(self, area_id, area_name):
+                            self.noArea = area_id
+                            self.nType = 1
+                            self._area_name = area_name
+
+                        def get_area_name(self):
+                            return self._area_name
+
+                    fake_gonggu_area = FakeGongguArea(sub_area_id, sub_area.get_full_name())
+                    excluded_areas_expanded.append(fake_gonggu_area)
+                except Area.DoesNotExist:
+                    pass
+        else:
+            # 일반 지역인 경우 그대로 추가
+            excluded_areas_expanded.append(excluded_area)
+
+    excluded_areas = excluded_areas_expanded
 
     context = {
         'gonggu': gonggu,
@@ -398,7 +585,7 @@ def area_manage(request, gonggu_company_id):
     return render(request, 'gonggu/area_manage.html', context)
 
 def calculate_assigned_areas_auto(gonggu_company_id):
-    """실제할당지역 자동 계산 및 저장 (PossibleArea 방식과 동일)"""
+    """실제할당지역 자동 계산 및 저장 - 새로운 로직"""
     from .models import GongguArea
     from area.models import Area
 
@@ -406,118 +593,107 @@ def calculate_assigned_areas_auto(gonggu_company_id):
     GongguArea.objects.filter(noGongguCompany=gonggu_company_id, nType=2).delete()
 
     # 추가지역(0) 가져오기
-    additional_areas = GongguArea.objects.filter(
+    additional_area_ids = list(GongguArea.objects.filter(
         noGongguCompany=gonggu_company_id,
         nType=0
-    ).values_list('noArea', flat=True)
+    ).values_list('noArea', flat=True))
 
     # 제외지역(1) 가져오기
-    excluded_areas = GongguArea.objects.filter(
+    excluded_area_ids = list(GongguArea.objects.filter(
         noGongguCompany=gonggu_company_id,
         nType=1
-    ).values_list('noArea', flat=True)
+    ).values_list('noArea', flat=True))
 
-    # 계산된 실제할당지역 = 추가지역에서 제외지역에 의해 제외되지 않은 지역들
-    result_areas = []
+    # 1단계: 추가지역을 하위 시군구지역으로 확장
+    expanded_additional_areas = set()
 
-    for additional_area_id in additional_areas:
-        try:
-            additional_area = Area.objects.get(no=additional_area_id)
-            is_excluded = False
+    # 통합시 매핑
+    integrated_city_mapping = {
+        2020: [2021, 2022, 2023],  # 고양시 -> [덕양구, 일산동구, 일산서구]
+        2120: [2121, 2122, 2123],  # 성남시 -> [분당구, 수정구, 중원구]
+        2170: [2171, 2172],        # 안양시 -> [동안구, 만안구]
+        2150: [2151, 2152],        # 안산시 -> [단원구, 상록구]
+        2130: [2131, 2132, 2133, 2134],  # 수원시 -> [권선구, 영통구, 장안구, 팔달구]
+        2230: [2231, 2232, 2233],  # 용인시 -> [기흥구, 수지구, 처인구]
+        5130: [5131, 5132, 5133, 5134, 5135]  # 창원시 -> [마산합포구, 마산회원구, 성산구, 의창구, 진해구]
+    }
 
-            # 제외지역들과 비교
-            for exclude_area_id in excluded_areas:
-                try:
-                    exclude_area = Area.objects.get(no=exclude_area_id)
+    # 광역지역 매핑
+    metropolitan_areas = [1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 12000, 13000, 14000, 15000, 16000]
 
-                    # 추가지역이 제외지역에 포함되거나 같으면 제외
-                    if (additional_area.no == exclude_area.no or
-                        additional_area.is_contained_by(exclude_area)):
-                        is_excluded = True
-                        break
-                except Area.DoesNotExist:
-                    continue
-
-            if not is_excluded:
-                # 하위 지역들도 확인 (추가지역이 상위라면 제외되지 않은 하위지역들 포함)
-                if additional_area.is_nationwide() or additional_area.is_metro_area() or additional_area.is_integrated_city():
-                    descendants = additional_area.get_all_descendants()
-                    for desc_area in descendants:
-                        # 광역지역이나 통합시는 제외하고 오직 구나 하위지역이 없는 시군구만 포함
-                        if desc_area.is_metro_area():
-                            continue  # 광역지역 제외
-
-                        is_integrated_city = ('(' not in desc_area.sCity and ')' not in desc_area.sCity and
-                                            desc_area.sCity != '' and desc_area.no > 1000 and
-                                            desc_area.is_integrated_city())
-                        if is_integrated_city:
-                            continue  # 통합시 제외
-
-                        desc_excluded = False
-                        for exclude_area_id in excluded_areas:
-                            try:
-                                exclude_area = Area.objects.get(no=exclude_area_id)
-                                # 같은 지역이거나 실제로 상위 지역에 포함되는지 확인
-                                if (desc_area.no == exclude_area.no or
-                                    (exclude_area.is_metro_area() and desc_area.is_city_area() and
-                                     desc_area.no > exclude_area.no and desc_area.no <= exclude_area.no + 999)):
-                                    desc_excluded = True
-                                    break
-                            except Area.DoesNotExist:
-                                continue
-
-                        if not desc_excluded:
-                            result_areas.append(desc_area.no)
+    for area_id in additional_area_ids:
+        if area_id == 0:
+            # 전국: 전국과 광역지역을 제외한 모든 시군구지역
+            all_areas = Area.objects.exclude(no__in=[0] + metropolitan_areas).order_by('no')
+            for area in all_areas:
+                # 통합시 본체는 하위 구들로 확장
+                if area.no in integrated_city_mapping:
+                    expanded_additional_areas.update(integrated_city_mapping[area.no])
                 else:
-                    # 광역지역이나 통합시가 아닌 일반 지역인 경우에만 추가
-                    if not additional_area.is_metro_area():
-                        is_integrated_city = ('(' not in additional_area.sCity and ')' not in additional_area.sCity and
-                                            additional_area.sCity != '' and additional_area.no > 1000 and
-                                            additional_area.is_integrated_city())
-                        if not is_integrated_city:
-                            result_areas.append(additional_area.no)
+                    expanded_additional_areas.add(area.no)
+        elif area_id in metropolitan_areas:
+            # 광역지역: 해당 광역지역 하위의 모든 시군구지역
+            metro_areas = Area.objects.filter(no__gt=area_id, no__lt=area_id+1000).order_by('no')
+            for area in metro_areas:
+                # 통합시 본체는 하위 구들로 확장
+                if area.no in integrated_city_mapping:
+                    expanded_additional_areas.update(integrated_city_mapping[area.no])
+                else:
+                    expanded_additional_areas.add(area.no)
+        elif area_id in integrated_city_mapping:
+            # 통합시: 하위 구들로 확장
+            expanded_additional_areas.update(integrated_city_mapping[area_id])
+        else:
+            # 일반 시군구지역: 그대로 추가
+            expanded_additional_areas.add(area_id)
 
-        except Area.DoesNotExist:
-            continue
+    # 2단계: 제외지역을 하위 시군구지역으로 확장
+    expanded_excluded_areas = set()
 
-    # 중복 제거 및 최종 필터링 (하위지역이 없는 시군구지역과 구만 포함)
-    result_areas = list(set(result_areas))
-    filtered_areas = []
+    for area_id in excluded_area_ids:
+        if area_id == 0:
+            # 전국: 전국과 광역지역을 제외한 모든 시군구지역
+            all_areas = Area.objects.exclude(no__in=[0] + metropolitan_areas).order_by('no')
+            for area in all_areas:
+                # 통합시 본체는 하위 구들로 확장
+                if area.no in integrated_city_mapping:
+                    expanded_excluded_areas.update(integrated_city_mapping[area.no])
+                else:
+                    expanded_excluded_areas.add(area.no)
+        elif area_id in metropolitan_areas:
+            # 광역지역: 해당 광역지역 하위의 모든 시군구지역
+            metro_areas = Area.objects.filter(no__gt=area_id, no__lt=area_id+1000).order_by('no')
+            for area in metro_areas:
+                # 통합시 본체는 하위 구들로 확장
+                if area.no in integrated_city_mapping:
+                    expanded_excluded_areas.update(integrated_city_mapping[area.no])
+                else:
+                    expanded_excluded_areas.add(area.no)
+        elif area_id in integrated_city_mapping:
+            # 통합시: 하위 구들로 확장
+            expanded_excluded_areas.update(integrated_city_mapping[area_id])
+        else:
+            # 일반 시군구지역: 그대로 추가
+            expanded_excluded_areas.add(area_id)
 
-    for area_id in result_areas:
+    # 3단계: 실제할당지역 = 확장된 추가지역 - 확장된 제외지역
+    final_assigned_areas = expanded_additional_areas - expanded_excluded_areas
+
+    # 4단계: 실제할당지역(nType=2) 저장
+    for area_id in final_assigned_areas:
         try:
-            area = Area.objects.get(no=area_id)
-
-            # 광역지역은 완전 제외
-            if area.is_metro_area():
-                continue
-
-            # 통합시는 완전 제외 (하위 구들은 이미 위에서 추가됨)
-            is_integrated_city = ('(' not in area.sCity and ')' not in area.sCity and
-                                area.sCity != '' and area.no > 1000 and
-                                area.is_integrated_city())
-            if is_integrated_city:
-                continue
-
-            # 구나 하위지역이 없는 시군구만 포함
-            filtered_areas.append(area_id)
-
+            # 해당 지역이 실제로 존재하는지 확인
+            Area.objects.get(no=area_id)
+            GongguArea.objects.create(
+                noGongguCompany=gonggu_company_id,
+                nType=2,
+                noArea=area_id
+            )
         except Area.DoesNotExist:
-            # 존재하지 않는 지역은 제외
+            # 존재하지 않는 지역은 건너뛰기
             continue
 
-    # 최종 중복 제거
-    filtered_areas = list(set(filtered_areas))
-
-    # 실제할당지역(nType=2) 저장
-    for area_id in filtered_areas:
-        GongguArea.objects.create(
-            noGongguCompany=gonggu_company_id,
-            nType=2,
-            noArea=area_id
-        )
-
-    return len(filtered_areas)
+    return len(final_assigned_areas)
 
 
 def calculate_assigned_areas(gonggu_company_id, additional_area_ids, excluded_area_ids):
@@ -607,5 +783,37 @@ def add_gonggu_company(request, pk):
 
         except Exception as e:
             return JsonResponse({'error': f'업체 추가 중 오류가 발생했습니다: {str(e)}'}, status=500)
+
+    return JsonResponse({'error': '잘못된 요청입니다.'}, status=400)
+
+
+def remove_gonggu_company(request, gonggu_company_id):
+    """공동구매 참여업체 제거"""
+    current_staff = get_current_staff(request)
+
+    if not current_staff or current_staff.nOrderAuthority < 2:
+        return JsonResponse({'error': '참여업체 제거 권한이 없습니다.'}, status=403)
+
+    if request.method == 'POST':
+        try:
+            # 필요한 모델들 import
+            from .models import GongguCompany, GongguArea
+
+            # GongguCompany 조회
+            gonggu_company = get_object_or_404(GongguCompany, no=gonggu_company_id)
+
+            # 관련된 모든 GongguArea 삭제 (추가지역, 제외지역, 실제할당지역)
+            GongguArea.objects.filter(noGongguCompany=gonggu_company_id).delete()
+
+            # GongguCompany 삭제
+            gonggu_company.delete()
+
+            return JsonResponse({
+                'success': True,
+                'message': '참여업체가 제거되었습니다.'
+            })
+
+        except Exception as e:
+            return JsonResponse({'error': f'업체 제거 중 오류가 발생했습니다: {str(e)}'}, status=500)
 
     return JsonResponse({'error': '잘못된 요청입니다.'}, status=400)
