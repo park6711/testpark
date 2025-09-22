@@ -41,7 +41,7 @@ jobs:
       if: success()
       run: |
         # 빌드 성공 및 배포 시작 통합 알림
-        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
+        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
           -H "Content-Type: application/json" \
           -d '{
             "body": "🎉 GitHub Actions 빌드 성공!\n프로젝트: testpark\n커밋: ${{ github.sha }}\n브랜치: ${{ github.ref_name }}\n이미지: 7171man/testpark:latest\n\n🚀 실서버 배포를 시작합니다...",
@@ -75,7 +75,7 @@ jobs:
           ERROR_STEP="워크플로우 실행 중 오류 발생"
         fi
 
-        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
+        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
           -H "Content-Type: application/json" \
           -d "{
             \"body\": \"❌ GitHub Actions 빌드 실패!\\n프로젝트: testpark\\n커밋: ${{ github.sha }}\\n브랜치: ${{ github.ref_name }}\\n실패 단계: ${ERROR_STEP}\\n로그 확인: ${WORKFLOW_URL}\\n\\n⚠️ 실서버 배포가 중단되었습니다.\",

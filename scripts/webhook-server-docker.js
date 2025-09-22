@@ -10,6 +10,7 @@ const PORT = process.env.WEBHOOK_PORT || 8080;
 const SECRET = process.env.WEBHOOK_SECRET || 'testpark-webhook-secret';
 const DEPLOY_SCRIPT = process.env.DEPLOY_SCRIPT || '/app/deploy-docker.sh';
 
+app.use(express.json());
 app.use(express.raw({ type: 'application/json' }));
 
 // Docker Hub Webhook 핸들러

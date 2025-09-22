@@ -44,12 +44,12 @@ trap 'send_error_notification $LINENO "$BASH_COMMAND"' ERR
 
 echo "🚀 TestPark Docker Compose 배포를 시작합니다..."
 echo "📅 배포 시작 시간: $(date '+%Y-%m-%d %H:%M:%S')"
-echo "🔧 스크립트 버전: v1.2 (구문 오류 수정 버전)"
+echo "🔧 스크립트 버전: v1.3 (웹훅 데이터 파싱 수정 버전)"
 
 # 환경 변수 설정
 COMPOSE_PROJECT="testpark"
 IMAGE_NAME="7171man/testpark:latest"
-JANDI_WEBHOOK="https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265"
+JANDI_WEBHOOK="https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784"
 
 # 배포 시작 알림 (최적화)
 echo "📢 배포 시작 알림을 전송합니다..."
@@ -88,7 +88,7 @@ NAVER_REDIRECT_URI=https://carpenterhosting.cafe24.com/auth/naver/callback/
 CSRF_TRUSTED_ORIGINS=https://carpenterhosting.cafe24.com,http://210.114.22.100:8000,http://localhost:8000,http://127.0.0.1:8000
 
 # 잔디 웹훅 설정
-JANDI_WEBHOOK_URL=https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265
+JANDI_WEBHOOK_URL=https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784
 
 # Docker Hub 자격증명 (배포용)
 DOCKER_USERNAME=7171man
