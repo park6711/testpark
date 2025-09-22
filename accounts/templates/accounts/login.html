@@ -206,6 +206,29 @@
             👤 스텝 로그인
         </a>
 
+        <!-- 임시 테스트 로그인 버튼들 -->
+        <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid #eee;">
+            <p style="color: #888; font-size: 14px; margin-bottom: 20px;">📋 개발용 테스트 로그인</p>
+
+            <a href="{% url 'accounts:test_staff_login' %}" style="
+                background: #28a745; color: white; border: none; padding: 12px 30px;
+                border-radius: 50px; font-size: 14px; font-weight: bold; cursor: pointer;
+                text-decoration: none; display: inline-block; transition: all 0.3s ease;
+                width: 100%; margin-bottom: 10px; text-align: center;
+            ">
+                🔧 테스트 스텝 로그인
+            </a>
+
+            <a href="{% url 'accounts:test_company_login' %}" style="
+                background: #6c757d; color: white; border: none; padding: 12px 30px;
+                border-radius: 50px; font-size: 14px; font-weight: bold; cursor: pointer;
+                text-decoration: none; display: inline-block; transition: all 0.3s ease;
+                width: 100%; margin-bottom: 10px; text-align: center;
+            ">
+                🏢 테스트 업체 로그인
+            </a>
+        </div>
+
         <div class="info-text">
             <strong>등록된 네이버 계정</strong>으로만 로그인할 수 있습니다.<br>
             계정 등록은 관리자에게 문의해주세요.

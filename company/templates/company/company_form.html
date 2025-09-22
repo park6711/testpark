@@ -796,10 +796,20 @@
 
         <!-- 공사 가능한 분야 섹션 -->
         <div class="form-section">
-            <div class="form-section-title">공사 가능한 분야</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="form-section-title" style="margin-bottom: 0;">공사 가능한 분야</div>
+                <button type="button"
+                        id="possibleAreaButton"
+                        class="btn btn-secondary"
+                        style="padding: 8px 16px; font-size: 12px;"
+                        onclick="goToPossibleArea()">
+                    공사 가능한 지역
+                </button>
+            </div>
 
-            <div class="checkbox-grid">
-                <div class="checkbox-group">
+            <!-- 첫 번째 줄: 아파트 올수리, 주택 올수리, 상가 올수리 -->
+            <div style="display: flex; align-items: flex-start; margin-bottom: 15px;">
+                <div class="checkbox-group" style="min-width: 150px;">
                     <input type="checkbox"
                            id="bAptAll"
                            name="bAptAll"
@@ -807,15 +817,7 @@
                            {% if read_only %}disabled{% endif %}>
                     <label for="bAptAll">아파트 올수리</label>
                 </div>
-                <div class="checkbox-group">
-                    <input type="checkbox"
-                           id="bAptPart"
-                           name="bAptPart"
-                           {% if company.bAptPart %}checked{% endif %}
-                           {% if read_only %}disabled{% endif %}>
-                    <label for="bAptPart">아파트 부분수리</label>
-                </div>
-                <div class="checkbox-group">
+                <div class="checkbox-group" style="min-width: 150px;">
                     <input type="checkbox"
                            id="bHouseAll"
                            name="bHouseAll"
@@ -823,7 +825,27 @@
                            {% if read_only %}disabled{% endif %}>
                     <label for="bHouseAll">주택 올수리</label>
                 </div>
-                <div class="checkbox-group">
+                <div class="checkbox-group" style="min-width: 150px;">
+                    <input type="checkbox"
+                           id="bCommerceAll"
+                           name="bCommerceAll"
+                           {% if company.bCommerceAll %}checked{% endif %}
+                           {% if read_only %}disabled{% endif %}>
+                    <label for="bCommerceAll">상가 올수리</label>
+                </div>
+            </div>
+
+            <!-- 두 번째 줄: 아파트 부분수리, 주택 부분수리, 상가 부분수리 -->
+            <div style="display: flex; align-items: flex-start; margin-bottom: 15px;">
+                <div class="checkbox-group" style="min-width: 150px;">
+                    <input type="checkbox"
+                           id="bAptPart"
+                           name="bAptPart"
+                           {% if company.bAptPart %}checked{% endif %}
+                           {% if read_only %}disabled{% endif %}>
+                    <label for="bAptPart">아파트 부분수리</label>
+                </div>
+                <div class="checkbox-group" style="min-width: 150px;">
                     <input type="checkbox"
                            id="bHousePart"
                            name="bHousePart"
@@ -831,15 +853,7 @@
                            {% if read_only %}disabled{% endif %}>
                     <label for="bHousePart">주택 부분수리</label>
                 </div>
-                <div class="checkbox-group">
-                    <input type="checkbox"
-                           id="bCommerceAll"
-                           name="bCommerceAll"
-                           {% if company.bCommerceAll %}checked{% endif %}
-                           {% if read_only %}disabled{% endif %}>
-                    <label for="bCommerceAll">상업시설 올수리</label>
-                </div>
-                <div class="checkbox-group">
+                <div class="checkbox-group" style="min-width: 150px;">
                     <input type="checkbox"
                            id="bCommercePart"
                            name="bCommercePart"
@@ -847,7 +861,11 @@
                            {% if read_only %}disabled{% endif %}>
                     <label for="bCommercePart">상가 부분수리</label>
                 </div>
-                <div class="checkbox-group">
+            </div>
+
+            <!-- 세 번째 줄: 신축/증축, 부가서비스 -->
+            <div style="display: flex; align-items: flex-start; margin-bottom: 15px;">
+                <div class="checkbox-group" style="min-width: 150px;">
                     <input type="checkbox"
                            id="bBuild"
                            name="bBuild"
@@ -855,7 +873,7 @@
                            {% if read_only %}disabled{% endif %}>
                     <label for="bBuild">신축/증축</label>
                 </div>
-                <div class="checkbox-group">
+                <div class="checkbox-group" style="min-width: 150px;">
                     <input type="checkbox"
                            id="bExtra"
                            name="bExtra"
@@ -1189,6 +1207,59 @@
         displayFileList();
     }
 
+    // nType에 따른 bExtra 활성화/비활성화
+    function updateExtraCheckbox() {
+        const nTypeSelect = document.getElementById('nType');
+        const bExtraCheckbox = document.getElementById('bExtra');
+        const possibleAreaButton = document.getElementById('possibleAreaButton');
+
+        if (nTypeSelect && bExtraCheckbox) {
+            const nTypeValue = parseInt(nTypeSelect.value);
+
+            if ([0, 1, 2, 3].includes(nTypeValue)) {
+                // nType이 0(일반토탈), 1(고정비토탈), 2(부분단종), 3(순수단종)인 경우
+                bExtraCheckbox.disabled = true;
+                bExtraCheckbox.checked = false; // 체크 해제
+
+                // 버튼 텍스트를 "공사 가능한 지역"으로 설정
+                if (possibleAreaButton) {
+                    possibleAreaButton.textContent = '공사 가능한 지역';
+                }
+            } else if (nTypeValue === 4) {
+                // nType이 4(btoc제휴)인 경우
+                bExtraCheckbox.disabled = true;
+                bExtraCheckbox.checked = true; // 체크 상태로 설정
+
+                // 버튼 텍스트를 "서비스 가능한 지역"으로 변경
+                if (possibleAreaButton) {
+                    possibleAreaButton.textContent = '서비스 가능한 지역';
+                }
+            } else {
+                // nType이 5(btob제휴) 등 기타인 경우
+                bExtraCheckbox.disabled = false;
+                // 기존 체크 상태 유지
+
+                // 버튼 텍스트를 "공사 가능한 지역"으로 설정
+                if (possibleAreaButton) {
+                    possibleAreaButton.textContent = '공사 가능한 지역';
+                }
+            }
+        }
+    }
+
+    // PossibleArea 화면으로 이동 (업체명으로 검색)
+    function goToPossibleArea() {
+        const sName2 = document.getElementById('sName2').value.trim();
+        let url = '{% url "possiblearea:possi_manage" %}';
+
+        if (sName2) {
+            // sName2 값이 있으면 URL 파라미터로 전달
+            url += '?search=' + encodeURIComponent(sName2);
+        }
+
+        window.location.href = url;
+    }
+
     // 페이지 로드 시에도 실행 (수정 모드에서)
     document.addEventListener('DOMContentLoaded', function() {
         // 수정 모드에서 기존 값이 있으면 자동 생성하지 않음
@@ -1205,6 +1276,14 @@
         moneyInputs.forEach(function(input) {
             formatMoney(input);
         });
+
+        // nType 변경 이벤트 리스너 추가
+        const nTypeSelect = document.getElementById('nType');
+        if (nTypeSelect) {
+            nTypeSelect.addEventListener('change', updateExtraCheckbox);
+            // 페이지 로드 시 초기 설정
+            updateExtraCheckbox();
+        }
     });
 </script>
 {% endif %}

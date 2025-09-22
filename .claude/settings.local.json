@@ -23,7 +23,18 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(git pull:*)",
-      "Bash(/var/www/testpark/scripts/deploy-docker.sh:*)"
+      "Bash(/var/www/testpark/scripts/deploy-docker.sh:*)",
+      "Bash(/Users/sewookpark/Documents/testpark/impossibleterm/templates/impossibleterm/impo_list.html)",
+      "Bash(/Users/sewookpark/Documents/testpark/impossibleterm/templates/impossibleterm/impo_form.html)",
+      "Bash(for file in /Users/sewookpark/Documents/testpark/staff/templates/staff/base.html )",
+      "Bash(/Users/sewookpark/Documents/testpark/impossibleterm/delete_view.py )",
+      "Bash(/Users/sewookpark/Documents/testpark/impossibleterm/models.py )",
+      "Bash(/Users/sewookpark/Documents/testpark/impossibleterm/forms.py )",
+      "Bash(/Users/sewookpark/Documents/testpark/impossibleterm/release_view.py )",
+      "Bash(/Users/sewookpark/Documents/testpark/impossibleterm/views.py)",
+      "Bash(do)",
+      "Bash(done)",
+      "Bash(docker-compose exec:*)"
     ],
     "deny": [],
     "ask": []

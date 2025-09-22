@@ -73,6 +73,18 @@ INSTALLED_APPS = [
     'member',
     'company',
     'join',
+    'license',
+    'stop',
+    'impossibleterm',
+    'area',
+    'possiblearea',
+    'order',
+    'gonggu',
+    'contract',
+    'evaluation',
+    'template',
+    'point',
+    'companycondition',
 ]
 
 MIDDLEWARE = [

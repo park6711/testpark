@@ -150,7 +150,7 @@
     th:nth-child(3), td:nth-child(3) { /* 네이버 ID */
         width: 180px;
     }
-    th:nth-child(4), td:nth-child(4) { /* 연결 열린업체 */
+    th:nth-child(4), td:nth-child(4) { /* 소속 열린업체 */
         width: 100px;
     }
     th:nth-child(5), td:nth-child(5) { /* 성명 */
@@ -267,7 +267,7 @@
         </form>
     </div>
     <div>
-        <a href="{% url 'member:member_create' %}" class="btn btn-primary">+ 새 회원 추가</a>
+        <button onclick="createNew()" class="btn btn-primary">+ 새 회원 추가</button>
         <button id="editBtn" class="btn btn-warning" disabled onclick="editSelected()">수정</button>
         <button id="deleteBtn" class="btn btn-danger" disabled onclick="deleteSelected()">삭제</button>
     </div>
@@ -317,7 +317,7 @@
                     <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
                 {% endif %}
             </th>
-            <th>연결 열린업체</th>
+            <th>소속 열린업체</th>
             <th class="sortable-header" onclick="sortTable('sName')">
                 성명
                 {% if sort_by == 'sName' %}
@@ -347,11 +347,15 @@
         </tr>
         {% else %}
             {% for member in members %}
-            <tr onclick="selectRow(this, {{ member.no }})" ondblclick="doubleClickRow({{ member.no }})" data-id="{{ member.no }}">
+            <tr onclick="selectRow(this, {{ member.no }}, {{ member.noCompany }}, '{{ member.get_company_sname2 }}', '{{ member.get_company_sname1 }}')" ondblclick="doubleClickRow({{ member.no }})" data-id="{{ member.no }}" data-company-id="{{ member.noCompany }}" data-company-sname2="{{ member.get_company_sname2 }}" data-company-sname1="{{ member.get_company_sname1 }}">
                 <td>{{ member.no }}</td>
                 <td>{{ member.sNaverID0|default:"-" }}</td>
                 <td>{{ member.sNaverID }}</td>
-                <td>{{ member.noCompany }}</td>
+                <td onmousedown="startCompanyClick({{ member.noCompany }}, '{{ member.get_company_name }}', event)"
+                    style="cursor: pointer; color: #007bff; text-decoration: underline;"
+                    title="클릭: 업체 정보 보기 | 더블클릭: 이 업체명으로 검색">
+                    {{ member.get_company_name }}
+                </td>
                 <td>{{ member.sName }}</td>
                 <td>{{ member.sPhone|default:"-" }}</td>
                 <td>
@@ -369,7 +373,7 @@
                 </td>
                 <td>{{ member.nNick|default:"-" }}</td>
                 <td>
-                    {% if member.bMaster %}
+                    {% if member.is_company_master %}
                         <span class="badge badge-warning">마스터</span>
                     {% else %}
                         <span class="badge badge-light">일반</span>
@@ -401,8 +405,11 @@
 <script>
     let selectedRow = null;
     let selectedMemberId = null;
+    let selectedCompanyId = null;
+    let selectedCompanySname2 = null;
+    let selectedCompanySname1 = null;
 
-    function selectRow(row, memberId) {
+    function selectRow(row, memberId, companyId, companySname2, companySname1) {
         // 기존 선택 제거
         if (selectedRow) {
             selectedRow.classList.remove('selected');
@@ -411,6 +418,9 @@
         // 새로운 행 선택
         selectedRow = row;
         selectedMemberId = memberId;
+        selectedCompanyId = companyId;
+        selectedCompanySname2 = companySname2;
+        selectedCompanySname1 = companySname1;
         row.classList.add('selected');
 
         // 버튼 활성화 (권한에 따라)
@@ -470,6 +480,109 @@
 
         // 페이지 이동
         window.location.href = currentUrl.toString();
+    }
+
+    // 클릭 관련 변수
+    let companyClickTimer = null;
+    let companyClickData = null;
+    let lastClickTime = 0;
+
+    function startCompanyClick(companyId, companyName, event) {
+        // 이벤트 버블링 방지
+        if (event) {
+            event.stopPropagation();
+        }
+
+        const currentTime = new Date().getTime();
+        const timeDiff = currentTime - lastClickTime;
+
+        // 더블클릭 감지 (500ms 이내의 두 번째 클릭)
+        if (timeDiff < 500 && companyClickData && companyClickData.companyName === companyName) {
+            // 더블클릭 처리
+            if (companyClickTimer) {
+                clearTimeout(companyClickTimer);
+                companyClickTimer = null;
+            }
+            searchByCompanyName(companyName);
+            companyClickData = null;
+            lastClickTime = 0;
+            return;
+        }
+
+        // 첫 번째 클릭 처리
+        lastClickTime = currentTime;
+        companyClickData = { companyId, companyName };
+
+        // 기존 타이머가 있으면 취소
+        if (companyClickTimer) {
+            clearTimeout(companyClickTimer);
+        }
+
+        // 500ms 후 단일 클릭으로 처리
+        companyClickTimer = setTimeout(function() {
+            if (companyClickData && companyClickData.companyId === companyId) {
+                openCompanyDetail(companyId);
+                companyClickData = null;
+            }
+            companyClickTimer = null;
+        }, 500);
+    }
+
+    function searchByCompanyName(companyName) {
+        // 업체명으로 검색하기 위해 현재 페이지를 검색 쿼리와 함께 새로고침
+        const currentUrl = new URL(window.location);
+        currentUrl.searchParams.set('search', companyName);
+        currentUrl.searchParams.delete('sort'); // 정렬 초기화
+        currentUrl.searchParams.delete('order'); // 정렬 순서 초기화
+        window.location.href = currentUrl.toString();
+    }
+
+    function openCompanyDetail(companyId, event) {
+        // 이벤트 버블링 방지 (행 선택과 충돌 방지)
+        if (event) {
+            event.stopPropagation();
+        }
+
+        // Company ID가 유효한지 확인
+        if (!companyId || companyId === '' || companyId === 'None') {
+            alert('연결된 업체 정보가 없습니다.');
+            return;
+        }
+
+        // Company 권한 확인 - 읽기 권한 이상이면 보기, 쓰기 권한이면 수정
+        {% if member_permission >= 1 %}
+            {% if can_write %}
+                // 쓰기 권한이 있으면 수정 페이지로
+                window.location.href = `/company/update/${companyId}/`;
+            {% else %}
+                // 읽기 권한만 있으면 보기 페이지로
+                window.location.href = `/company/view/${companyId}/`;
+            {% endif %}
+        {% else %}
+            alert('업체 정보 조회 권한이 없습니다.');
+        {% endif %}
+    }
+
+    function createNew() {
+        // 선택된 행이 있으면 해당 정보를 파라미터로 전달
+        let url = '{% url "member:member_create" %}';
+        let params = [];
+
+        if (selectedCompanyId) {
+            params.push(`noCompany=${selectedCompanyId}`);
+        }
+        if (selectedCompanySname2) {
+            params.push(`sName2=${encodeURIComponent(selectedCompanySname2)}`);
+        }
+        if (selectedCompanySname1) {
+            params.push(`sCompanyName=${encodeURIComponent(selectedCompanySname1)}`);
+        }
+
+        if (params.length > 0) {
+            url += `?${params.join('&')}`;
+        }
+
+        window.location.href = url;
     }
 
 </script>

@@ -133,8 +133,9 @@
                    id="sNaverID0"
                    name="sNaverID0"
                    value="{{ member.sNaverID0|default:'' }}"
-                   {% if read_only %}readonly class="readonly-field"{% endif %}>
-            <small>네이버 로그인 시 자동으로 설정됩니다.</small>
+                   readonly
+                   class="readonly-field">
+            <small>네이버 로그인 시 자동으로 설정되며 수정할 수 없습니다.</small>
         </div>
 
         <div class="form-group">
@@ -164,7 +165,7 @@
                 <input type="text"
                        id="sCompanyName"
                        name="sCompanyName"
-                       value="{{ member.sCompanyName|default:'' }}"
+                       value="{{ member.sCompanyName|default:initial_scompany_name }}"
                        {% if not read_only %}required{% endif %}
                        {% if read_only %}readonly class="readonly-field"{% endif %}>
             </div>
@@ -176,17 +177,59 @@
                 <input type="text"
                        id="sName2"
                        name="sName2"
-                       value="{{ member.sName2|default:'' }}"
+                       value="{{ member.sName2|default:initial_sname2 }}"
                        {% if read_only %}readonly class="readonly-field"{% endif %}>
             </div>
 
             <div class="form-group">
-                <label for="noCompany">연결 열린업체</label>
-                <input type="number"
-                       id="noCompany"
-                       name="noCompany"
-                       value="{{ member.noCompany|default:'' }}"
-                       {% if read_only %}readonly class="readonly-field"{% endif %}>
+                <label for="noCompany">소속 열린업체</label>
+                {% if read_only %}
+                    <input type="text"
+                           id="noCompany"
+                           name="noCompany"
+                           value="{% if member %}{{ member.get_company_name }}{% endif %}"
+                           readonly class="readonly-field">
+                {% else %}
+                    <select id="noCompany" name="noCompany">
+                        <option value="">-- 업체 선택 --</option>
+                        {% for company in companies %}
+                            <option value="{{ company.no }}"
+                                    data-sname2="{{ company.sName2|default:'' }}"
+                                    data-sname1="{{ company.sName1|default:'' }}"
+                                    {% if member and member.noCompany == company.no %}selected{% elif initial_no_company == company.no|stringformat:"s" %}selected{% endif %}>
+                                {{ company.sName2|default:company.sName1 }} ({{ company.no }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <script>
+                        // 매칭되지 않는 noCompany 값 처리
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const select = document.getElementById('noCompany');
+                            {% if member and member.noCompany %}
+                                const memberCompanyId = {{ member.noCompany }};
+                                let found = false;
+
+                                // 기존 옵션에서 찾기
+                                for (let option of select.options) {
+                                    if (option.value == memberCompanyId) {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+
+                                // 매칭되지 않는 경우 빨간색 옵션 추가
+                                if (!found && memberCompanyId) {
+                                    const option = document.createElement('option');
+                                    option.value = memberCompanyId;
+                                    option.textContent = `업체번호: ${memberCompanyId} (매칭되지 않음)`;
+                                    option.selected = true;
+                                    option.style.color = '#dc3545';
+                                    select.appendChild(option);
+                                }
+                            {% endif %}
+                        });
+                    </script>
+                {% endif %}
             </div>
         </div>
 
@@ -233,16 +276,6 @@
             </div>
         </div>
 
-        <div class="form-group">
-            <div class="checkbox-group">
-                <input type="checkbox"
-                       id="bMaster"
-                       name="bMaster"
-                       {% if member.bMaster %}checked{% endif %}
-                       {% if read_only %}disabled{% endif %}>
-                <label for="bMaster">마스터 여부</label>
-            </div>
-        </div>
 
         <!-- 권한 설정 -->
         <div class="form-row">
@@ -301,30 +334,63 @@
 
 {% if not read_only %}
 <script>
-    // 마스터 권한 변경 시 다른 권한들을 자동으로 설정
-    document.getElementById('bMaster').addEventListener('change', function() {
-        const isChecked = this.checked;
-
-        // 마스터인 경우 모든 권한을 쓰기권한(2)로 설정
-        if (isChecked) {
-            document.getElementById('nCompanyAuthority').value = '2';
-            document.getElementById('nOrderAuthority').value = '2';
-            document.getElementById('nContractAuthority').value = '2';
-            document.getElementById('nEvaluationAuthority').value = '2';
-        }
-    });
-
-    // 페이지 로드 시 현재 마스터 권한에 따라 초기 설정
+    // 페이지 로드 시 초기 설정
     document.addEventListener('DOMContentLoaded', function() {
-        const isMaster = document.getElementById('bMaster').checked;
 
-        // 마스터인 경우 모든 권한을 쓰기권한(2)로 설정
-        if (isMaster) {
-            document.getElementById('nCompanyAuthority').value = '2';
-            document.getElementById('nOrderAuthority').value = '2';
-            document.getElementById('nContractAuthority').value = '2';
-            document.getElementById('nEvaluationAuthority').value = '2';
+        // 추가 화면에서만 noCompany 선택 시 자동 필드 업데이트
+        {% if action == 'create' %}
+        console.log('Member create form detected, setting up noCompany change listener');
+        const noCompanySelect = document.getElementById('noCompany');
+        console.log('noCompany select element:', noCompanySelect);
+
+        if (noCompanySelect) {
+            console.log('Adding change listener to noCompany select');
+            noCompanySelect.addEventListener('change', function() {
+                console.log('noCompany changed, selectedIndex:', this.selectedIndex);
+                const selectedOption = this.options[this.selectedIndex];
+                console.log('selectedOption:', selectedOption);
+
+                if (selectedOption && selectedOption.value) {
+                    const sName2 = selectedOption.getAttribute('data-sname2');
+                    const sName1 = selectedOption.getAttribute('data-sname1');
+
+                    console.log('Selected company:', selectedOption.value);
+                    console.log('data-sname2:', sName2);
+                    console.log('data-sname1:', sName1);
+
+                    // sName2 필드 업데이트
+                    const sName2Field = document.getElementById('sName2');
+                    console.log('sName2 field element:', sName2Field);
+                    if (sName2Field) {
+                        sName2Field.value = sName2 || '';
+                        console.log('Updated sName2 field to:', sName2Field.value);
+                    } else {
+                        console.log('sName2 field not found!');
+                    }
+
+                    // sCompanyName 필드 업데이트 (sName1 사용)
+                    const sCompanyNameField = document.getElementById('sCompanyName');
+                    console.log('sCompanyName field element:', sCompanyNameField);
+                    if (sCompanyNameField) {
+                        sCompanyNameField.value = sName1 || '';
+                        console.log('Updated sCompanyName field to:', sCompanyNameField.value);
+                    } else {
+                        console.log('sCompanyName field not found!');
+                    }
+                } else {
+                    console.log('No option selected or empty value');
+                    // 업체 선택 해제 시 필드 초기화
+                    const sName2Field = document.getElementById('sName2');
+                    const sCompanyNameField = document.getElementById('sCompanyName');
+                    if (sName2Field) sName2Field.value = '';
+                    if (sCompanyNameField) sCompanyNameField.value = '';
+                    console.log('Cleared fields');
+                }
+            });
+        } else {
+            console.log('noCompany select element not found!');
         }
+        {% endif %}
     });
 </script>
 {% endif %}

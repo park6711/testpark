@@ -14,11 +14,16 @@ urlpatterns = [
 
     # 업체(일반) 네이버 소셜 로그인
     path('company/naver/login/', views.CompanyNaverLoginView.as_view(), name='company_naver_login'),
-    path('company/naver/callback/', views.CompanyNaverCallbackView.as_view(), name='company_naver_callback'),
 
     # 스텝 네이버 소셜 로그인
     path('staff/naver/login/', views.StaffNaverLoginView.as_view(), name='staff_naver_login'),
-    path('staff/naver/callback/', views.StaffNaverCallbackView.as_view(), name='staff_naver_callback'),
+
+    # 기존 업체 콜백 URL을 통합 콜백으로 사용 (업체/스텝 구분은 state로 처리)
+    path('company/naver/callback/', views.NaverCallbackView.as_view(), name='company_naver_callback'),
+
+    # 임시 테스트 로그인 (개발용)
+    path('test/staff/login/', views.TestStaffLoginView.as_view(), name='test_staff_login'),
+    path('test/company/login/', views.TestCompanyLoginView.as_view(), name='test_company_login'),
 
     # 인증번호 관련
     path('verify/', views.VerifyCodeView.as_view(), name='verify_code'),

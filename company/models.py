@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 
 
 class Company(models.Model):
@@ -28,9 +30,11 @@ class Company(models.Model):
     sName2 = models.CharField(max_length=100, blank=True, verbose_name='열린업체명2')
     sName3 = models.CharField(max_length=100, blank=True, verbose_name='열린업체명3')
     sNaverID = models.CharField(max_length=50, blank=True, verbose_name='네이버 ID')
+    noMemberMaster = models.IntegerField(blank=True, null=True, verbose_name='마스터 멤버 번호')
     nType = models.IntegerField(choices=TYPE_CHOICES, default=0, verbose_name='업체 타입')
     nCondition = models.IntegerField(choices=CONDITION_CHOICES, default=0, verbose_name='업체 상태')
     sCompanyName = models.CharField(max_length=200, verbose_name='업체명')
+    noLicenseRepresent = models.IntegerField(blank=True, null=True, verbose_name='대표 라이센스 번호')
     sAddress = models.TextField(verbose_name='주소')
     nMember = models.IntegerField(default=0, verbose_name='직원수')
     sBuildLicense = models.CharField(max_length=100, blank=True, verbose_name='보유 건설면허')
@@ -82,6 +86,22 @@ class Company(models.Model):
     sGallery = models.TextField(blank=True, verbose_name='갤러리방')
     sEstimate = models.TextField(blank=True, verbose_name='견적방')
 
+    # 새로 추가된 필드들
+    sStop = models.TextField(blank=True, verbose_name='일시정지 사유')
+    dateStopStart = models.DateField(null=True, blank=True, verbose_name='일시정지 시작일')
+    dateStopEnd = models.DateField(null=True, blank=True, verbose_name='일시정지 종료일')
+    nLevel = models.IntegerField(default=0, verbose_name='현재레벨')
+    nGrade = models.IntegerField(default=0, verbose_name='현재등급')
+    nApplyGrade = models.IntegerField(default=0, verbose_name='적용등급')
+    sApplyGradeReason = models.CharField(max_length=200, blank=True, verbose_name='적용등급 사유')
+    nAssignAll2 = models.IntegerField(default=0, verbose_name='올수리 2일 할당수')
+    nAssignPart2 = models.IntegerField(default=0, verbose_name='부분수리 2일 할당수')
+    nAssignAllTerm = models.IntegerField(default=0, verbose_name='올수리 평가기간 할당수')
+    nAssignPartTerm = models.IntegerField(default=0, verbose_name='부분수리 평가기간 할당수')
+    nAssignMax = models.IntegerField(default=0, verbose_name='최대할당수')
+    fAssignPercent = models.FloatField(default=0.0, verbose_name='할당퍼센트')
+    fAssignLack = models.FloatField(default=0.0, verbose_name='고정비업체 할당부족개수')
+
     class Meta:
         db_table = 'company'
         verbose_name = '업체'
@@ -89,6 +109,121 @@ class Company(models.Model):
 
     def __str__(self):
         return f"{self.sCompanyName} ({self.sName1})"
+
+    def delete(self, *args, **kwargs):
+        """Company 삭제 시 관련된 Member와 License의 noCompany 값 조정"""
+        deleted_company_no = self.no
+
+        # Member 테이블 처리
+        from member.models import Member
+
+        # 1. 삭제될 Company를 참조하는 Member들을 -1로 설정 (연결 해제)
+        direct_members = Member.objects.filter(noCompany=deleted_company_no)
+        direct_members_count = direct_members.count()
+        if direct_members_count > 0:
+            direct_members.update(noCompany=-1)
+            print(f"DEBUG: Model delete - Updated {direct_members_count} Member records with noCompany = {deleted_company_no} to -1 (connection removed)")
+
+        # 2. 삭제될 Company.no보다 큰 번호를 참조하는 Member들의 noCompany를 1씩 감소
+        higher_members = Member.objects.filter(noCompany__gt=deleted_company_no)
+        higher_members_count = higher_members.count()
+        if higher_members_count > 0:
+            for member in higher_members:
+                member.noCompany -= 1
+                member.save()
+            print(f"DEBUG: Model delete - Decremented noCompany for {higher_members_count} Member records with noCompany > {deleted_company_no}")
+
+        # License 테이블 처리
+        from license.models import License
+
+        # 1. 삭제될 Company를 참조하는 License들을 -1로 설정 (연결 해제)
+        direct_licenses = License.objects.filter(noCompany=deleted_company_no)
+        direct_licenses_count = direct_licenses.count()
+        if direct_licenses_count > 0:
+            direct_licenses.update(noCompany=-1)
+            print(f"DEBUG: Model delete - Updated {direct_licenses_count} License records with noCompany = {deleted_company_no} to -1 (connection removed)")
+
+        # 2. 삭제될 Company.no보다 큰 번호를 참조하는 License들의 noCompany를 1씩 감소
+        higher_licenses = License.objects.filter(noCompany__gt=deleted_company_no)
+        higher_licenses_count = higher_licenses.count()
+        if higher_licenses_count > 0:
+            for license_obj in higher_licenses:
+                license_obj.noCompany -= 1
+                license_obj.save()
+            print(f"DEBUG: Model delete - Decremented noCompany for {higher_licenses_count} License records with noCompany > {deleted_company_no}")
+
+        # Stop 테이블 처리
+        try:
+            from stop.models import Stop
+
+            # 1. 삭제될 Company를 참조하는 Stop들을 -1로 설정 (연결 해제)
+            direct_stops = Stop.objects.filter(noCompany=deleted_company_no)
+            direct_stops_count = direct_stops.count()
+            if direct_stops_count > 0:
+                direct_stops.update(noCompany=-1)
+                print(f"DEBUG: Model delete - Updated {direct_stops_count} Stop records with noCompany = {deleted_company_no} to -1 (connection removed)")
+
+            # 2. 삭제될 Company.no보다 큰 번호를 참조하는 Stop들의 noCompany를 1씩 감소
+            higher_stops = Stop.objects.filter(noCompany__gt=deleted_company_no)
+            higher_stops_count = higher_stops.count()
+            if higher_stops_count > 0:
+                for stop in higher_stops:
+                    stop.noCompany -= 1
+                    stop.save()
+                print(f"DEBUG: Model delete - Decremented noCompany for {higher_stops_count} Stop records with noCompany > {deleted_company_no}")
+
+        except ImportError:
+            print("DEBUG: Stop model not available - skipping Stop table adjustment")
+
+        # ImpossibleTerm 테이블 처리
+        try:
+            from impossibleterm.models import ImpossibleTerm
+
+            # 1. 삭제될 Company를 참조하는 ImpossibleTerm들을 -1로 설정 (연결 해제)
+            direct_impos = ImpossibleTerm.objects.filter(noCompany=deleted_company_no)
+            direct_impos_count = direct_impos.count()
+            if direct_impos_count > 0:
+                direct_impos.update(noCompany=-1)
+                print(f"DEBUG: Model delete - Updated {direct_impos_count} ImpossibleTerm records with noCompany = {deleted_company_no} to -1 (connection removed)")
+
+            # 2. 삭제될 Company.no보다 큰 번호를 참조하는 ImpossibleTerm들의 noCompany를 1씩 감소
+            higher_impos = ImpossibleTerm.objects.filter(noCompany__gt=deleted_company_no)
+            higher_impos_count = higher_impos.count()
+            if higher_impos_count > 0:
+                for impo in higher_impos:
+                    impo.noCompany -= 1
+                    impo.save()
+                print(f"DEBUG: Model delete - Decremented noCompany for {higher_impos_count} ImpossibleTerm records with noCompany > {deleted_company_no}")
+
+        except ImportError:
+            print("DEBUG: ImpossibleTerm model not available - skipping ImpossibleTerm table adjustment")
+
+        # PossibleArea 테이블 처리
+        try:
+            from possiblearea.models import PossibleArea
+
+            # 1. 삭제될 Company를 참조하는 PossibleArea들을 완전 삭제
+            # (PossibleArea는 업체와 밀접하게 연관되어 있으므로 연결 해제보다는 삭제가 적합)
+            direct_possi = PossibleArea.objects.filter(noCompany=deleted_company_no)
+            direct_possi_count = direct_possi.count()
+            if direct_possi_count > 0:
+                direct_possi.delete()
+                print(f"DEBUG: Model delete - Deleted {direct_possi_count} PossibleArea records with noCompany = {deleted_company_no}")
+
+            # 2. 삭제될 Company.no보다 큰 번호를 참조하는 PossibleArea들의 noCompany를 1씩 감소
+            higher_possi = PossibleArea.objects.filter(noCompany__gt=deleted_company_no)
+            higher_possi_count = higher_possi.count()
+            if higher_possi_count > 0:
+                for possi in higher_possi:
+                    possi.noCompany -= 1
+                    possi.save()
+                print(f"DEBUG: Model delete - Decremented noCompany for {higher_possi_count} PossibleArea records with noCompany > {deleted_company_no}")
+
+        except ImportError:
+            print("DEBUG: PossibleArea model not available - skipping PossibleArea table adjustment")
+
+        # 실제 삭제 수행
+        super().delete(*args, **kwargs)
 
 
 class ContractFile(models.Model):

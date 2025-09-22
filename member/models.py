@@ -1,4 +1,5 @@
 from django.db import models
+from company.models import Company
 
 
 class Member(models.Model):
@@ -36,9 +37,6 @@ class Member(models.Model):
         help_text="카페 등급"
     )
     nNick = models.CharField(max_length=50, blank=True, default='', help_text="별명")
-
-    # 마스터 권한
-    bMaster = models.BooleanField(default=False, help_text="마스터 여부 (False: 일반, True: 마스터)")
 
     # 각종 권한 설정
     nCompanyAuthority = models.IntegerField(
@@ -83,3 +81,47 @@ class Member(models.Model):
             'contract': self.get_nContractAuthority_display(),
             'evaluation': self.get_nEvaluationAuthority_display(),
         }
+
+    def get_company_name(self):
+        """연결된 회사의 sName2 반환"""
+        try:
+            company = Company.objects.get(no=self.noCompany)
+            return company.sName2 if company.sName2 else company.sName1
+        except Company.DoesNotExist:
+            return f"업체번호: {self.noCompany}"
+
+    def get_company_sname2(self):
+        """연결된 회사의 sName2 반환"""
+        try:
+            company = Company.objects.get(no=self.noCompany)
+            return company.sName2 if company.sName2 else ""
+        except Company.DoesNotExist:
+            return ""
+
+    def delete(self, *args, **kwargs):
+        """Member 삭제 시 관련된 Company의 noMemberMaster 값 조정"""
+        deleted_member_no = self.no
+
+        # 이 Member를 noMemberMaster로 참조하는 Company들을 찾아서 -1로 설정
+        Company.objects.filter(noMemberMaster=deleted_member_no).update(noMemberMaster=-1)
+        print(f"DEBUG: Member {deleted_member_no} deleted - Updated Company noMemberMaster references to -1")
+
+        # Member.no가 삭제될 번호 이상인 Company들의 noMemberMaster 값을 1씩 감소
+        companies_to_update = Company.objects.filter(noMemberMaster__gt=deleted_member_no)
+        companies_count = companies_to_update.count()
+        if companies_count > 0:
+            for company in companies_to_update:
+                company.noMemberMaster -= 1
+                company.save()
+            print(f"DEBUG: Updated {companies_count} Company noMemberMaster references after Member {deleted_member_no} deletion")
+
+        # 실제 삭제 수행
+        super().delete(*args, **kwargs)
+
+    def get_company_sname1(self):
+        """연결된 회사의 sName1(상호) 반환"""
+        try:
+            company = Company.objects.get(no=self.noCompany)
+            return company.sName1 if company.sName1 else ""
+        except Company.DoesNotExist:
+            return ""

@@ -1,0 +1,653 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}공사 불가능 기간 - PMIS 2.0{% endblock %}
+
+{% block page_title %}공사 불가능 기간{% endblock %}
+{% block page_subtitle %}공사를 할 수 없는 기간입니다. 고객님의 공사예정일이 "공사 불가능 기간" 안에 들어오는 의뢰건은 카페 본부에서 할당해 주지 않습니다.(예 : 몇달 뒤에 예약된 여러건의 공사건, 장기해외여행){% endblock %}
+
+{% block content %}
+{% if not not_logged_in %}
+{{ block.super }}
+{% endif %}
+
+{% csrf_token %}
+
+{% if not not_logged_in %}
+<style>
+    .stats-section {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .stat-card.active-filter {
+        border: 2px solid #007bff;
+        background: #f8f9fa;
+    }
+
+    .stat-number {
+        font-size: 2em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        color: #666;
+        font-size: 14px;
+    }
+
+    .stat-card.ended .stat-number { color: #28a745; }
+    .stat-card.active .stat-number { color: #dc3545; }
+    .stat-card.pending .stat-number { color: #ffc107; }
+
+    .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .search-section {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .search-input {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        width: 300px;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin: 2px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #0056b3;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-warning {
+        background: #ffc107;
+        color: #212529;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .impos-table {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+    .table th,
+    .table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .table th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .table tbody tr:hover {
+        background: #f8f9fa;
+        cursor: pointer;
+    }
+
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .status-active {
+        background: #dc3545;
+        color: white;
+    }
+
+    .status-pending {
+        background: #ffc107;
+        color: #212529;
+    }
+
+    .status-ended {
+        background: #28a745;
+        color: white;
+    }
+
+    .visibility-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .visibility-public {
+        background: #28a745;
+        color: white;
+    }
+
+    .visibility-private {
+        background: #6c757d;
+        color: white;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+        gap: 5px;
+    }
+
+    .pagination a,
+    .pagination span {
+        padding: 8px 12px;
+        border: 1px solid #dee2e6;
+        color: #007bff;
+        text-decoration: none;
+        border-radius: 4px;
+    }
+
+    .pagination .current {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+
+    .pagination a:hover {
+        background: #e9ecef;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+
+    .empty-state i {
+        font-size: 4em;
+        margin-bottom: 20px;
+        color: #dee2e6;
+    }
+
+    /* 커스텀 모달 스타일 */
+    .custom-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 8px;
+        padding: 30px;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-title {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #333;
+    }
+
+    .modal-message {
+        margin-bottom: 25px;
+        line-height: 1.5;
+        color: #666;
+    }
+
+    .modal-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .modal-btn-confirm {
+        background: #dc3545;
+        color: white;
+    }
+
+    .modal-btn-confirm:hover {
+        background: #c82333;
+    }
+
+    .modal-btn-cancel {
+        background: #6c757d;
+        color: white;
+    }
+
+    .modal-btn-cancel:hover {
+        background: #545b62;
+    }
+
+    @media (max-width: 768px) {
+        .stats-section {
+            grid-template-columns: 1fr;
+        }
+
+        .controls {
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .search-input {
+            width: 100%;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .modal-buttons {
+            flex-direction: column;
+        }
+
+        .modal-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+
+<!-- 컨트롤 섹션 -->
+<div class="controls">
+    <div class="search-section">
+        <input type="text" class="search-input" placeholder="업체명, 설정자로 검색..." id="searchInput">
+        <button class="btn btn-primary" onclick="searchImpos()">🔍 검색</button>
+    </div>
+    <div class="action-section">
+        <a href="{% url 'impossibleterm:impo_add' %}" class="btn btn-success">➕ 공사 불가능 기간 추가</a>
+        <button class="btn btn-secondary" onclick="location.reload()">🔄 새로고침</button>
+    </div>
+</div>
+
+<!-- 공사 불가능 기간 목록 테이블 -->
+<div class="impos-table">
+    {% if impos %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>번호</th>
+                    <th>열린업체</th>
+                    <th>공사 불가능 기간</th>
+                    <th>설정자</th>
+                    <th>등록일</th>
+                    <th>관리</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for impo in impos %}
+                <tr data-impo-id="{{ impo.no }}" ondblclick="editImpo({{ impo.no }})">
+                    <td><strong>#{{ impo.no }}</strong></td>
+                    <td>
+                        <strong onclick="editCompany({{ impo.noCompany }}); event.stopPropagation();"
+                                style="cursor: pointer; color: #007bff;"
+                                title="클릭하여 업체 정보 수정">{{ impo.get_company_name }}</strong>
+                    </td>
+                    <td>
+                        <div>{{ impo.dateStart|date:"Y-m-d" }}</div>
+                        <div>{{ impo.dateEnd|date:"Y-m-d" }}</div>
+                        <small class="text-muted">
+                            (총 {{ impo.get_duration_days }}일)
+                        </small>
+                    </td>
+                    <td>{{ impo.sWorker }}</td>
+                    <td>{{ impo.time|date:"m/d H:i" }}</td>
+                    <td>
+                        <a href="{% url 'impossibleterm:impo_edit' impo.no %}" class="btn btn-warning" style="padding: 4px 8px; font-size: 12px;">수정</a>
+                        <button onclick="deleteImpo({{ impo.no }}, '{{ impo.get_company_name|escapejs }}')" class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;">삭제</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i>📋</i>
+        <h4>등록된 공사 불가능 기간가 없습니다</h4>
+        <p>새로운 공사 불가능 기간를 추가해보세요.</p>
+        <a href="{% url 'impossibleterm:impo_add' %}" class="btn btn-success">➕ 공사 불가능 기간 추가</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 페이지네이션 -->
+{% if is_paginated %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page=1">&laquo; 첫페이지</a>
+        <a href="?page={{ page_obj.previous_page_number }}">이전</a>
+    {% endif %}
+
+    {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+            <span class="current">{{ num }}</span>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <a href="?page={{ num }}">{{ num }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}">다음</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}">마지막 &raquo;</a>
+    {% endif %}
+</div>
+<!-- 커스텀 확인 모달 -->
+<div id="confirmModal" class="custom-modal">
+    <div class="modal-content">
+        <div class="modal-title" id="modalTitle">확인</div>
+        <div class="modal-message" id="modalMessage"></div>
+        <div class="modal-buttons">
+            <button class="modal-btn modal-btn-confirm" id="modalConfirm">확인</button>
+            <button class="modal-btn modal-btn-cancel" id="modalCancel">취소</button>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+<script>
+let currentFilter = null;
+
+// 커스텀 확인 모달 함수
+function showConfirm(title, message, onConfirm) {
+    const modal = document.getElementById('confirmModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMessage = document.getElementById('modalMessage');
+    const confirmBtn = document.getElementById('modalConfirm');
+    const cancelBtn = document.getElementById('modalCancel');
+
+    modalTitle.textContent = title;
+    modalMessage.innerHTML = message;
+    modal.style.display = 'flex';
+
+    // 기존 이벤트 리스너 제거
+    confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+    cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+
+    // 새로운 이벤트 리스너 추가
+    const newConfirmBtn = document.getElementById('modalConfirm');
+    const newCancelBtn = document.getElementById('modalCancel');
+
+    newConfirmBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+        onConfirm();
+    });
+
+    newCancelBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+
+    // 모달 외부 클릭 시 닫기
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+}
+
+function searchImpos() {
+    const searchInput = document.getElementById('searchInput');
+    const searchTerm = searchInput.value.toLowerCase();
+    const rows = document.querySelectorAll('.table tbody tr');
+    const pagination = document.querySelector('.pagination');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // 검색 결과가 10개 미만이면 페이지네이션 숨기기
+    if (pagination) {
+        if (searchTerm.length > 0 && visibleCount < 10) {
+            pagination.style.display = 'none';
+        } else if (searchTerm.length === 0) {
+            pagination.style.display = '';
+        } else {
+            pagination.style.display = '';
+        }
+    }
+}
+
+function filterByStatus(status) {
+    const rows = document.querySelectorAll('.table tbody tr');
+    const statCards = document.querySelectorAll('.stat-card');
+    const pagination = document.querySelector('.pagination');
+    const today = new Date('{{ today|date:"Y-m-d" }}');
+
+    // 통계 카드 활성화 상태 업데이트
+    statCards.forEach(card => {
+        if (card.dataset.filter === status) {
+            card.classList.add('active-filter');
+        } else {
+            card.classList.remove('active-filter');
+        }
+    });
+
+    // 필터가 같으면 필터 해제
+    if (currentFilter === status) {
+        currentFilter = null;
+        statCards.forEach(card => card.classList.remove('active-filter'));
+        rows.forEach(row => row.style.display = '');
+        // 페이지네이션 복원
+        if (pagination) {
+            pagination.style.display = '';
+        }
+        return;
+    }
+
+    currentFilter = status;
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        const dateStartText = row.querySelector('td:nth-child(3) div:first-child').textContent;
+        const dateEndText = row.querySelector('td:nth-child(3) div:nth-child(2)').textContent;
+
+        const dateStart = new Date(dateStartText);
+        const dateEnd = new Date(dateEndText);
+
+        let showRow = false;
+
+        if (status === 'ended') {
+            // 해제: 종료일이 오늘보다 이전
+            showRow = dateEnd < today;
+        } else if (status === 'active') {
+            // 공사 불가능 기간: 시작일 <= 오늘 <= 종료일
+            showRow = dateStart <= today && today <= dateEnd;
+        } else if (status === 'pending') {
+            // 예정: 시작일이 오늘보다 이후
+            showRow = dateStart > today;
+        }
+
+        if (showRow) {
+            visibleCount++;
+        }
+
+        row.style.display = showRow ? '' : 'none';
+    });
+
+    // 필터링된 결과가 10개 미만이면 페이지네이션 숨기기
+    if (pagination) {
+        if (visibleCount < 10) {
+            pagination.style.display = 'none';
+        } else {
+            pagination.style.display = '';
+        }
+    }
+}
+
+// 통계 카드 클릭 이벤트
+document.addEventListener('DOMContentLoaded', function() {
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach(card => {
+        card.addEventListener('click', function() {
+            filterByStatus(this.dataset.filter);
+        });
+    });
+});
+
+// 검색 입력 시 실시간 검색
+document.getElementById('searchInput').addEventListener('input', searchImpos);
+
+// 공사 불가능 기간 해제 기능
+function releaseImpo(impoId) {
+    showConfirm(
+        '공사 불가능 기간 해제',
+        '공사 불가능 기간를 해제하시겠습니까?<br><br><strong>시작일과 종료일이 모두 어제로 변경됩니다.</strong>',
+        function() {
+            fetch(`/impossibleterm/release/${impoId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('공사 불가능 기간가 해제되었습니다.');
+                    location.reload();
+                } else {
+                    alert('해제 중 오류가 발생했습니다: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('해제 중 오류가 발생했습니다.');
+            });
+        }
+    );
+}
+
+// 더블클릭으로 수정 화면으로 이동
+function editImpo(impoId) {
+    window.location.href = `/impossibleterm/edit/${impoId}/`;
+}
+
+// 업체명 더블클릭으로 업체 수정 화면으로 이동
+function editCompany(companyId) {
+    window.location.href = `/company/update/${companyId}/`;
+}
+
+// 공사 불가능 기간 삭제 기능
+function deleteImpo(impoId, companyName) {
+    showConfirm(
+        '공사 불가능 기간 삭제',
+        `정말로 삭제하시겠습니까?<br><br><strong>업체:</strong> ${companyName}<br><strong>공사 불가능 기간 ID:</strong> #${impoId}<br><br><span style="color: #dc3545;">⚠️ 삭제된 데이터는 복구할 수 없습니다.</span>`,
+        function() {
+            fetch(`/impossibleterm/delete/${impoId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('삭제 중 오류가 발생했습니다: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('삭제 중 오류가 발생했습니다.');
+            });
+        }
+    );
+}
+</script>
+
+{% endif %}
+{% endblock %}

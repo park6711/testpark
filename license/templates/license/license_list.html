@@ -1,0 +1,548 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}사업자 정보 관리 - PMIS 2.0{% endblock %}
+
+{% block page_title %}사업자 정보 관리{% endblock %}
+{% block page_subtitle %}사업자 정보 조회 및 관리{% endblock %}
+
+{% block content %}
+{% if not not_logged_in %}
+{{ block.super }}
+{% endif %}
+
+{% if not not_logged_in %}
+<style>
+    .controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .search-section {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .search-input {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        width: 300px;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        margin: 2px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-warning {
+        background-color: #ffc107;
+        color: black;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .badge-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .badge-warning {
+        background-color: #ffc107;
+        color: black;
+    }
+
+    .badge-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .badge-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .badge-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .badge-light {
+        background-color: #f8f9fa;
+        color: #6c757d;
+        border: 1px solid #dee2e6;
+    }
+
+    .badge-dark {
+        background-color: #343a40;
+        color: white;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+    }
+
+    /* 컬럼별 폭 설정 */
+    th:nth-child(1), td:nth-child(1) { /* No */
+        width: 60px;
+    }
+    th:nth-child(2), td:nth-child(2) { /* 소속 열린업체 */
+        width: 150px;
+    }
+    th:nth-child(3), td:nth-child(3) { /* 상호 */
+        width: 180px;
+    }
+    th:nth-child(4), td:nth-child(4) { /* 대표자 */
+        width: 100px;
+    }
+    th:nth-child(5), td:nth-child(5) { /* 사업자등록번호 */
+        width: 120px;
+        font-family: monospace;
+    }
+    th:nth-child(6), td:nth-child(6) { /* 전자세금계산서 이메일 */
+        width: 250px;
+    }
+    th:nth-child(7), td:nth-child(7) { /* 대표 사업자 여부 */
+        width: 120px;
+        text-align: center;
+    }
+
+    th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+
+    tr.selected {
+        background-color: #e3f2fd !important;
+    }
+
+    .empty-message {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+        font-style: italic;
+    }
+
+    .permission-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .search-results-info {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .sortable-header {
+        cursor: pointer;
+        position: relative;
+        user-select: none;
+    }
+
+    .sortable-header:hover {
+        background-color: #e9ecef;
+        color: #007bff;
+    }
+
+    .sort-arrow {
+        font-size: 12px;
+        margin-left: 5px;
+        color: #007bff;
+    }
+
+    .sort-arrow.asc::after {
+        content: "▲";
+    }
+
+    .sort-arrow.desc::after {
+        content: "▼";
+    }
+</style>
+
+<div class="controls">
+    {% if not_logged_in %}
+    <div class="permission-info">
+        <span class="badge badge-info">
+            🔐 로그인이 필요합니다
+        </span>
+        <div style="margin-top: 15px;">
+            <a href="{% url 'accounts:login' %}" class="btn btn-primary">로그인 하기</a>
+        </div>
+    </div>
+    {% elif no_permission %}
+    <div class="permission-info">
+        <span class="badge badge-secondary">
+            🚫 사업자 정보 관리 접근 권한이 없습니다 (nCompanyAuthority: {{ license_permission }})
+        </span>
+    </div>
+    {% elif can_write %}
+    <div class="search-section">
+        <form method="get" style="display: flex; gap: 10px;">
+            <input type="text"
+                   name="search"
+                   value="{{ search_query }}"
+                   placeholder="소속 열린업체, 상호, 대표자, 사업자등록번호, 이메일로 검색..."
+                   class="search-input">
+            <button type="submit" class="btn btn-primary">검색</button>
+            {% if search_query %}
+                <a href="{% url 'license:license_list' %}" class="btn btn-secondary">초기화</a>
+            {% endif %}
+        </form>
+    </div>
+    <div>
+        <button onclick="createNew()" class="btn btn-primary">+ 새 사업자 추가</button>
+        <button id="editBtn" class="btn btn-warning" disabled onclick="editSelected()">수정</button>
+        <button id="deleteBtn" class="btn btn-danger" disabled onclick="deleteSelected()">삭제</button>
+    </div>
+    {% elif license_permission == 1 %}
+    <div class="search-section">
+        <form method="get" style="display: flex; gap: 10px;">
+            <input type="text"
+                   name="search"
+                   value="{{ search_query }}"
+                   placeholder="소속 열린업체, 상호, 대표자, 사업자등록번호, 이메일로 검색..."
+                   class="search-input">
+            <button type="submit" class="btn btn-primary">검색</button>
+            {% if search_query %}
+                <a href="{% url 'license:license_list' %}" class="btn btn-secondary">초기화</a>
+            {% endif %}
+        </form>
+        <span class="badge badge-info">
+            📖 읽기 전용 모드 (nCompanyAuthority: {{ license_permission }})
+        </span>
+    </div>
+    <div>
+        <button id="viewBtn" class="btn btn-success" disabled onclick="viewSelected()">보기</button>
+    </div>
+    {% endif %}
+</div>
+
+{% if search_query %}
+<div class="search-results-info">
+    검색어 "{{ search_query }}"에 대한 {{ licenses|length }}개의 결과
+</div>
+{% endif %}
+
+<!-- 사업자 정보 목록 테이블 -->
+<table>
+    <thead>
+        <tr>
+            <th class="sortable-header" onclick="sortTable('no')">
+                No
+                {% if sort_by == 'no' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
+            <th class="sortable-header" onclick="sortTable('noCompany')">
+                소속 열린업체
+                {% if sort_by == 'noCompany' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
+            <th class="sortable-header" onclick="sortTable('sCompanyName')">
+                상호
+                {% if sort_by == 'sCompanyName' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
+            <th class="sortable-header" onclick="sortTable('sCeoName')">
+                대표자
+                {% if sort_by == 'sCeoName' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
+            <th class="sortable-header" onclick="sortTable('sLicenseNo')">
+                사업자등록번호
+                {% if sort_by == 'sLicenseNo' %}
+                    <span class="sort-arrow {% if sort_order == 'asc' %}asc{% else %}desc{% endif %}"></span>
+                {% endif %}
+            </th>
+            <th>전자세금계산서 이메일</th>
+            <th>대표 사업자 여부</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% if not_logged_in %}
+        <tr>
+            <td colspan="7" class="empty-message">로그인 후 사업자 정보를 확인할 수 있습니다.</td>
+        </tr>
+        {% elif no_permission %}
+        <tr>
+            <td colspan="7" class="empty-message">사업자 정보 관리 권한이 없어 목록을 표시할 수 없습니다.</td>
+        </tr>
+        {% else %}
+            {% for license in licenses %}
+            <tr onclick="selectRow(this, {{ license.no }}, {{ license.noCompany }})" ondblclick="doubleClickRow({{ license.no }})" data-id="{{ license.no }}" data-company-id="{{ license.noCompany }}">
+                <td>{{ license.no }}</td>
+                <td onmousedown="startCompanyClick({{ license.noCompany }}, '{{ license.get_company_sname2 }}', event)"
+                    style="cursor: pointer; color: #007bff; text-decoration: underline;"
+                    title="클릭: 업체 정보 보기 | 더블클릭: 이 업체명으로 검색">
+                    {{ license.get_company_sname2 }}
+                </td>
+                <td>{{ license.sCompanyName }}</td>
+                <td>{{ license.sCeoName }}</td>
+                <td>{{ license.sLicenseNo|default:"-" }}</td>
+                <td>{{ license.sAccountMail|default:"-" }}</td>
+                <td>
+                    {% if license.is_company_represent %}
+                        <span class="badge badge-success">대표</span>
+                    {% else %}
+                        <span class="badge badge-light">일반</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="empty-message">
+                    {% if search_query %}
+                        검색 조건에 맞는 사업자 정보가 없습니다.
+                    {% else %}
+                        등록된 사업자 정보가 없습니다.
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        {% endif %}
+    </tbody>
+</table>
+
+<script>
+    let selectedRow = null;
+    let selectedLicenseId = null;
+    let selectedCompanyId = null;
+
+    function selectRow(row, licenseId, companyId) {
+        // 기존 선택 제거
+        if (selectedRow) {
+            selectedRow.classList.remove('selected');
+        }
+
+        // 새로운 행 선택
+        selectedRow = row;
+        selectedLicenseId = licenseId;
+        selectedCompanyId = companyId;
+        row.classList.add('selected');
+
+        // 버튼 활성화 (권한에 따라)
+        {% if can_write %}
+        document.getElementById('editBtn').disabled = false;
+        document.getElementById('deleteBtn').disabled = false;
+        {% elif license_permission == 1 %}
+        document.getElementById('viewBtn').disabled = false;
+        {% endif %}
+    }
+
+    function editSelected() {
+        if (selectedLicenseId) {
+            window.location.href = '{% url "license:license_update" 0 %}'.replace('0', selectedLicenseId);
+        }
+    }
+
+    function deleteSelected() {
+        if (selectedLicenseId) {
+            if (confirm('정말로 이 사업자 정보를 삭제하시겠습니까?')) {
+                window.location.href = '{% url "license:license_delete" 0 %}'.replace('0', selectedLicenseId);
+            }
+        }
+    }
+
+    function viewSelected() {
+        if (selectedLicenseId) {
+            window.location.href = '{% url "license:license_view" 0 %}'.replace('0', selectedLicenseId);
+        }
+    }
+
+    function doubleClickRow(licenseId) {
+        // 더블클릭 시 바로 수정/보기 모드로 이동
+        {% if can_write %}
+        // 수정 권한이 있으면 수정 모드로
+        window.location.href = '{% url "license:license_update" 0 %}'.replace('0', licenseId);
+        {% elif license_permission == 1 %}
+        // 읽기 권한만 있으면 보기 모드로
+        window.location.href = '{% url "license:license_view" 0 %}'.replace('0', licenseId);
+        {% endif %}
+    }
+
+    function sortTable(field) {
+        const currentUrl = new URL(window.location);
+        const currentSort = currentUrl.searchParams.get('sort');
+        const currentOrder = currentUrl.searchParams.get('order');
+
+        // 현재 정렬 필드와 같으면 정렬 순서 토글, 다르면 오름차순으로 시작
+        let newOrder = 'asc';
+        if (currentSort === field && currentOrder === 'asc') {
+            newOrder = 'desc';
+        }
+
+        // URL 파라미터 설정
+        currentUrl.searchParams.set('sort', field);
+        currentUrl.searchParams.set('order', newOrder);
+
+        // 페이지 이동
+        window.location.href = currentUrl.toString();
+    }
+
+    // 클릭 관련 변수
+    let companyClickTimer = null;
+    let companyClickData = null;
+    let lastClickTime = 0;
+
+    function startCompanyClick(companyId, companyName, event) {
+        // 이벤트 버블링 방지
+        if (event) {
+            event.stopPropagation();
+        }
+
+        const currentTime = new Date().getTime();
+        const timeDiff = currentTime - lastClickTime;
+
+        // 더블클릭 감지 (500ms 이내의 두 번째 클릭)
+        if (timeDiff < 500 && companyClickData && companyClickData.companyName === companyName) {
+            // 더블클릭 처리
+            if (companyClickTimer) {
+                clearTimeout(companyClickTimer);
+                companyClickTimer = null;
+            }
+            searchByCompanyName(companyName);
+            companyClickData = null;
+            lastClickTime = 0;
+            return;
+        }
+
+        // 첫 번째 클릭 처리
+        lastClickTime = currentTime;
+        companyClickData = { companyId, companyName };
+
+        // 기존 타이머가 있으면 취소
+        if (companyClickTimer) {
+            clearTimeout(companyClickTimer);
+        }
+
+        // 500ms 후 단일 클릭으로 처리
+        companyClickTimer = setTimeout(function() {
+            if (companyClickData && companyClickData.companyId === companyId) {
+                openCompanyDetail(companyId);
+                companyClickData = null;
+            }
+            companyClickTimer = null;
+        }, 500);
+    }
+
+    function openCompanyDetail(companyId, event) {
+        // 이벤트 버블링 방지 (행 선택과 충돌 방지)
+        if (event) {
+            event.stopPropagation();
+        }
+
+        // Company ID가 유효한지 확인
+        if (!companyId || companyId === '' || companyId === 'None') {
+            alert('연결된 업체 정보가 없습니다.');
+            return;
+        }
+
+        // Company 권한 확인 - 읽기 권한 이상이면 보기, 쓰기 권한이면 수정
+        {% if license_permission >= 1 %}
+            {% if can_write %}
+                // 쓰기 권한이 있으면 수정 페이지로
+                window.location.href = `/company/update/${companyId}/`;
+            {% else %}
+                // 읽기 권한만 있으면 보기 페이지로
+                window.location.href = `/company/view/${companyId}/`;
+            {% endif %}
+        {% else %}
+            alert('업체 정보 조회 권한이 없습니다.');
+        {% endif %}
+    }
+
+    function createNew() {
+        // 선택된 행이 있으면 해당 noCompany를 파라미터로 전달
+        let url = '{% url "license:license_create" %}';
+        if (selectedCompanyId) {
+            url += `?noCompany=${selectedCompanyId}`;
+        }
+        window.location.href = url;
+    }
+
+    function searchByCompanyName(companyName) {
+        // 업체명으로 검색하기 위해 현재 페이지를 검색 쿼리와 함께 새로고침
+        const currentUrl = new URL(window.location);
+        currentUrl.searchParams.set('search', companyName);
+        currentUrl.searchParams.delete('sort'); // 정렬 초기화
+        currentUrl.searchParams.delete('order'); // 정렬 순서 초기화
+        window.location.href = currentUrl.toString();
+    }
+</script>
+
+{% endif %}
+
+{% endblock %}

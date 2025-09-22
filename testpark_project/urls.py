@@ -25,10 +25,22 @@ urlpatterns = [
     path('staff/', include('staff.urls')),
     path('member/', include('member.urls')),
     path('company/', include('company.urls')),
+    path('license/', include('license.urls')),
     path('join/', include('join.urls')),
+    path('stop/', include('stop.urls')),
+    path('impossibleterm/', include('impossibleterm.urls')),
+    path('possiblearea/', include('possiblearea.urls')),
+    path('order/', include('order.urls')),
+    path('gonggu/', include('gonggu.urls')),
+    path('contract/', include('contract.urls')),
+    path('evaluation/', include('evaluation.urls')),
+    path('template/', include('template.urls')),
+    path('point/', include('point.urls')),
+    path('companycondition/', include('companycondition.urls')),
     path('', include('demo.urls')),
 ]
 
-# Media files serving in development
+# Static and Media files serving in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
