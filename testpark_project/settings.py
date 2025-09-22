@@ -78,6 +78,13 @@ INSTALLED_APPS = [
     'impossibleterm',
     'area',
     'possiblearea',
+    'order',
+    'gonggu',
+    'contract',
+    'evaluation',
+    'template',
+    'point',
+    'companycondition',
 ]
 
 MIDDLEWARE = [

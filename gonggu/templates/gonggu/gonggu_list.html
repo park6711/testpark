@@ -1,0 +1,566 @@
+{% extends 'member/base.html' %}
+
+{% block title %}공동구매 리스트 - PMIS 2.0{% endblock %}
+{% block page_title %}공동구매 리스트{% endblock %}
+{% block page_subtitle %}공동구매 관리 및 조회{% endblock %}
+
+{% block content %}
+<!-- 페이지 헤더 -->
+<div class="page-header">
+    <h1 class="page-title">공동구매 리스트</h1>
+    <p class="page-subtitle">공동구매 관리 및 조회</p>
+</div>
+
+<div class="filter-section">
+    <form method="GET" id="filterForm" class="filter-form">
+        <div class="filter-row">
+            <!-- nStepType 필터 -->
+            <div class="filter-group">
+                <label>단계구분:</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="nStepType" value="0" {% if '0' in selected_step_types %}checked{% endif %}>
+                        <span class="badge badge-primary">준비중</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="nStepType" value="1" {% if '1' in selected_step_types %}checked{% endif %}>
+                        <span class="badge badge-success">진행중</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="nStepType" value="2" {% if '2' in selected_step_types %}checked{% endif %}>
+                        <span class="badge badge-warning">일시정지</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="nStepType" value="3" {% if '3' in selected_step_types %}checked{% endif %}>
+                        <span class="badge badge-secondary">마감</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- nType 필터 -->
+            <div class="filter-group">
+                <label>구분:</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="nType" value="0" {% if '0' in selected_types %}checked{% endif %}>
+                        <span class="badge badge-info">올수리</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="nType" value="1" {% if '1' in selected_types %}checked{% endif %}>
+                        <span class="badge badge-dark">부분기타</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <!-- 통합 검색 -->
+            <div class="search-group">
+                <input type="text" name="search" value="{{ search_query }}" placeholder="공구회차, 공구이름, 특징, 업체명, 지역명으로 검색..." class="search-input">
+                <button type="submit" class="btn btn-primary">검색</button>
+                <a href="{% url 'gonggu:gonggu_list' %}" class="btn btn-secondary">초기화</a>
+            </div>
+
+            <!-- 관리 버튼 -->
+            {% if current_staff and current_staff.nOrderAuthority >= 2 %}
+            <div class="action-group">
+                <button onclick="editSelectedGonggu()" class="btn btn-warning" id="editBtn" style="display:none;">공동구매 수정</button>
+                <a href="{% url 'gonggu:gonggu_create' %}" class="btn btn-success">+ 공동구매 생성</a>
+            </div>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                {% if current_staff and current_staff.nOrderAuthority >= 2 %}
+                <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                {% endif %}
+                <th>번호</th>
+                <th>단계구분</th>
+                <th>구분</th>
+                <th>공구회차</th>
+                <th>공구이름</th>
+                <th>특징</th>
+                <th>참여업체</th>
+                <th>가능지역</th>
+                <th>댓글수</th>
+                <th>게시물</th>
+                {% if current_staff and current_staff.nOrderAuthority >= 2 %}
+                <th>관리</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in gonggu_data %}
+            <tr class="data-row" data-id="{{ item.gonggu.no }}">
+                {% if current_staff and current_staff.nOrderAuthority >= 2 %}
+                <td><input type="checkbox" class="gonggu-checkbox" value="{{ item.gonggu.no }}" onchange="updateEditButton()"></td>
+                {% endif %}
+                <td>{{ item.gonggu.no }}</td>
+                <td>
+                    {% if item.gonggu.nStepType == 0 %}
+                        <span class="badge badge-primary">준비중</span>
+                    {% elif item.gonggu.nStepType == 1 %}
+                        <span class="badge badge-success">진행중</span>
+                    {% elif item.gonggu.nStepType == 2 %}
+                        <span class="badge badge-warning">일시정지</span>
+                    {% elif item.gonggu.nStepType == 3 %}
+                        <span class="badge badge-secondary">마감</span>
+                    {% else %}
+                        <span class="badge badge-light">{{ item.gonggu.nStepType }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if item.gonggu.nType == 0 %}
+                        <span class="badge badge-info">올수리</span>
+                    {% elif item.gonggu.nType == 1 %}
+                        <span class="badge badge-dark">부분기타</span>
+                    {% else %}
+                        <span class="badge badge-light">{{ item.gonggu.nType }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ item.gonggu.sNo|default:'-' }}</td>
+                <td class="gonggu-name">{{ item.gonggu.sName|default:'-' }}</td>
+                <td>{{ item.gonggu.sStrength|default:'-' }}</td>
+                <td>{{ item.company }}</td>
+                <td class="area-assignments">{{ item.areas }}</td>
+                <td>
+                    {% if item.gonggu.nCommentNow > 0 %}
+                        <span class="comment-count">{{ item.gonggu.nCommentNow }}</span>
+                        {% if item.gonggu.nCommentPre > 0 %}
+                            <small class="text-muted">(이전: {{ item.gonggu.nCommentPre }})</small>
+                        {% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if item.gonggu.sPost and 'http' in item.gonggu.sPost %}
+                        <a href="{{ item.gonggu.sPost }}" target="_blank" class="btn btn-sm btn-outline-primary">보기</a>
+                    {% elif item.gonggu.sPost %}
+                        <span class="text-muted" title="{{ item.gonggu.sPost }}">텍스트</span>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                {% if current_staff and current_staff.nOrderAuthority >= 2 %}
+                <td>
+                    <button onclick="deleteGonggu({{ item.gonggu.no }})" class="btn btn-sm btn-outline-danger">삭제</button>
+                </td>
+                {% endif %}
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="{% if current_staff and current_staff.nOrderAuthority >= 2 %}12{% else %}10{% endif %}" class="text-center">검색 결과가 없습니다.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+/* 필터 섹션 스타일 */
+.filter-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.filter-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-group label {
+    font-weight: bold;
+    color: #333;
+    min-width: 80px;
+}
+
+.checkbox-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    margin: 0;
+    font-weight: normal;
+}
+
+.checkbox-item input[type="checkbox"] {
+    margin: 0;
+}
+
+.search-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.search-input {
+    flex: 1;
+    max-width: 400px;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.action-group {
+    margin-left: auto;
+}
+
+/* 테이블 스타일 */
+.table-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.data-table th {
+    background: #f8f9fa;
+    color: #333;
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: bold;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.data-table td {
+    padding: 10px 8px;
+    text-align: center;
+    border-bottom: 1px solid #dee2e6;
+    vertical-align: middle;
+}
+
+.data-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.data-row:hover {
+    background-color: #f8f9fa;
+}
+
+.gonggu-name {
+    text-align: left;
+    font-weight: 500;
+    color: #333;
+    max-width: 200px;
+    word-break: break-word;
+}
+
+.area-assignments {
+    text-align: left;
+    font-size: 12px;
+    max-width: 300px;
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+/* 버튼 스타일 */
+.btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
+.btn-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #1e7e34;
+}
+
+.btn-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+}
+
+.btn-sm {
+    padding: 4px 8px;
+    font-size: 11px;
+}
+
+.btn-outline-primary {
+    background-color: transparent;
+    color: #007bff;
+    border: 1px solid #007bff;
+}
+
+.btn-outline-primary:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-outline-danger {
+    background-color: transparent;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+}
+
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* 뱃지 스타일 */
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.badge-primary { background-color: #007bff; color: white; }
+.badge-success { background-color: #28a745; color: white; }
+.badge-warning { background-color: #ffc107; color: #212529; }
+.badge-secondary { background-color: #6c757d; color: white; }
+.badge-info { background-color: #17a2b8; color: white; }
+.badge-dark { background-color: #343a40; color: white; }
+.badge-light { background-color: #f8f9fa; color: #212529; border: 1px solid #dee2e6; }
+
+.text-center {
+    text-align: center;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .filter-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .action-group {
+        margin-left: 0;
+        margin-top: 10px;
+    }
+
+    .search-input {
+        max-width: none;
+    }
+
+    .data-table {
+        font-size: 12px;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 8px 4px;
+    }
+}
+</style>
+
+<script>
+// 폼 자동 제출
+document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        document.getElementById('filterForm').submit();
+    });
+});
+
+// 더블클릭으로 권한에 따라 수정/보기 페이지로 이동
+document.querySelectorAll('.data-row').forEach(row => {
+    row.addEventListener('dblclick', function(e) {
+        // 체크박스 클릭 시에는 더블클릭 이벤트 무시
+        if (e.target.type === 'checkbox') return;
+
+        const gongguId = this.dataset.id;
+        {% if current_staff and current_staff.nOrderAuthority >= 2 %}
+            // 수정 권한이 있으면 수정 모드로
+            window.location.href = `/gonggu/${gongguId}/?edit=1`;
+        {% else %}
+            // 수정 권한이 없으면 보기 모드로
+            window.location.href = `/gonggu/${gongguId}/`;
+        {% endif %}
+    });
+});
+
+// 전체 선택/해제
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.gonggu-checkbox');
+
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+
+    updateEditButton();
+}
+
+// 수정 버튼 표시/숨김
+function updateEditButton() {
+    const checkboxes = document.querySelectorAll('.gonggu-checkbox:checked');
+    const editBtn = document.getElementById('editBtn');
+
+    if (checkboxes.length === 1) {
+        editBtn.style.display = 'inline-block';
+    } else {
+        editBtn.style.display = 'none';
+    }
+
+    // 전체 선택 체크박스 상태 업데이트
+    const selectAll = document.getElementById('selectAll');
+    const allCheckboxes = document.querySelectorAll('.gonggu-checkbox');
+    const checkedCheckboxes = document.querySelectorAll('.gonggu-checkbox:checked');
+
+    if (checkedCheckboxes.length === 0) {
+        selectAll.indeterminate = false;
+        selectAll.checked = false;
+    } else if (checkedCheckboxes.length === allCheckboxes.length) {
+        selectAll.indeterminate = false;
+        selectAll.checked = true;
+    } else {
+        selectAll.indeterminate = true;
+    }
+}
+
+// 선택된 공동구매 수정
+function editSelectedGonggu() {
+    const checkboxes = document.querySelectorAll('.gonggu-checkbox:checked');
+
+    if (checkboxes.length !== 1) {
+        showToast('수정할 공동구매를 하나만 선택해주세요.', 'error');
+        return;
+    }
+
+    const gongguId = checkboxes[0].value;
+    window.location.href = `/gonggu/${gongguId}/?edit=1`;
+}
+
+// 공동구매 삭제
+function deleteGonggu(gongguId) {
+    if (!confirm('정말로 이 공동구매를 삭제하시겠습니까?')) {
+        return;
+    }
+
+    fetch(`/gonggu/${gongguId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('공동구매가 삭제되었습니다.', 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            showToast(data.error || '삭제 중 오류가 발생했습니다.', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('삭제 중 오류가 발생했습니다.', 'error');
+    });
+}
+
+// 토스트 알림
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+
+    const style = toast.style;
+    style.position = 'fixed';
+    style.top = '20px';
+    style.right = '20px';
+    style.padding = '12px 24px';
+    style.borderRadius = '4px';
+    style.color = 'white';
+    style.fontSize = '14px';
+    style.zIndex = '9999';
+    style.opacity = '0';
+    style.transition = 'opacity 0.3s ease';
+
+    if (type === 'success') {
+        style.backgroundColor = '#28a745';
+    } else if (type === 'error') {
+        style.backgroundColor = '#dc3545';
+    } else {
+        style.backgroundColor = '#17a2b8';
+    }
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        style.opacity = '1';
+    }, 100);
+
+    setTimeout(() => {
+        style.opacity = '0';
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+</script>
+
+{% csrf_token %}
+{% endblock %}

@@ -17,14 +17,24 @@
             min-height: 100vh;
         }
 
+        /* 전체 페이지 스크롤 설정 - PossibleArea와 동일한 방식 */
+        html {
+            height: 100vh;
+            overflow: hidden;
+        }
+
         /* 상단 네비게이션 */
         .top-nav {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 0;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: relative;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
+            height: 70px; /* 고정 높이 설정 */
         }
 
         .nav-container {
@@ -34,6 +44,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 0 20px;
+            height: 100%;
         }
 
         .logo {
@@ -74,6 +85,12 @@
         .main-menu {
             background: #2c3e50;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 70px; /* top-nav 높이만큼 아래에 위치 */
+            left: 0;
+            right: 0;
+            z-index: 999;
+            height: 50px; /* 고정 높이 설정 */
         }
 
         .menu-container {
@@ -81,6 +98,8 @@
             margin: 0 auto;
             display: flex;
             padding: 0 20px;
+            height: 100%;
+            align-items: center;
         }
 
         .menu-item {
@@ -154,7 +173,10 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
-            min-height: calc(100vh - 140px);
+            margin-top: 120px; /* 고정된 헤더들(top-nav 70px + main-menu 50px) 높이만큼 여백 */
+            height: calc(100vh - 120px); /* 헤더 높이를 제외한 전체 높이 */
+            overflow-y: auto; /* 세로 스크롤 활성화 */
+            overflow-x: hidden; /* 가로 스크롤 비활성화 */
         }
 
         .page-header {
@@ -217,6 +239,19 @@
             .nav-container {
                 flex-direction: column;
                 padding: 10px;
+            }
+
+            .top-nav {
+                height: auto; /* 모바일에서 높이 자동 조정 */
+            }
+
+            .main-menu {
+                top: 100px; /* 모바일에서 top-nav가 더 높아지므로 조정 */
+            }
+
+            .content-wrapper {
+                margin-top: 180px; /* 모바일에서 더 많은 상단 여백 필요 */
+                height: calc(100vh - 180px); /* 모바일에서 헤더 높이를 제외한 전체 높이 */
             }
 
             .menu-container {
@@ -288,10 +323,9 @@
                     {% else %}
                         <span class="dropdown-item" style="color: #ccc; cursor: not-allowed;">사업자 리스트 (권한없음)</span>
                     {% endif %}
-                    <a href="#" class="dropdown-item">일시정지</a>
-                    <a href="#" class="dropdown-item">공사불가능 일정</a>
-                    <a href="#" class="dropdown-item">공사가능 지역</a>
-                    <a href="#" class="dropdown-item">업체 상태</a>
+                    <a href="{% url 'stop:stop_list' %}" class="dropdown-item">일시정지</a>
+                    <a href="{% url 'impossibleterm:impo_list' %}" class="dropdown-item">불가능 기간</a>
+                    <a href="{% url 'possiblearea:possi_manage' %}" class="dropdown-item">가능 지역</a>
                 </div>
             </div>
 
@@ -300,8 +334,8 @@
                 <a href="#" class="menu-link">의뢰할당</a>
                 <div class="dropdown">
                     <a href="#" class="dropdown-item">의뢰 리스트</a>
-                    <a href="#" class="dropdown-item">공동 리스트</a>
-                    <a href="#" class="dropdown-item">공구 정보</a>
+                    <a href="{% url 'gonggu:gonggu_list' %}" class="dropdown-item">공동구매 리스트</a>
+                    <a href="/companycondition/" class="dropdown-item">업체 상태</a>
                     <a href="#" class="dropdown-item">가능지역 현황판</a>
                 </div>
             </div>
