@@ -5,12 +5,37 @@ from django.utils import timezone
 class Order(models.Model):
     """의뢰(Order) 모델"""
 
+    DESIGNATION_TYPE_CHOICES = [
+        ('지정없음', '지정없음'),
+        ('업체지정', '업체지정'),
+        ('공동구매', '공동구매'),
+    ]
+
+    STATUS_CHOICES = [
+        ('대기중', '대기중'),
+        ('할당', '할당'),
+        ('반려', '반려'),
+        ('취소', '취소'),
+        ('제외', '제외'),
+        ('업체미비', '업체미비'),
+        ('중복접수', '중복접수'),
+        ('연락처오류', '연락처오류'),
+        ('가능문의', '가능문의'),
+        ('불가능답변(X)', '불가능답변(X)'),
+        ('고객문의', '고객문의'),
+        ('계약', '계약'),
+    ]
+
     # 기본 정보
     no = models.AutoField(primary_key=True, verbose_name='의뢰ID')
-    time = models.DateTimeField(auto_now_add=True, verbose_name='타임스탬프')
+    time = models.DateTimeField(auto_now_add=True, verbose_name='접수일시')
+
+    # 지정 정보
+    designation = models.CharField(max_length=200, blank=True, default='', verbose_name='지정')
+    designation_type = models.CharField(max_length=20, choices=DESIGNATION_TYPE_CHOICES, default='지정없음', verbose_name='지정타입')
 
     # 업체 및 고객 정보
-    sAppoint = models.CharField(max_length=100, blank=True, verbose_name='업체공구지정')
+    sAppoint = models.CharField(max_length=100, blank=True, verbose_name='업체공구지정')  # Legacy
     sNick = models.CharField(max_length=50, blank=True, verbose_name='별명')
     sNaverID = models.CharField(max_length=50, blank=True, verbose_name='네이버 ID')
     sName = models.CharField(max_length=50, blank=True, verbose_name='성명')
@@ -18,9 +43,15 @@ class Order(models.Model):
 
     # 의뢰 내용
     sPost = models.CharField(max_length=200, blank=True, verbose_name='의뢰게시글')
+    post_link = models.URLField(max_length=500, blank=True, default='', verbose_name='의뢰게시글 링크')
     sArea = models.TextField(blank=True, verbose_name='공사지역')
     dateSchedule = models.DateField(null=True, blank=True, verbose_name='공사예정일')
     sConstruction = models.TextField(blank=True, verbose_name='공사내용')
+
+    # 할당 정보
+    assigned_company = models.CharField(max_length=100, blank=True, default='', verbose_name='할당업체명')
+    recent_status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='대기중', verbose_name='최근할당상태')
+    re_request_count = models.IntegerField(default=0, verbose_name='재의뢰횟수')
 
     # 동의 사항
     bPrivacy1 = models.BooleanField(default=False, verbose_name='개인정보 동의')
@@ -377,3 +408,191 @@ class AssignMemo(models.Model):
         """중요 메모 여부 (메모에 '중요', '긴급', '주의' 키워드 포함)"""
         important_keywords = ['중요', '긴급', '주의', '문제', '이슈']
         return any(keyword in self.sMemo for keyword in important_keywords)
+
+
+class ChangeHistory(models.Model):
+    """필드 변경 이력 모델"""
+
+    no = models.AutoField(primary_key=True, verbose_name='변경이력ID')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='change_histories', verbose_name='의뢰')
+    field_name = models.CharField(max_length=50, verbose_name='필드명')
+    field_label = models.CharField(max_length=50, verbose_name='필드라벨')
+    old_value = models.TextField(blank=True, verbose_name='이전값')
+    new_value = models.TextField(blank=True, verbose_name='새값')
+    author = models.CharField(max_length=50, verbose_name='작업자')
+    datetime = models.DateTimeField(auto_now_add=True, verbose_name='변경일시')
+
+    class Meta:
+        db_table = 'change_history'
+        verbose_name = '변경이력'
+        verbose_name_plural = '변경이력'
+        ordering = ['-datetime']
+
+    def __str__(self):
+        return f"{self.order.no} - {self.field_label} 변경 ({self.author})"
+
+
+class StatusHistory(models.Model):
+    """상태 변경 이력 모델"""
+
+    no = models.AutoField(primary_key=True, verbose_name='상태이력ID')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='status_histories', verbose_name='의뢰')
+    old_status = models.CharField(max_length=30, verbose_name='이전상태')
+    new_status = models.CharField(max_length=30, verbose_name='새상태')
+    message_sent = models.BooleanField(default=False, verbose_name='문자발송여부')
+    message_content = models.TextField(blank=True, verbose_name='문자내용')
+    author = models.CharField(max_length=50, verbose_name='작업자')
+    datetime = models.DateTimeField(auto_now_add=True, verbose_name='변경일시')
+
+    class Meta:
+        db_table = 'status_history'
+        verbose_name = '상태변경이력'
+        verbose_name_plural = '상태변경이력'
+        ordering = ['-datetime']
+
+    def __str__(self):
+        return f"{self.order.no} - {self.old_status} → {self.new_status} ({self.author})"
+
+
+class QuoteLink(models.Model):
+    """견적서 링크 관리 모델"""
+
+    no = models.AutoField(primary_key=True, verbose_name='견적링크ID')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='quote_links', verbose_name='의뢰')
+    open_quote_link = models.URLField(max_length=500, blank=True, verbose_name='공개견적서링크')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+
+    class Meta:
+        db_table = 'quote_link'
+        verbose_name = '견적링크'
+        verbose_name_plural = '견적링크'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"견적링크 {self.no} - 의뢰{self.order.no}"
+
+
+class QuoteDraft(models.Model):
+    """견적서 초안/차수 관리 모델"""
+
+    DRAFT_TYPE_CHOICES = [
+        ('1차', '1차'),
+        ('2차', '2차'),
+        ('3차', '3차'),
+        ('4차', '4차'),
+        ('5차', '5차'),
+        ('최종', '최종'),
+    ]
+
+    no = models.AutoField(primary_key=True, verbose_name='초안ID')
+    quote_link = models.ForeignKey(QuoteLink, on_delete=models.CASCADE, related_name='drafts', verbose_name='견적링크')
+    draft_type = models.CharField(max_length=10, choices=DRAFT_TYPE_CHOICES, verbose_name='초안타입')
+    link = models.URLField(max_length=500, verbose_name='링크')
+    datetime = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+
+    class Meta:
+        db_table = 'quote_draft'
+        verbose_name = '견적초안'
+        verbose_name_plural = '견적초안'
+        ordering = ['datetime']
+
+    def __str__(self):
+        return f"{self.draft_type} - {self.quote_link.order.no}"
+
+
+class Memo(models.Model):
+    """메모 관리 모델"""
+
+    no = models.AutoField(primary_key=True, verbose_name='메모ID')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='memos', verbose_name='의뢰')
+    author = models.CharField(max_length=50, verbose_name='작성자')
+    content = models.TextField(verbose_name='내용')
+    datetime = models.DateTimeField(auto_now_add=True, verbose_name='작성일시')
+
+    class Meta:
+        db_table = 'memo'
+        verbose_name = '메모'
+        verbose_name_plural = '메모'
+        ordering = ['-datetime']
+
+    def __str__(self):
+        return f"메모 {self.no} - 의뢰{self.order.no} ({self.author})"
+
+    def get_preview(self):
+        """메모 미리보기 (50자 제한)"""
+        if len(self.content) > 50:
+            return self.content[:50] + "..."
+        return self.content
+
+
+class GroupPurchase(models.Model):
+    """공동구매 관리 모델"""
+
+    no = models.AutoField(primary_key=True, verbose_name='공동구매ID')
+    round = models.CharField(max_length=20, verbose_name='회차')
+    company = models.ForeignKey('company.Company', on_delete=models.SET_NULL, null=True, verbose_name='업체')
+    company_name = models.CharField(max_length=100, verbose_name='업체명')
+    unavailable_dates = models.JSONField(default=list, verbose_name='불가능날짜들')
+    available_areas = models.JSONField(default=list, verbose_name='가능지역들')
+    name = models.CharField(max_length=100, verbose_name='공동구매명')
+    link = models.URLField(max_length=500, blank=True, verbose_name='링크')
+    is_active = models.BooleanField(default=True, verbose_name='활성여부')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+
+    class Meta:
+        db_table = 'group_purchase'
+        verbose_name = '공동구매'
+        verbose_name_plural = '공동구매'
+        ordering = ['-round']
+
+    def __str__(self):
+        return f"{self.round} - {self.name} ({self.company_name})"
+
+    def check_availability(self, scheduled_date, area):
+        """날짜와 지역 가능 여부 확인"""
+        from datetime import datetime
+
+        # 날짜 체크
+        if scheduled_date and self.unavailable_dates:
+            scheduled_str = scheduled_date.strftime('%Y-%m-%d')
+            if scheduled_str in self.unavailable_dates:
+                return {'date_available': False, 'area_available': True}
+
+        # 지역 체크
+        if area and self.available_areas:
+            area_available = any(
+                avail_area.lower() in area.lower()
+                for avail_area in self.available_areas
+            )
+            return {'date_available': True, 'area_available': area_available}
+
+        return {'date_available': True, 'area_available': True}
+
+
+class MessageTemplate(models.Model):
+    """메시지 템플릿 모델"""
+
+    no = models.AutoField(primary_key=True, verbose_name='템플릿ID')
+    name = models.CharField(max_length=50, unique=True, verbose_name='템플릿명')
+    content = models.TextField(verbose_name='템플릿내용')
+    variables = models.JSONField(default=list, verbose_name='변수목록', help_text='예: ["name", "workContent"]')
+    is_active = models.BooleanField(default=True, verbose_name='활성여부')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
+
+    class Meta:
+        db_table = 'message_template'
+        verbose_name = '메시지템플릿'
+        verbose_name_plural = '메시지템플릿'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def render(self, context):
+        """템플릿 렌더링"""
+        content = self.content
+        for var in self.variables:
+            if var in context:
+                placeholder = '{' + var + '}'
+                content = content.replace(placeholder, str(context[var]))
+        return content

@@ -1,0 +1,448 @@
+{% extends 'staff/base.html' %}
+{% load static %}
+
+{% block title %}견적의뢰 관리 (TSX) - PMIS 2.0{% endblock %}
+
+{% block extra_css %}
+<!-- 추가 CSS -->
+<link href="/static/js/common-styles.css" rel="stylesheet">
+<style>
+    .main-content {
+        padding-top: 20px;
+    }
+
+    #react-root {
+        width: 100%;
+        min-height: calc(100vh - 140px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="react-root"></div>
+
+<!-- CSRF Token -->
+<script>
+    window.csrfToken = '{{ csrf_token }}';
+    window.API_BASE_URL = '/order/api';
+</script>
+
+<!-- React CDN -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+<!-- Babel for TSX compilation -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Lucide Icons for TSX -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+<!-- 공통 라이브러리 -->
+<script src="/static/js/api-helpers.js"></script>
+
+<!-- TSX 컴포넌트 -->
+<script type="text/babel">
+const { useState, useEffect } = React;
+const { Search, Plus, Edit, Trash2, X, Eye, Users, RefreshCw } = lucide;
+
+interface QuoteRequest {
+    id: number;
+    customer_name: string;
+    customer_phone: string;
+    customer_address: string;
+    construction_content: string;
+    construction_date?: string;
+    appointed_company?: string;
+    nickname?: string;
+    naver_id?: string;
+    status: string;
+    status_display: string;
+    assigned_companies: Array<{
+        id: number;
+        name: string;
+    }>;
+    created_at: string;
+    updated_at: string;
+    urgent: boolean;
+}
+
+interface Pagination {
+    current_page: number;
+    total_pages: number;
+    total_items: number;
+    has_next: boolean;
+    has_previous: boolean;
+    page_size: number;
+}
+
+interface Filters {
+    search: string;
+    status: string;
+    urgent_only: boolean;
+}
+
+const QuoteListTSX: React.FC = () => {
+    const [data, setData] = useState<QuoteRequest[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+    const [pagination, setPagination] = useState<Pagination>({
+        current_page: 1,
+        total_pages: 1,
+        total_items: 0,
+        has_next: false,
+        has_previous: false,
+        page_size: 20
+    });
+    const [selectedRows, setSelectedRows] = useState<number[]>([]);
+    const [filters, setFilters] = useState<Filters>({
+        search: '',
+        status: '',
+        urgent_only: false
+    });
+
+    // 데이터 로드
+    const loadData = async (page: number = 1): Promise<void> => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                page: page.toString(),
+                page_size: pagination.page_size.toString(),
+                ...filters
+            });
+
+            const response = await window.apiRequest(`${window.API_BASE_URL}/orders/?${params}`);
+            if (response.success) {
+                setData(response.data);
+                setPagination(response.pagination);
+            } else {
+                window.showNotification(response.error || '데이터 로드 실패', 'error');
+            }
+        } catch (error: any) {
+            console.error('데이터 로드 실패:', error);
+            window.showNotification('데이터를 불러오는데 실패했습니다.', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    // 검색 핸들러
+    const handleSearch = (): void => {
+        loadData(1);
+    };
+
+    // 필터 변경
+    const handleFilterChange = (name: keyof Filters, value: string | boolean): void => {
+        setFilters(prev => ({ ...prev, [name]: value }));
+    };
+
+    // 선택 관리
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        if (e.target.checked) {
+            setSelectedRows(data.map(item => item.id));
+        } else {
+            setSelectedRows([]);
+        }
+    };
+
+    const handleSelectRow = (id: number): void => {
+        if (selectedRows.includes(id)) {
+            setSelectedRows(selectedRows.filter(rowId => rowId !== id));
+        } else {
+            setSelectedRows([...selectedRows, id]);
+        }
+    };
+
+    // 일괄 삭제
+    const handleBulkDelete = async (): Promise<void> => {
+        if (selectedRows.length === 0) {
+            window.showNotification('삭제할 항목을 선택해주세요.', 'warning');
+            return;
+        }
+
+        const confirmMessage = selectedRows.length === 1
+            ? '선택한 1개 항목을 삭제하시겠습니까?'
+            : `선택한 ${selectedRows.length}개 항목을 삭제하시겠습니까?`;
+
+        if (!window.confirmAction(confirmMessage)) return;
+
+        try {
+            const response = await window.apiCRUD.create(`${window.API_BASE_URL}/orders/bulk-delete/`, {
+                order_ids: selectedRows
+            });
+
+            if (response.success) {
+                window.showNotification(response.data.message, 'success');
+                setSelectedRows([]);
+                loadData();
+            }
+        } catch (error: any) {
+            window.showNotification('삭제 중 오류가 발생했습니다.', 'error');
+        }
+    };
+
+    // 상태 배지 클래스
+    const getStatusBadgeClass = (status: string): string => {
+        const classes: Record<string, string> = {
+            '대기중': 'bg-warning text-dark',
+            '할당': 'bg-primary text-white',
+            '반려': 'bg-danger text-white',
+            '취소': 'bg-secondary text-white',
+            '제외': 'bg-dark text-white',
+            '업체미비': 'bg-info text-white'
+        };
+        return `badge ${classes[status] || 'bg-secondary text-white'}`;
+    };
+
+    // 날짜 포맷팅
+    const formatDate = (dateString: string): string => {
+        return new Date(dateString).toLocaleString('ko-KR');
+    };
+
+    return (
+        <div className="container-fluid">
+            {/* 헤더 */}
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h1 className="h3 mb-0 d-flex align-items-center gap-2">
+                    <Users size={24} />
+                    견적의뢰 관리 (TSX)
+                </h1>
+                <div className="d-flex gap-2">
+                    <button
+                        onClick={() => loadData()}
+                        className="btn btn-outline-primary d-flex align-items-center gap-1"
+                        disabled={loading}
+                    >
+                        <RefreshCw size={16} />
+                        새로고침
+                    </button>
+                    <button
+                        onClick={() => window.open('/order/api/orders/create/', '_blank')}
+                        className="btn btn-success d-flex align-items-center gap-1"
+                    >
+                        <Plus size={16} />
+                        새 의뢰
+                    </button>
+                </div>
+            </div>
+
+            {/* 필터 패널 */}
+            <div className="card mb-4">
+                <div className="card-body">
+                    <div className="row g-3">
+                        <div className="col-md-4">
+                            <div className="input-group">
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="고객명, 연락처, 지역, 공사내용 검색"
+                                    value={filters.search}
+                                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                                />
+                                <button
+                                    className="btn btn-primary d-flex align-items-center"
+                                    onClick={handleSearch}
+                                >
+                                    <Search size={16} />
+                                </button>
+                            </div>
+                        </div>
+                        <div className="col-md-2">
+                            <select
+                                className="form-select"
+                                value={filters.status}
+                                onChange={(e) => handleFilterChange('status', e.target.value)}
+                            >
+                                <option value="">전체 상태</option>
+                                <option value="대기중">대기중</option>
+                                <option value="할당">할당</option>
+                                <option value="반려">반려</option>
+                                <option value="취소">취소</option>
+                                <option value="제외">제외</option>
+                            </select>
+                        </div>
+                        <div className="col-md-2">
+                            <div className="form-check">
+                                <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    checked={filters.urgent_only}
+                                    onChange={(e) => handleFilterChange('urgent_only', e.target.checked)}
+                                />
+                                <label className="form-check-label">
+                                    긴급 의뢰만
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* 테이블 */}
+            <div className="card">
+                <div className="card-header d-flex justify-content-between align-items-center">
+                    <h5 className="mb-0">
+                        총 {pagination.total_items.toLocaleString()}건
+                    </h5>
+                    <button
+                        className="btn btn-danger btn-sm d-flex align-items-center gap-1"
+                        onClick={handleBulkDelete}
+                        disabled={selectedRows.length === 0}
+                    >
+                        <Trash2 size={14} />
+                        선택 삭제 ({selectedRows.length})
+                    </button>
+                </div>
+                <div className="card-body">
+                    {loading ? (
+                        <div className="text-center py-4">
+                            <div className="spinner-border" role="status">
+                                <span className="visually-hidden">Loading...</span>
+                            </div>
+                            <div className="mt-2">데이터를 불러오는 중...</div>
+                        </div>
+                    ) : (
+                        <div className="table-responsive">
+                            <table className="table table-hover">
+                                <thead className="table-light">
+                                    <tr>
+                                        <th width="40">
+                                            <input
+                                                type="checkbox"
+                                                className="form-check-input"
+                                                checked={selectedRows.length === data.length && data.length > 0}
+                                                onChange={handleSelectAll}
+                                            />
+                                        </th>
+                                        <th>접수일시</th>
+                                        <th>고객명</th>
+                                        <th>연락처</th>
+                                        <th>지역</th>
+                                        <th>공사내용</th>
+                                        <th>상태</th>
+                                        <th>할당업체</th>
+                                        <th width="100">작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={9} className="text-center py-4 text-muted">
+                                                데이터가 없습니다.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        data.map((row) => (
+                                            <tr key={row.id} className={row.urgent ? 'table-warning' : ''}>
+                                                <td>
+                                                    <input
+                                                        type="checkbox"
+                                                        className="form-check-input"
+                                                        checked={selectedRows.includes(row.id)}
+                                                        onChange={() => handleSelectRow(row.id)}
+                                                    />
+                                                </td>
+                                                <td className="small">{formatDate(row.created_at)}</td>
+                                                <td>
+                                                    <div>
+                                                        <div className="fw-bold">{row.customer_name}</div>
+                                                        {row.nickname && (
+                                                            <small className="text-muted">{row.nickname}</small>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td>{row.customer_phone}</td>
+                                                <td className="text-truncate" style={{maxWidth: '150px'}}>
+                                                    {row.customer_address}
+                                                </td>
+                                                <td className="text-truncate" style={{maxWidth: '200px'}}>
+                                                    {row.construction_content}
+                                                </td>
+                                                <td>
+                                                    <span className={getStatusBadgeClass(row.status)}>
+                                                        {row.status}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    {row.assigned_companies.length > 0
+                                                        ? row.assigned_companies.map(c => c.name).join(', ')
+                                                        : '-'
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <div className="d-flex gap-1">
+                                                        <button
+                                                            className="btn btn-sm btn-outline-primary"
+                                                            onClick={() => console.log('View', row.id)}
+                                                            title="상세보기"
+                                                        >
+                                                            <Eye size={12} />
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-sm btn-outline-secondary"
+                                                            onClick={() => console.log('Edit', row.id)}
+                                                            title="수정"
+                                                        >
+                                                            <Edit size={12} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    {/* 페이지네이션 */}
+                    {pagination.total_pages > 1 && (
+                        <nav aria-label="Page navigation" className="mt-4">
+                            <ul className="pagination justify-content-center">
+                                <li className={`page-item ${!pagination.has_previous ? 'disabled' : ''}`}>
+                                    <button
+                                        className="page-link"
+                                        onClick={() => loadData(pagination.current_page - 1)}
+                                        disabled={!pagination.has_previous}
+                                    >
+                                        이전
+                                    </button>
+                                </li>
+                                {Array.from({ length: pagination.total_pages }, (_, i) => (
+                                    <li
+                                        key={i}
+                                        className={`page-item ${pagination.current_page === i + 1 ? 'active' : ''}`}
+                                    >
+                                        <button
+                                            className="page-link"
+                                            onClick={() => loadData(i + 1)}
+                                        >
+                                            {i + 1}
+                                        </button>
+                                    </li>
+                                ))}
+                                <li className={`page-item ${!pagination.has_next ? 'disabled' : ''}`}>
+                                    <button
+                                        className="page-link"
+                                        onClick={() => loadData(pagination.current_page + 1)}
+                                        disabled={!pagination.has_next}
+                                    >
+                                        다음
+                                    </button>
+                                </li>
+                            </ul>
+                        </nav>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// React DOM 렌더링
+ReactDOM.render(<QuoteListTSX />, document.getElementById('react-root'));
+</script>
+{% endblock %}

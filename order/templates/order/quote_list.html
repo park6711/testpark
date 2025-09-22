@@ -1,0 +1,1080 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>견적의뢰 관리 시스템</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel Standalone for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+    <!-- Custom Styles -->
+    <style>
+        .bg-gray-100 { background-color: #f3f4f6; }
+        .bg-gray-200 { background-color: #e5e7eb; }
+        .bg-gray-300 { background-color: #d1d5db; }
+        .text-gray-500 { color: #6b7280; }
+        .text-gray-600 { color: #4b5563; }
+        .text-gray-700 { color: #374151; }
+        .text-gray-800 { color: #1f2937; }
+        .text-gray-900 { color: #111827; }
+        .border-gray-200 { border-color: #e5e7eb; }
+        .border-gray-300 { border-color: #d1d5db; }
+        .hover\\:bg-gray-400:hover { background-color: #9ca3af; }
+        .hover\\:bg-blue-600:hover { background-color: #2563eb; }
+        .hover\\:bg-green-600:hover { background-color: #16a34a; }
+        .hover\\:bg-red-600:hover { background-color: #dc2626; }
+        .hover\\:bg-gray-50:hover { background-color: #f9fafb; }
+        .min-h-screen { min-height: 100vh; }
+        .shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+        .space-x-2 > * + * { margin-left: 0.5rem; }
+        .space-x-4 > * + * { margin-left: 1rem; }
+        .space-y-4 > * + * { margin-top: 1rem; }
+        .space-y-6 > * + * { margin-top: 1.5rem; }
+        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .gap-4 { gap: 1rem; }
+        .gap-6 { gap: 1.5rem; }
+        .fixed { position: fixed; }
+        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+        .z-50 { z-index: 50; }
+        .overflow-y-auto { overflow-y: auto; }
+        .max-h-96 { max-height: 24rem; }
+        .overflow-x-auto { overflow-x: auto; }
+        .whitespace-nowrap { white-space: nowrap; }
+        .cursor-pointer { cursor: pointer; }
+        .cursor-not-allowed { cursor: not-allowed; }
+        .opacity-50 { opacity: 0.5; }
+        .border-l-4 { border-left-width: 4px; }
+        .bg-red-50 { background-color: #fef2f2; }
+        .border-red-200 { border-color: #fecaca; }
+        .bg-yellow-50 { background-color: #fffbeb; }
+        .border-yellow-200 { border-color: #fde68a; }
+        .bg-green-50 { background-color: #f0fdf4; }
+        .border-green-200 { border-color: #bbf7d0; }
+    </style>
+</head>
+<body>
+    <div id="react-root"></div>
+
+    <!-- CSRF Token -->
+    <script>
+        window.csrfToken = '{{ csrf_token }}';
+
+        // API 기본 설정
+        window.API_BASE_URL = '/order/api';
+
+        // API 헬퍼 함수
+        window.apiRequest = async function(url, options = {}) {
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': window.csrfToken,
+                },
+                credentials: 'same-origin'
+            };
+
+            const mergedOptions = {
+                ...defaultOptions,
+                ...options,
+                headers: {
+                    ...defaultOptions.headers,
+                    ...options.headers
+                }
+            };
+
+            try {
+                const response = await fetch(url, mergedOptions);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'API 요청 실패');
+                }
+
+                return data;
+            } catch (error) {
+                console.error('API 요청 오류:', error);
+                throw error;
+            }
+        };
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { Search, Plus, Copy, FileText, Send, X, ChevronDown, MessageSquare, Clock, User, Mail, Phone, MapPin, Calendar, Edit, Trash2, Save, RotateCcw } = lucide;
+
+        const QuoteManagementSystem = () => {
+            const [currentPage, setCurrentPage] = useState('list');
+            const [expandedRow, setExpandedRow] = useState(null);
+            const [showPostModal, setShowPostModal] = useState(false);
+            const [showMessageModal, setShowMessageModal] = useState(false);
+            const [showEditModal, setShowEditModal] = useState(false);
+            const [showQuoteModal, setShowQuoteModal] = useState(false);
+            const [showMemoModal, setShowMemoModal] = useState(false);
+            const [showStatusModal, setShowStatusModal] = useState(false);
+            const [selectedQuoteId, setSelectedQuoteId] = useState(null);
+            const [selectedQuoteForModal, setSelectedQuoteForModal] = useState(null);
+            const [messageTemplate, setMessageTemplate] = useState('템플릿1');
+            const [messageRecipient, setMessageRecipient] = useState('업체+고객');
+            const [selectedCompanies, setSelectedCompanies] = useState([]);
+            const [selectedServices, setSelectedServices] = useState([]);
+            const [selectedRows, setSelectedRows] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [quoteRequestsData, setQuoteRequestsData] = useState([]);
+            const [companies, setCompanies] = useState([]);
+            const [pagination, setPagination] = useState({
+                current_page: 1,
+                total_pages: 1,
+                total_items: 0,
+                has_next: false,
+                has_previous: false,
+                page_size: 20
+            });
+            const [filters, setFilters] = useState({
+                search: '',
+                status: '',
+                urgent_only: false
+            });
+
+            // API 데이터 로드
+            useEffect(() => {
+                loadQuoteRequests();
+                loadCompanies();
+            }, []);
+
+            const loadQuoteRequests = async (page = 1) => {
+                setLoading(true);
+                try {
+                    const params = new URLSearchParams({
+                        page: page.toString(),
+                        page_size: pagination.page_size.toString(),
+                        ...filters
+                    });
+
+                    const response = await window.apiRequest(`${window.API_BASE_URL}/orders/?${params}`);
+                    if (response.success) {
+                        // API 응답을 기존 PPlist.tsx 형식으로 변환
+                        const formattedData = response.data.map(item => ({
+                            id: item.id,
+                            receiptDate: new Date(item.created_at).toLocaleString('ko-KR'),
+                            designation: item.appointed_company || '지정없음',
+                            designationType: item.appointed_company ? '업체지정' : '지정없음',
+                            nickname: item.nickname || item.naver_id,
+                            naverId: item.naver_id,
+                            name: item.customer_name,
+                            phone: item.customer_phone,
+                            postLink: '',
+                            area: item.customer_address,
+                            scheduledDate: item.construction_date ? new Date(item.construction_date).toLocaleDateString('ko-KR') : '',
+                            workContent: item.construction_content,
+                            assignedCompany: item.assigned_companies.length > 0 ? item.assigned_companies.map(c => c.name).join(', ') : '',
+                            recentStatus: item.status,
+                            reRequestCount: 0,
+                            quoteCount: item.assigned_companies.length,
+                            memoCount: 0
+                        }));
+                        setQuoteRequestsData(formattedData);
+                        setPagination(response.pagination);
+                    }
+                } catch (error) {
+                    console.error('데이터 로드 실패:', error);
+                    alert('데이터를 불러오는데 실패했습니다.');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const loadCompanies = async () => {
+                try {
+                    const response = await window.apiRequest(`${window.API_BASE_URL}/companies/`);
+                    if (response.success) {
+                        const formattedCompanies = response.data.map(company => ({
+                            id: company.id,
+                            name: company.name,
+                            location: company.address,
+                            grade: 1,
+                            twoDay: '0/0',
+                            evaluationPeriod: '0/0',
+                            evaluationMax: 0,
+                            percentage: 0,
+                            fixedCost: 0,
+                            licenses: '',
+                            region: '실제적용',
+                            features: '',
+                            isDesignated: false
+                        }));
+                        setCompanies(formattedCompanies);
+                    }
+                } catch (error) {
+                    console.error('업체 목록 로드 실패:', error);
+                }
+            };
+
+            const handleSelectAll = (e) => {
+                if (e.target.checked) {
+                    setSelectedRows(quoteRequestsData.map(item => item.id));
+                } else {
+                    setSelectedRows([]);
+                }
+            };
+
+            const handleSelectRow = (id) => {
+                if (selectedRows.includes(id)) {
+                    setSelectedRows(selectedRows.filter(rowId => rowId !== id));
+                } else {
+                    setSelectedRows([...selectedRows, id]);
+                }
+            };
+
+            const handleDeleteSelected = async () => {
+                if (selectedRows.length === 0) {
+                    alert('삭제할 항목을 선택해주세요.');
+                    return;
+                }
+
+                const confirmMessage = selectedRows.length === 1
+                    ? '선택한 1개 항목을 삭제하시겠습니까?'
+                    : `선택한 ${selectedRows.length}개 항목을 삭제하시겠습니까?`;
+
+                if (window.confirm(confirmMessage)) {
+                    try {
+                        const response = await window.apiRequest(`${window.API_BASE_URL}/orders/bulk-delete/`, {
+                            method: 'POST',
+                            body: JSON.stringify({ order_ids: selectedRows })
+                        });
+
+                        if (response.success) {
+                            alert(response.data.message);
+                            setSelectedRows([]);
+                            loadQuoteRequests(); // 데이터 재로드
+                        }
+                    } catch (error) {
+                        alert('삭제 중 오류가 발생했습니다.');
+                    }
+                }
+            };
+
+            const [editField, setEditField] = useState({
+                fieldName: '',
+                fieldLabel: '',
+                currentValue: '',
+                newValue: '',
+                quoteId: null
+            });
+
+            const [statusFormData, setStatusFormData] = useState({
+                status: '대기중',
+                template: '',
+                recipient: '업체+고객',
+                messageContent: ''
+            });
+
+            const statusOptions = [
+                '대기중', '할당', '반려', '취소', '제외', '업체미비',
+                '중복접수', '연락처오류', '가능문의', '불가능답변(X)', '고객문의', '계약'
+            ];
+
+            const statusTransitions = {
+                '대기중': ['할당', '업체미비', '중복접수', '연락처오류', '가능문의', '고객문의'],
+                '할당': ['반려', '취소', '제외', '연락처오류', '계약'],
+                '연락처오류': ['대기중', '할당'],
+                '가능문의': ['할당', '불가능답변(X)'],
+                '반려': ['대기중', '할당', '계약'],
+                '고객문의': ['대기중', '할당'],
+                '취소': ['계약'],
+                '제외': [],
+                '업체미비': ['대기중'],
+                '중복접수': [],
+                '불가능답변(X)': ['대기중'],
+                '계약': []
+            };
+
+            const customerInquiryTemplates = {
+                '내용문의': '평수만 있거나 공사내용을 알 수 없는 경우에 고객에게 문의',
+                '주소문의': '공사 지역이 비어있거나, 건물형태만 있는 경우 또는 시구동만 있는 경우인지 고객에게 문의',
+                '주소내용문의': '평수만 있거나 공사내용을 알 수 없는 경우 + 공사 지역이 비어있거나, 건물형태만 있는 경우 또는 시구동만 있는 경우',
+                '공사일정문의': '고객이 공사 일정을 적지 않은 경우, 고객께 문의 또는 안내',
+                '공사일정먼경우': '고객께 문의 또는 안내',
+                '공사일정촉박': '고객께 문의 또는 안내'
+            };
+
+            const messageTemplates = {
+                '할당': '안녕하세요. {name}님의 {workContent} 견적 요청이 접수되었습니다. 업체에서 곧 연락드릴 예정입니다.',
+                '반려': '안녕하세요. {name}님의 견적 요청이 업체 사정으로 반려되었습니다. 다른 업체를 배정해드리겠습니다.',
+                '취소': '안녕하세요. {name}님의 견적 요청이 취소되었습니다.',
+                '제외': '안녕하세요. {name}님의 견적 요청 처리가 제외되었습니다.',
+                '업체미비': '안녕하세요. {name}님의 지역에 현재 가능한 업체가 없습니다. 업체 확보 후 연락드리겠습니다.',
+                '중복접수': '안녕하세요. {name}님의 견적 요청이 중복 접수되었습니다.',
+                '연락처오류': '안녕하세요. {name}님의 연락처로 연결이 되지 않습니다. 확인 부탁드립니다.',
+                '가능문의': '안녕하세요. {name}님의 {workContent} 공사 가능 여부를 업체에 확인중입니다.',
+                '불가능답변(X)': '안녕하세요. {name}님의 요청사항은 현재 진행이 어렵습니다. 죄송합니다.',
+                '고객문의': '안녕하세요. {name}님의 견적 요청에 추가 확인이 필요합니다.',
+                '계약': '안녕하세요. {name}님의 {workContent} 계약이 완료되었습니다. 감사합니다.'
+            };
+
+            const [changeHistory, setChangeHistory] = useState([]);
+            const [statusHistory, setStatusHistory] = useState([]);
+            const [quoteLinks, setQuoteLinks] = useState([]);
+            const [memos, setMemos] = useState([]);
+            const [postFormData, setPostFormData] = useState({
+                link: '',
+                title: '',
+                content: ''
+            });
+
+            const QuoteListPage = () => {
+                const handleStatusClick = (quoteId, currentStatus) => {
+                    setSelectedQuoteId(quoteId);
+                    setStatusFormData(prev => ({
+                        ...prev,
+                        status: currentStatus
+                    }));
+                    setShowStatusModal(true);
+                };
+
+                const handleEditField = (quoteId, fieldName, fieldLabel, currentValue) => {
+                    setEditField({
+                        fieldName,
+                        fieldLabel,
+                        currentValue,
+                        newValue: currentValue,
+                        quoteId
+                    });
+                    setShowEditModal(true);
+                };
+
+                const handleQuoteClick = (quoteId) => {
+                    setSelectedQuoteId(quoteId);
+                    setShowQuoteModal(true);
+                };
+
+                const handleMemoClick = (quoteId) => {
+                    setSelectedQuoteId(quoteId);
+                    setShowMemoModal(true);
+                };
+
+                const isUrgent = (scheduledDate) => {
+                    if (!scheduledDate) return false;
+                    const today = new Date();
+                    const schedule = new Date(scheduledDate);
+                    const diffTime = schedule.getTime() - today.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    return diffDays <= 3 && diffDays >= 0;
+                };
+
+                const getStatusBadgeClass = (status) => {
+                    const statusClasses = {
+                        '대기중': 'bg-warning text-dark',
+                        '할당': 'bg-primary text-white',
+                        '반려': 'bg-danger text-white',
+                        '취소': 'bg-secondary text-white',
+                        '제외': 'bg-dark text-white',
+                        '업체미비': 'bg-info text-white',
+                        '중복접수': 'bg-warning text-dark',
+                        '연락처오류': 'bg-warning text-dark',
+                        '가능문의': 'bg-success text-white',
+                        '불가능답변(X)': 'bg-secondary text-white',
+                        '고객문의': 'bg-info text-white',
+                        '계약': 'bg-success text-white'
+                    };
+                    return statusClasses[status] || 'bg-secondary text-white';
+                };
+
+                const handlePageChange = (page) => {
+                    loadQuoteRequests(page);
+                };
+
+                const handleSearch = () => {
+                    loadQuoteRequests(1);
+                };
+
+                return (
+                    <div className="container-fluid py-4">
+                        {loading && (
+                            <div className="text-center mb-4">
+                                <div className="spinner-border" role="status">
+                                    <span className="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 검색 및 필터 */}
+                        <div className="card mb-4">
+                            <div className="card-body">
+                                <div className="row g-3">
+                                    <div className="col-md-4">
+                                        <div className="input-group">
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                placeholder="고객명, 연락처, 지역, 공사내용 검색"
+                                                value={filters.search}
+                                                onChange={(e) => setFilters(prev => ({...prev, search: e.target.value}))}
+                                                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                                            />
+                                            <button className="btn btn-primary" onClick={handleSearch}>
+                                                <Search size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <select
+                                            className="form-select"
+                                            value={filters.status}
+                                            onChange={(e) => setFilters(prev => ({...prev, status: e.target.value}))}
+                                        >
+                                            <option value="">전체 상태</option>
+                                            {statusOptions.map(status => (
+                                                <option key={status} value={status}>{status}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="col-md-2">
+                                        <div className="form-check">
+                                            <input
+                                                className="form-check-input"
+                                                type="checkbox"
+                                                checked={filters.urgent_only}
+                                                onChange={(e) => setFilters(prev => ({...prev, urgent_only: e.target.checked}))}
+                                            />
+                                            <label className="form-check-label">
+                                                긴급 의뢰만
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="d-flex justify-content-between align-items-center mb-4">
+                            <h2 className="h4 mb-0">견적의뢰 목록 (총 {pagination.total_items}건)</h2>
+                            <div className="d-flex gap-2">
+                                <button
+                                    onClick={() => setCurrentPage('add')}
+                                    className="btn btn-success d-flex align-items-center gap-2"
+                                >
+                                    <Plus size={16} />
+                                    새 의뢰 등록
+                                </button>
+                                <button
+                                    onClick={handleDeleteSelected}
+                                    className="btn btn-danger d-flex align-items-center gap-2"
+                                    disabled={selectedRows.length === 0}
+                                >
+                                    <X size={16} />
+                                    선택 삭제 ({selectedRows.length})
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="card">
+                            <div className="card-body">
+                                <div className="table-responsive">
+                                    <table className="table table-hover">
+                                        <thead className="table-light">
+                                            <tr>
+                                                <th width="40">
+                                                    <input
+                                                        type="checkbox"
+                                                        onChange={handleSelectAll}
+                                                        checked={selectedRows.length === quoteRequestsData.length && quoteRequestsData.length > 0}
+                                                        className="form-check-input"
+                                                    />
+                                                </th>
+                                                <th width="120">접수일시</th>
+                                                <th width="100">지정업체</th>
+                                                <th width="80">고객명</th>
+                                                <th width="120">연락처</th>
+                                                <th width="150">지역</th>
+                                                <th width="100">예정일</th>
+                                                <th>공사내용</th>
+                                                <th width="100">상태</th>
+                                                <th width="80">할당업체</th>
+                                                <th width="60">견적</th>
+                                                <th width="60">메모</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {quoteRequestsData.map(row => (
+                                                <tr key={row.id} className={isUrgent(row.scheduledDate) ? 'table-warning' : ''}>
+                                                    <td>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedRows.includes(row.id)}
+                                                            onChange={() => handleSelectRow(row.id)}
+                                                            className="form-check-input"
+                                                        />
+                                                    </td>
+                                                    <td className="small">{row.receiptDate}</td>
+                                                    <td>
+                                                        <span
+                                                            className="cursor-pointer text-decoration-underline"
+                                                            onClick={() => handleEditField(row.id, 'designation', '지정업체', row.designation)}
+                                                        >
+                                                            {row.designation}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <div>
+                                                            <div
+                                                                className="cursor-pointer text-decoration-underline"
+                                                                onClick={() => handleEditField(row.id, 'name', '고객명', row.name)}
+                                                            >
+                                                                {row.name}
+                                                            </div>
+                                                            <small className="text-muted">{row.nickname}</small>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <span
+                                                            className="cursor-pointer text-decoration-underline"
+                                                            onClick={() => handleEditField(row.id, 'phone', '연락처', row.phone)}
+                                                        >
+                                                            {row.phone}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span
+                                                            className="cursor-pointer text-decoration-underline"
+                                                            onClick={() => handleEditField(row.id, 'area', '지역', row.area)}
+                                                        >
+                                                            {row.area}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span
+                                                            className="cursor-pointer text-decoration-underline"
+                                                            onClick={() => handleEditField(row.id, 'scheduledDate', '예정일', row.scheduledDate)}
+                                                        >
+                                                            {row.scheduledDate}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span
+                                                            className="cursor-pointer text-decoration-underline"
+                                                            onClick={() => handleEditField(row.id, 'workContent', '공사내용', row.workContent)}
+                                                        >
+                                                            {row.workContent}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span
+                                                            className={`badge ${getStatusBadgeClass(row.recentStatus)} cursor-pointer`}
+                                                            onClick={() => handleStatusClick(row.id, row.recentStatus)}
+                                                        >
+                                                            {row.recentStatus}
+                                                        </span>
+                                                    </td>
+                                                    <td>{row.assignedCompany}</td>
+                                                    <td>
+                                                        <button
+                                                            className="btn btn-sm btn-outline-primary"
+                                                            onClick={() => handleQuoteClick(row.id)}
+                                                        >
+                                                            {row.quoteCount}
+                                                        </button>
+                                                    </td>
+                                                    <td>
+                                                        <button
+                                                            className="btn btn-sm btn-outline-secondary"
+                                                            onClick={() => handleMemoClick(row.id)}
+                                                        >
+                                                            {row.memoCount}
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* 페이지네이션 */}
+                                {pagination.total_pages > 1 && (
+                                    <nav aria-label="Page navigation" className="mt-4">
+                                        <ul className="pagination justify-content-center">
+                                            <li className={`page-item ${!pagination.has_previous ? 'disabled' : ''}`}>
+                                                <button
+                                                    className="page-link"
+                                                    onClick={() => handlePageChange(pagination.current_page - 1)}
+                                                    disabled={!pagination.has_previous}
+                                                >
+                                                    이전
+                                                </button>
+                                            </li>
+                                            {[...Array(pagination.total_pages)].map((_, i) => (
+                                                <li key={i} className={`page-item ${pagination.current_page === i + 1 ? 'active' : ''}`}>
+                                                    <button
+                                                        className="page-link"
+                                                        onClick={() => handlePageChange(i + 1)}
+                                                    >
+                                                        {i + 1}
+                                                    </button>
+                                                </li>
+                                            ))}
+                                            <li className={`page-item ${!pagination.has_next ? 'disabled' : ''}`}>
+                                                <button
+                                                    className="page-link"
+                                                    onClick={() => handlePageChange(pagination.current_page + 1)}
+                                                    disabled={!pagination.has_next}
+                                                >
+                                                    다음
+                                                </button>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // 의뢰 등록 페이지
+            const QuoteAddPage = () => {
+                const [formData, setFormData] = useState({
+                    customer_name: '',
+                    customer_phone: '',
+                    customer_address: '',
+                    construction_content: '',
+                    construction_date: '',
+                    naver_id: '',
+                    nickname: '',
+                    appointed_company: ''
+                });
+
+                const handleSubmit = async (e) => {
+                    e.preventDefault();
+                    setLoading(true);
+
+                    try {
+                        const response = await window.apiRequest(`${window.API_BASE_URL}/orders/create/`, {
+                            method: 'POST',
+                            body: JSON.stringify(formData)
+                        });
+
+                        if (response.success) {
+                            alert('의뢰가 성공적으로 등록되었습니다.');
+                            setCurrentPage('list');
+                            loadQuoteRequests();
+                        }
+                    } catch (error) {
+                        alert('등록 중 오류가 발생했습니다.');
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                return (
+                    <div className="container py-4">
+                        <div className="row justify-content-center">
+                            <div className="col-md-8">
+                                <div className="card">
+                                    <div className="card-header">
+                                        <h5 className="mb-0">새 견적의뢰 등록</h5>
+                                    </div>
+                                    <div className="card-body">
+                                        <form onSubmit={handleSubmit}>
+                                            <div className="row mb-3">
+                                                <div className="col-md-6">
+                                                    <label className="form-label">고객명 *</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        value={formData.customer_name}
+                                                        onChange={(e) => setFormData({...formData, customer_name: e.target.value})}
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="col-md-6">
+                                                    <label className="form-label">연락처 *</label>
+                                                    <input
+                                                        type="tel"
+                                                        className="form-control"
+                                                        value={formData.customer_phone}
+                                                        onChange={(e) => setFormData({...formData, customer_phone: e.target.value})}
+                                                        required
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="mb-3">
+                                                <label className="form-label">주소 *</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    value={formData.customer_address}
+                                                    onChange={(e) => setFormData({...formData, customer_address: e.target.value})}
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="mb-3">
+                                                <label className="form-label">공사내용 *</label>
+                                                <textarea
+                                                    className="form-control"
+                                                    rows="3"
+                                                    value={formData.construction_content}
+                                                    onChange={(e) => setFormData({...formData, construction_content: e.target.value})}
+                                                    required
+                                                ></textarea>
+                                            </div>
+                                            <div className="row mb-3">
+                                                <div className="col-md-6">
+                                                    <label className="form-label">공사예정일</label>
+                                                    <input
+                                                        type="date"
+                                                        className="form-control"
+                                                        value={formData.construction_date}
+                                                        onChange={(e) => setFormData({...formData, construction_date: e.target.value})}
+                                                    />
+                                                </div>
+                                                <div className="col-md-6">
+                                                    <label className="form-label">지정업체</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        value={formData.appointed_company}
+                                                        onChange={(e) => setFormData({...formData, appointed_company: e.target.value})}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="row mb-3">
+                                                <div className="col-md-6">
+                                                    <label className="form-label">네이버 ID</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        value={formData.naver_id}
+                                                        onChange={(e) => setFormData({...formData, naver_id: e.target.value})}
+                                                    />
+                                                </div>
+                                                <div className="col-md-6">
+                                                    <label className="form-label">닉네임</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        value={formData.nickname}
+                                                        onChange={(e) => setFormData({...formData, nickname: e.target.value})}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="d-flex justify-content-end gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCurrentPage('list')}
+                                                    className="btn btn-secondary"
+                                                >
+                                                    취소
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    className="btn btn-primary"
+                                                    disabled={loading}
+                                                >
+                                                    {loading ? '저장 중...' : '저장'}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // 모달 컴포넌트들
+            const EditModal = () => {
+                if (!showEditModal) return null;
+
+                const handleSave = () => {
+                    // 실제 구현에서는 API 호출
+                    setQuoteRequestsData(prev =>
+                        prev.map(item =>
+                            item.id === editField.quoteId
+                                ? { ...item, [editField.fieldName]: editField.newValue }
+                                : item
+                        )
+                    );
+                    setShowEditModal(false);
+                };
+
+                return (
+                    <div className="modal show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                        <div className="modal-dialog">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">{editField.fieldLabel} 수정</h5>
+                                    <button type="button" className="btn-close" onClick={() => setShowEditModal(false)}></button>
+                                </div>
+                                <div className="modal-body">
+                                    <div className="mb-3">
+                                        <label className="form-label">현재 값</label>
+                                        <input type="text" className="form-control" value={editField.currentValue} readOnly />
+                                    </div>
+                                    <div className="mb-3">
+                                        <label className="form-label">새 값</label>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            value={editField.newValue}
+                                            onChange={(e) => setEditField(prev => ({...prev, newValue: e.target.value}))}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-secondary" onClick={() => setShowEditModal(false)}>취소</button>
+                                    <button type="button" className="btn btn-primary" onClick={handleSave}>저장</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const StatusModal = () => {
+                if (!showStatusModal) return null;
+
+                const handleStatusSave = () => {
+                    // 실제 구현에서는 API 호출로 상태 변경
+                    setQuoteRequestsData(prev =>
+                        prev.map(item =>
+                            item.id === selectedQuoteId
+                                ? { ...item, recentStatus: statusFormData.status }
+                                : item
+                        )
+                    );
+                    setShowStatusModal(false);
+                };
+
+                return (
+                    <div className="modal show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                        <div className="modal-dialog modal-lg">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">상태 변경</h5>
+                                    <button type="button" className="btn-close" onClick={() => setShowStatusModal(false)}></button>
+                                </div>
+                                <div className="modal-body">
+                                    <div className="mb-3">
+                                        <label className="form-label">상태 선택</label>
+                                        <select
+                                            className="form-select"
+                                            value={statusFormData.status}
+                                            onChange={(e) => setStatusFormData(prev => ({...prev, status: e.target.value, messageContent: messageTemplates[e.target.value] || ''}))}
+                                        >
+                                            {statusOptions.map(status => (
+                                                <option key={status} value={status}>{status}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="mb-3">
+                                        <label className="form-label">메시지 수신자</label>
+                                        <select
+                                            className="form-select"
+                                            value={statusFormData.recipient}
+                                            onChange={(e) => setStatusFormData(prev => ({...prev, recipient: e.target.value}))}
+                                        >
+                                            <option value="업체+고객">업체+고객</option>
+                                            <option value="업체만">업체만</option>
+                                            <option value="고객만">고객만</option>
+                                        </select>
+                                    </div>
+                                    <div className="mb-3">
+                                        <label className="form-label">메시지 내용</label>
+                                        <textarea
+                                            className="form-control"
+                                            rows="4"
+                                            value={statusFormData.messageContent}
+                                            onChange={(e) => setStatusFormData(prev => ({...prev, messageContent: e.target.value}))}
+                                        ></textarea>
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-secondary" onClick={() => setShowStatusModal(false)}>취소</button>
+                                    <button type="button" className="btn btn-primary" onClick={handleStatusSave}>상태 변경</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // 기타 모달들
+            const QuoteModal = () => showQuoteModal ? (
+                <div className="modal show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                    <div className="modal-dialog modal-lg">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">견적 관리</h5>
+                                <button type="button" className="btn-close" onClick={() => setShowQuoteModal(false)}></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="text-center">
+                                    <p className="mb-3">견적 관리 기능을 구현하세요.</p>
+                                    <div className="list-group">
+                                        <div className="list-group-item">
+                                            <div className="d-flex justify-content-between">
+                                                <span>초안 링크</span>
+                                                <button className="btn btn-sm btn-outline-primary">관리</button>
+                                            </div>
+                                        </div>
+                                        <div className="list-group-item">
+                                            <div className="d-flex justify-content-between">
+                                                <span>1차 견적</span>
+                                                <button className="btn btn-sm btn-outline-primary">관리</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null;
+
+            const MemoModal = () => showMemoModal ? (
+                <div className="modal show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                    <div className="modal-dialog modal-lg">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">메모 관리</h5>
+                                <button type="button" className="btn-close" onClick={() => setShowMemoModal(false)}></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="mb-3">
+                                    <label className="form-label">새 메모 작성</label>
+                                    <textarea className="form-control" rows="3" placeholder="메모를 입력하세요..."></textarea>
+                                </div>
+                                <button className="btn btn-primary mb-3">메모 추가</button>
+                                <div className="border-top pt-3">
+                                    <h6>기존 메모</h6>
+                                    <div className="text-muted">등록된 메모가 없습니다.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null;
+
+            const PostModal = () => showPostModal ? (
+                <div className="modal show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                    <div className="modal-dialog modal-lg">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">게시글 관리</h5>
+                                <button type="button" className="btn-close" onClick={() => setShowPostModal(false)}></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="mb-3">
+                                    <label className="form-label">게시글 링크</label>
+                                    <input type="url" className="form-control" placeholder="게시글 URL을 입력하세요" />
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">제목</label>
+                                    <input type="text" className="form-control" placeholder="게시글 제목" />
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">내용</label>
+                                    <textarea className="form-control" rows="5" placeholder="게시글 내용"></textarea>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-secondary" onClick={() => setShowPostModal(false)}>취소</button>
+                                <button type="button" className="btn btn-primary">저장</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null;
+
+            const MessageModal = () => showMessageModal ? (
+                <div className="modal show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                    <div className="modal-dialog modal-lg">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">메시지 전송</h5>
+                                <button type="button" className="btn-close" onClick={() => setShowMessageModal(false)}></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="mb-3">
+                                    <label className="form-label">템플릿 선택</label>
+                                    <select className="form-select">
+                                        <option>템플릿1</option>
+                                        <option>템플릿2</option>
+                                        <option>템플릿3</option>
+                                    </select>
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">수신자</label>
+                                    <select className="form-select">
+                                        <option>업체+고객</option>
+                                        <option>업체만</option>
+                                        <option>고객만</option>
+                                    </select>
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">메시지 내용</label>
+                                    <textarea className="form-control" rows="5" placeholder="메시지 내용을 입력하세요"></textarea>
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-secondary" onClick={() => setShowMessageModal(false)}>취소</button>
+                                <button type="button" className="btn btn-primary">전송</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            ) : null;
+
+            return (
+                <div className="min-h-screen bg-gray-100">
+                    <nav className="bg-white shadow-sm border-b">
+                        <div className="container-fluid">
+                            <div className="d-flex justify-content-between align-items-center py-3">
+                                <h1 className="h4 mb-0 text-gray-900">견적의뢰 관리 시스템</h1>
+                                <div className="d-flex gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage('list')}
+                                        className={`btn ${currentPage === 'list' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                    >
+                                        목록
+                                    </button>
+                                    <button
+                                        onClick={() => setCurrentPage('add')}
+                                        className={`btn ${currentPage === 'add' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                    >
+                                        등록
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+
+                    {currentPage === 'list' && <QuoteListPage />}
+                    {currentPage === 'add' && <QuoteAddPage />}
+
+                    <PostModal />
+                    <MessageModal />
+                    <EditModal />
+                    <QuoteModal />
+                    <MemoModal />
+                    <StatusModal />
+                </div>
+            );
+        };
+
+        // React DOM 렌더링
+        ReactDOM.render(<QuoteManagementSystem />, document.getElementById('react-root'));
+    </script>
+</body>
+</html>
