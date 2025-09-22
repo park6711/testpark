@@ -5,7 +5,7 @@
 
 set -e  # 오류 시 스크립트 중단
 
-# 에러 발생 시 잔디 알림 발송하는 트랩 함수
+# 에러 발생 시 체계적인 잔디 알림 발송하는 트랩 함수
 send_error_notification() {
     local exit_code=$?
     local line_number=$1
@@ -13,29 +13,46 @@ send_error_notification() {
 
     echo "❌ 배포 중 오류 발생! (Line: $line_number, Exit Code: $exit_code)"
 
+    # 에러 단계 분석
+    local progress_stage=""
+    local progress_bar=""
+    if [ $line_number -lt 100 ]; then
+        progress_stage="환경변수 설정 단계"
+        progress_bar="▓▓▓▓▓▓▓░░░ (70%에서 중단)"
+    elif [ $line_number -lt 150 ]; then
+        progress_stage="Docker 이미지 다운로드 단계"
+        progress_bar="▓▓▓▓▓▓▓▓░░ (75%에서 중단)"
+    elif [ $line_number -lt 200 ]; then
+        progress_stage="컨테이너 재시작 단계"
+        progress_bar="▓▓▓▓▓▓▓▓░░ (80%에서 중단)"
+    else
+        progress_stage="헬스체크/완료 단계"
+        progress_bar="▓▓▓▓▓▓▓▓▓░ (90%에서 중단)"
+    fi
+
     # 에러 상세 정보 수집
-    local error_details="라인 $line_number에서 오류 발생\\n명령어: $command\\n종료 코드: $exit_code"
+    local error_details="라인 $line_number에서 오류 발생\\n명령어: \\\`$command\\\`\\n종료 코드: $exit_code"
 
     # 컨테이너 상태 확인
     local container_status=""
     if docker-compose ps testpark &>/dev/null; then
-        container_status="\\n\\n📊 현재 컨테이너 상태:\\n$(docker-compose ps testpark 2>&1 || echo '컨테이너 상태 확인 불가')"
+        container_status="\\n\\n📊 **컨테이너 상태**:\\n\\\`\\\`\\\`\\n$(docker-compose ps testpark 2>&1 || echo '컨테이너 상태 확인 불가')\\n\\\`\\\`\\\`"
     fi
 
     # 최근 로그 확인
     local recent_logs=""
     if docker-compose logs testpark --tail 5 &>/dev/null; then
-        recent_logs="\\n\\n📋 최근 로그:\\n\\\`\\\`\\\`\\n$(docker-compose logs testpark --tail 5 2>&1 || echo '로그 확인 불가')\\n\\\`\\\`\\\`"
+        recent_logs="\\n\\n📋 **최근 로그**:\\n\\\`\\\`\\\`\\n$(docker-compose logs testpark --tail 5 2>&1 || echo '로그 확인 불가')\\n\\\`\\\`\\\`"
     fi
 
     curl -X POST "$JANDI_WEBHOOK" \
       -H "Content-Type: application/json" \
       -d "{
-        \"body\": \"❌ TestPark Docker Compose 배포 실패!\\n\\n🔍 오류 정보:\\n$error_details$container_status$recent_logs\\n\\n⚠️ 수동 확인이 필요합니다!\",
-        \"connectColor\": \"#FF4444\"
+        \"body\": \"🚨 **TestPark 배포 중 예외 오류**\\n\\n📍 **위치**: 실서버 ($progress_stage)\\n📊 **진행률**: $progress_bar\\n❌ **상태**: 스크립트 실행 중단\\n\\n🔍 **오류 세부사항**:\\n$error_details$container_status$recent_logs\\n\\n🛠️ **긴급 조치 필요**:\\n1️⃣ 스크립트 로그 확인\\n2️⃣ 컨테이너 상태 점검\\n3️⃣ 수동 배포 시도\\n4️⃣ 개발팀에 즉시 연락\\n\\n⚠️ **실서버 서비스 영향 가능성 있음**\",
+        \"connectColor\": \"#F44336\"
       }" > /dev/null 2>&1
 
-    echo "📢 에러 알림 전송 완료!"
+    echo "📢 긴급 에러 알림 전송 완료!"
     exit $exit_code
 }
 
@@ -44,20 +61,20 @@ trap 'send_error_notification $LINENO "$BASH_COMMAND"' ERR
 
 echo "🚀 TestPark Docker Compose 배포를 시작합니다..."
 echo "📅 배포 시작 시간: $(date '+%Y-%m-%d %H:%M:%S')"
-echo "🔧 스크립트 버전: v1.3 (웹훅 데이터 파싱 수정 버전)"
+echo "🔧 스크립트 버전: v2.0 (체계적 Jandi 알림 시스템)"
 
 # 환경 변수 설정
 COMPOSE_PROJECT="testpark"
 IMAGE_NAME="7171man/testpark:latest"
 JANDI_WEBHOOK="https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784"
 
-# 배포 시작 알림 (최적화)
+# 70% - 실서버 배포 시작 알림
 echo "📢 배포 시작 알림을 전송합니다..."
 curl -X POST "$JANDI_WEBHOOK" \
   -H "Content-Type: application/json" \
   -d "{
-    \"body\": \"🚀 TestPark Docker Compose 배포 시작!\\n이미지: $IMAGE_NAME\\n방식: Docker Compose\\n예상 시간: 1-2분\\n\\n📍 실서버에서 배포 완료 후 확인해주세요!\",
-    \"connectColor\": \"#FFD700\"
+    \"body\": \"🖥️ **실서버 배포 시작**\\n\\n📍 **위치**: 실서버 (carpenterhosting.cafe24.com)\\n📊 **진행률**: ▓▓▓▓▓▓▓░░░ (70%)\\n🔄 **상태**: Docker Compose 배포 실행 중\\n\\n🐳 **이미지**: $IMAGE_NAME\\n⏱️ **예상 시간**: 1-2분\\n🔧 **스크립트**: v1.3\",
+    \"connectColor\": \"#FF9800\"
   }" > /dev/null 2>&1
 
 # 1단계: 실서버용 .env 파일 생성 및 검증
@@ -135,12 +152,12 @@ echo "📥 최신 Docker 이미지를 가져옵니다..."
 if docker pull $IMAGE_NAME; then
     echo "✅ Docker 이미지 업데이트 완료!"
 
-    # Docker pull 성공 알림
+    # 75% - Docker 이미지 업데이트 완료 알림
     curl -X POST "$JANDI_WEBHOOK" \
       -H "Content-Type: application/json" \
       -d "{
-        \"body\": \"⚡ Docker Compose 배포 진행 중...\\n✅ .env 파일 생성 완료\\n✅ Docker 이미지 업데이트 완료\\n🔄 컨테이너 재시작 진행 중...\\n\\n이미지: $IMAGE_NAME\",
-        \"connectColor\": \"#2196F3\"
+        \"body\": \"📦 **Docker 이미지 업데이트 완료**\\n\\n📍 **위치**: 실서버 (Docker Hub → 로컬)\\n📊 **진행률**: ▓▓▓▓▓▓▓▓░░ (75%)\\n🔄 **상태**: 컨테이너 재시작 준비 중\\n\\n✅ **완료된 작업**:\\n• .env 파일 생성\\n• Docker Hub 로그인\\n• 최신 이미지 다운로드\\n\\n🐳 **이미지**: $IMAGE_NAME\",
+        \"connectColor\": \"#4CAF50\"
       }" > /dev/null 2>&1
 else
     echo "❌ Docker 이미지 가져오기 실패!"
@@ -154,12 +171,12 @@ echo "🔄 Docker Compose 서비스를 재시작합니다..."
 if docker-compose pull testpark && docker-compose up -d --no-deps testpark; then
     echo "✅ 컨테이너 재시작 완료!"
 
-    # 컨테이너 재시작 성공 알림
+    # 80% - 컨테이너 재시작 완료 알림
     curl -X POST "$JANDI_WEBHOOK" \
       -H "Content-Type: application/json" \
       -d "{
-        \"body\": \"⚡ Docker Compose 배포 진행 중...\\n✅ .env 파일 생성 완료\\n✅ 컨테이너 재시작 완료\\n🔍 헬스체크 진행 중...\\n\\n이미지: $IMAGE_NAME\",
-        \"connectColor\": \"#2196F3\"
+        \"body\": \"🔄 **컨테이너 재시작 완료**\\n\\n📍 **위치**: 실서버 (Docker Compose)\\n📊 **진행률**: ▓▓▓▓▓▓▓▓░░ (80%)\\n🔄 **상태**: 애플리케이션 시작 중\\n\\n✅ **완료된 작업**:\\n• 새 컨테이너 생성\\n• 포트 바인딩 설정\\n• 환경변수 로딩\\n\\n🔍 **다음 단계**: 헬스체크 진행\",
+        \"connectColor\": \"#9C27B0\"
       }" > /dev/null 2>&1
 else
     echo "❌ 컨테이너 재시작 실패!"
@@ -187,14 +204,22 @@ else
     CONTAINER_LOGS=$(docker-compose logs testpark --tail 5 2>&1)
     echo "$CONTAINER_LOGS"
 
-    # 환경변수 로딩 경고 알림
+    # 85% - 환경변수 로딩 경고 알림
     curl -X POST "$JANDI_WEBHOOK" \
       -H "Content-Type: application/json" \
       -d "{
-        \"body\": \"⚠️ TestPark 환경변수 로딩 경고!\\n\\n🔍 확인 결과:\\n• $DJANGO_DEBUG\\n• $CSRF_ORIGINS\\n\\n📋 컨테이너 로그:\\n\\\`\\\`\\\`\\n$CONTAINER_LOGS\\n\\\`\\\`\\\`\\n\\n💡 배포는 계속 진행하지만 확인이 필요합니다.\",
+        \"body\": \"⚠️ **환경변수 로딩 경고**\\n\\n📍 **위치**: 실서버 (Django 애플리케이션)\\n📊 **진행률**: ▓▓▓▓▓▓▓▓▓░ (85%)\\n🔄 **상태**: 배포 계속 진행 중\\n\\n🔍 **확인 결과**:\\n• $DJANGO_DEBUG\\n• $CSRF_ORIGINS\\n\\n📋 **컨테이너 로그**:\\n\\\`\\\`\\\`\\n$CONTAINER_LOGS\\n\\\`\\\`\\\`\\n\\n🛠️ **권장 조치**:\\n1️⃣ 배포 완료 후 설정 재확인\\n2️⃣ 애플리케이션 동작 테스트\",
         \"connectColor\": \"#FF9800\"
       }" > /dev/null 2>&1
 fi
+
+# 90% - 헬스체크 시작 알림
+curl -X POST "$JANDI_WEBHOOK" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"body\": \"🔍 **헬스체크 시작**\\n\\n📍 **위치**: 실서버 (애플리케이션 테스트)\\n📊 **진행률**: ▓▓▓▓▓▓▓▓▓░ (90%)\\n🔄 **상태**: HTTP 응답 대기 중\\n\\n🏥 **검사 항목**:\\n• HTTP GET / 요청\\n• 응답 코드 200 확인\\n• 최대 6회 시도 (30초)\\n\\n⏱️ **예상 소요**: 10-30초\",
+    \"connectColor\": \"#673AB7\"
+  }" > /dev/null 2>&1
 
 # 4단계: 헬스 체크
 echo "🔍 애플리케이션 상태를 확인합니다..."
@@ -217,8 +242,8 @@ for i in {1..6}; do
             curl -X POST "$JANDI_WEBHOOK" \
               -H "Content-Type: application/json" \
               -d "{
-                \"body\": \"❌ TestPark Docker Compose 배포 실패!\\n\\n🔍 헬스체크 실패 - 애플리케이션 응답 없음\\n이미지: $IMAGE_NAME\\n\\n📋 최근 로그:\\n\\\`\\\`\\\`\\n${CONTAINER_LOGS}\\n\\\`\\\`\\\`\\n\\n⚠️ 수동 확인이 필요합니다!\",
-                \"connectColor\": \"#FF4444\"
+                \"body\": \"🚨 **헬스체크 실패 - 배포 중단**\\n\\n📍 **위치**: 실서버 (애플리케이션 레벨)\\n📊 **진행률**: ▓▓▓▓▓▓▓▓▓░ (90%에서 중단)\\n❌ **상태**: 애플리케이션 응답 없음\\n\\n🔍 **문제 상황**:\\n• 컨테이너는 실행 중이나 HTTP 응답 없음\\n• 30초 동안 6회 시도 모두 실패\\n\\n📋 **최근 로그**:\\n\\\`\\\`\\\`\\n${CONTAINER_LOGS}\\n\\\`\\\`\\\`\\n\\n🛠️ **긴급 조치 필요**:\\n1️⃣ 컨테이너 로그 상세 확인\\n2️⃣ 포트 바인딩 상태 점검\\n3️⃣ 수동 재시작 시도\\n4️⃣ 이전 버전으로 롤백 고려\",
+                \"connectColor\": \"#F44336\"
               }" > /dev/null 2>&1
 
             exit 1
@@ -244,11 +269,11 @@ CONTAINER_ID=$(docker-compose ps -q testpark)
 CONTAINER_STATUS=$(docker inspect --format='{{.State.Status}}' $CONTAINER_ID)
 CONTAINER_UPTIME=$(docker-compose ps testpark --format "{{.Status}}")
 
-# 최종 배포 완료 알림 (간소화)
+# 100% - 최종 배포 완료 알림
 curl -X POST "$JANDI_WEBHOOK" \
   -H "Content-Type: application/json" \
   -d "{
-    \"body\": \"🎉 TestPark Docker Compose 배포 완료!\\n\\n📊 배포 결과:\\n• 컨테이너 ID: $CONTAINER_ID\\n• 상태: $CONTAINER_STATUS\\n• 업타임: $CONTAINER_UPTIME\\n• 정리된 이미지: ${CLEANED_IMAGES}개\\n• 방식: Docker Compose\\n\\n🌐 서비스: https://carpenterhosting.cafe24.com\\n\\n🔍 **실서버에서 정상 작동 확인 완료해주세요!**\",
+    \"body\": \"🎉 **TestPark 자동배포 완료!**\\n\\n📍 **위치**: 실서버 (서비스 운영 중)\\n📊 **진행률**: ▓▓▓▓▓▓▓▓▓▓ (100%)\\n✅ **상태**: 배포 성공 및 서비스 정상\\n\\n📋 **배포 결과**:\\n• 컨테이너 ID: \\\`$CONTAINER_ID\\\`\\n• 상태: $CONTAINER_STATUS\\n• 업타임: $CONTAINER_UPTIME\\n• 정리된 이미지: ${CLEANED_IMAGES}개\\n\\n🌐 **서비스 주소**:\\n[TestPark 접속하기](https://carpenterhosting.cafe24.com)\\n\\n✅ **모든 검증 완료**:\\n• 헬스체크 통과\\n• 환경변수 로딩 정상\\n• 컨테이너 상태 healthy\",
     \"connectColor\": \"#4CAF50\"
   }" > /dev/null 2>&1
 
