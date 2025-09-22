@@ -9,8 +9,14 @@ from django.views import View
 from django.urls import reverse
 import json
 
+from rest_framework import generics, status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+
 from .models import CustomUser, AuthSession
 from .naver_auth import naver_auth, jandi_webhook
+from .serializers import UserSerializer
 from staff.models import Staff
 
 
@@ -834,5 +840,37 @@ class NaverCallbackView(View):
             print(f"[ERROR] 스텝 인증번호 발송 실패")
             messages.error(request, "스텝 인증번호 발송에 실패했습니다. 다시 시도해주세요.")
             return redirect('accounts:login')
+
+
+# REST API Views
+class UserListAPIView(generics.ListAPIView):
+    """사용자 목록 API"""
+    queryset = CustomUser.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]  # 개발용 - 실제 환경에서는 IsAuthenticated 사용
+
+    def get_queryset(self):
+        """활성 사용자만 반환"""
+        return CustomUser.objects.filter(is_active=True).order_by('-date_joined')
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])  # 개발용
+def api_status(request):
+    """API 상태 확인"""
+    return Response({
+        'status': 'ok',
+        'message': 'TestPark Django API is running',
+        'user_count': CustomUser.objects.count(),
+        'version': '1.0.0'
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_user_profile(request):
+    """현재 로그인된 사용자 프로필"""
+    serializer = UserSerializer(request.user)
+    return Response(serializer.data)
 
 

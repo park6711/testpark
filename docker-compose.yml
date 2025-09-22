@@ -1,4 +1,25 @@
 services:
+  # React 프론트엔드 (개발용)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: testpark-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - CHOKIDAR_USEPOLLING=true  # 파일 변경 감지 개선
+    restart: unless-stopped
+    networks:
+      - testpark-network
+    labels:
+      - "com.testpark.service=frontend"
+      - "com.testpark.description=TestPark React Frontend"
+
   # TestPark 메인 애플리케이션
   testpark:
     image: 7171man/testpark:latest
@@ -77,10 +98,11 @@ networks:
 # 프로젝트 메타데이터
 x-project-info:
   name: "TestPark"
-  description: "TestPark Django Application with Webhook Server"
-  version: "2.0.0"
+  description: "TestPark Full-Stack Application (Django + React)"
+  version: "3.0.0"
   services:
-    - "TestPark Main Application (port 8000)"
+    - "React Frontend (port 3000)"
+    - "Django Backend API (port 8000)"
     - "Webhook Server (port 8080)"
   external_dependencies:
     - "Apache Proxy (ports 80/443)"

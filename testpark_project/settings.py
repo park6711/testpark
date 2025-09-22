@@ -67,6 +67,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    'rest_framework',
+    'corsheaders',
     'demo',
     'accounts',
     'staff',
@@ -88,6 +90,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -185,3 +188,36 @@ NAVER_REDIRECT_URI = os.getenv('NAVER_REDIRECT_URI', 'http://localhost:8000/auth
 
 # 잔디 웹훅 설정
 JANDI_WEBHOOK_URL = os.getenv('JANDI_WEBHOOK_URL', 'https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265')
+
+# Django REST Framework 설정
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20
+}
+
+# CORS 설정
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React 개발 서버
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",  # Django 서버
+    "http://127.0.0.1:8000",
+    "https://carpenterhosting.cafe24.com",
+    "http://carpenterhosting.cafe24.com",
+    "https://210.114.22.100",
+    "http://210.114.22.100",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # 개발 환경에서만 모든 오리진 허용
