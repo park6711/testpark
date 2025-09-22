@@ -203,7 +203,7 @@ sleep 5
 # 최대 30초 동안 헬스 체크 시도
 HEALTH_CHECK_SUCCESS=false
 for i in {1..6}; do
-    if curl -f http://localhost:8000/ > /dev/null 2>&1; then
+    if curl -f http://testpark:8000/ > /dev/null 2>&1; then
         echo "✅ 애플리케이션이 정상적으로 실행되고 있습니다!"
         echo "🌐 접속 주소: https://carpenterhosting.cafe24.com"
         HEALTH_CHECK_SUCCESS=true
