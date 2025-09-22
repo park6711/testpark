@@ -61,7 +61,7 @@ trap 'send_error_notification $LINENO "$BASH_COMMAND"' ERR
 
 echo "🚀 TestPark Docker Compose 배포를 시작합니다..."
 echo "📅 배포 시작 시간: $(date '+%Y-%m-%d %H:%M:%S')"
-echo "🔧 스크립트 버전: v2.0 (체계적 Jandi 알림 시스템)"
+echo "🔧 스크립트 버전: v2.1 (Jandi 알림 전송 상태 검증 강화)"
 
 # 환경 변수 설정
 COMPOSE_PROJECT="testpark"
@@ -214,12 +214,17 @@ else
 fi
 
 # 90% - 헬스체크 시작 알림
-curl -X POST "$JANDI_WEBHOOK" \
+echo "📢 90% 헬스체크 시작 알림을 전송합니다..."
+HTTP_STATUS=$(curl -X POST "$JANDI_WEBHOOK" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"body\": \"🔍 **헬스체크 시작**\\n\\n📍 **위치**: 실서버 (애플리케이션 테스트)\\n📊 **진행률**: ▓▓▓▓▓▓▓▓▓░ (90%)\\n🔄 **상태**: HTTP 응답 대기 중\\n\\n🏥 **검사 항목**:\\n• HTTP GET / 요청\\n• 응답 코드 200 확인\\n• 최대 6회 시도 (30초)\\n\\n⏱️ **예상 소요**: 10-30초\",
-    \"connectColor\": \"#673AB7\"
-  }" > /dev/null 2>&1
+  -d '{"body": "🔍 **헬스체크 시작**\n\n📍 **위치**: 실서버 (애플리케이션 테스트)\n📊 **진행률**: ▓▓▓▓▓▓▓▓▓░ (90%)\n🔄 **상태**: HTTP 응답 대기 중\n\n🏥 **검사 항목**:\n• HTTP GET / 요청\n• 응답 코드 200 확인\n• 최대 6회 시도 (30초)\n\n⏱️ **예상 소요**: 10-30초", "connectColor": "#673AB7"}' \
+  -o /dev/null -w "%{http_code}" -s)
+
+if [ "$HTTP_STATUS" = "200" ]; then
+    echo "✅ 90% 헬스체크 시작 알림 전송 성공!"
+else
+    echo "❌ 90% 헬스체크 시작 알림 전송 실패 (HTTP: $HTTP_STATUS)"
+fi
 
 # 4단계: 헬스 체크
 echo "🔍 애플리케이션 상태를 확인합니다..."
@@ -270,12 +275,21 @@ CONTAINER_STATUS=$(docker inspect --format='{{.State.Status}}' $CONTAINER_ID)
 CONTAINER_UPTIME=$(docker-compose ps testpark --format "{{.Status}}")
 
 # 100% - 최종 배포 완료 알림
-curl -X POST "$JANDI_WEBHOOK" \
+echo "📢 100% 배포 완료 알림을 전송합니다..."
+FINAL_HTTP_STATUS=$(curl -X POST "$JANDI_WEBHOOK" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"body\": \"🎉 **TestPark 자동배포 완료!**\\n\\n📍 **위치**: 실서버 (서비스 운영 중)\\n📊 **진행률**: ▓▓▓▓▓▓▓▓▓▓ (100%)\\n✅ **상태**: 배포 성공 및 서비스 정상\\n\\n📋 **배포 결과**:\\n• 컨테이너 ID: \\\`$CONTAINER_ID\\\`\\n• 상태: $CONTAINER_STATUS\\n• 업타임: $CONTAINER_UPTIME\\n• 정리된 이미지: ${CLEANED_IMAGES}개\\n\\n🌐 **서비스 주소**:\\n[TestPark 접속하기](https://carpenterhosting.cafe24.com)\\n\\n✅ **모든 검증 완료**:\\n• 헬스체크 통과\\n• 환경변수 로딩 정상\\n• 컨테이너 상태 healthy\",
-    \"connectColor\": \"#4CAF50\"
-  }" > /dev/null 2>&1
+  -d "{\"body\": \"🎉 **TestPark 자동배포 완료!**\n\n📍 **위치**: 실서버 (서비스 운영 중)\n📊 **진행률**: ▓▓▓▓▓▓▓▓▓▓ (100%)\n✅ **상태**: 배포 성공 및 서비스 정상\n\n📋 **배포 결과**:\n• 컨테이너 ID: $CONTAINER_ID\n• 상태: $CONTAINER_STATUS\n• 업타임: $CONTAINER_UPTIME\n• 정리된 이미지: ${CLEANED_IMAGES}개\n\n🌐 **서비스 주소**: https://carpenterhosting.cafe24.com\n\n✅ **모든 검증 완료**:\n• 헬스체크 통과\n• 환경변수 로딩 정상\n• 컨테이너 상태 healthy\", \"connectColor\": \"#4CAF50\"}" \
+  -o /dev/null -w "%{http_code}" -s)
 
-echo "📢 잔디 알림 전송 완료!"
+if [ "$FINAL_HTTP_STATUS" = "200" ]; then
+    echo "✅ 100% 배포 완료 알림 전송 성공!"
+else
+    echo "❌ 100% 배포 완료 알림 전송 실패 (HTTP: $FINAL_HTTP_STATUS)"
+    # 재시도
+    echo "🔄 간소 알림 재전송 시도..."
+    curl -X POST "$JANDI_WEBHOOK" \
+      -H "Content-Type: application/json" \
+      -d '{"body": "🎉 **TestPark 배포 완료** (100%)\n\n✅ 서비스 정상 운영: https://carpenterhosting.cafe24.com", "connectColor": "#4CAF50"}' \
+      -o /dev/null && echo "✅ 간소 알림 재전송 완료" || echo "❌ 재전송도 실패"
+fi
 echo "🌐 서비스 접속: https://carpenterhosting.cafe24.com"
