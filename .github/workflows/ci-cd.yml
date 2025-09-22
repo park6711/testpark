@@ -37,15 +37,46 @@ jobs:
         cache-to: type=gha,mode=max
 
 
-    - name: Build success and trigger deployment
-      if: success()
+    - name: Notify deployment start
       run: |
-        # 빌드 성공 및 배포 시작 통합 알림
-        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
+        # 0% - 배포 시작 알림
+        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
           -H "Content-Type: application/json" \
           -d '{
-            "body": "🎉 GitHub Actions 빌드 성공!\n프로젝트: testpark\n커밋: ${{ github.sha }}\n브랜치: ${{ github.ref_name }}\n이미지: 7171man/testpark:latest\n\n🚀 실서버 배포를 시작합니다...",
-            "connectColor": "#00C851"
+            "body": "🚀 **TestPark 자동배포 시작**\n\n📍 **위치**: GitHub 서버\n📊 **진행률**: ░░░░░░░░░░ (0%)\n🔄 **상태**: 배포 파이프라인 시작\n\n📋 **정보**:\n• 프로젝트: testpark\n• 커밋: ${{ github.sha }}\n• 브랜치: ${{ github.ref_name }}\n• 트리거: push 이벤트",
+            "connectColor": "#2196F3"
+          }'
+
+    - name: Notify build start
+      run: |
+        # 20% - Docker 빌드 시작 알림
+        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "body": "🔨 **Docker 이미지 빌드 시작**\n\n📍 **위치**: GitHub 서버\n📊 **진행률**: ▓▓░░░░░░░░ (20%)\n🔄 **상태**: Docker 이미지 빌드 중\n\n🐳 **이미지**: 7171man/testpark:latest\n⏱️ **예상 시간**: 2-3분",
+            "connectColor": "#FF9800"
+          }'
+
+    - name: Notify push success
+      if: success()
+      run: |
+        # 40% - Docker Hub 푸시 완료 알림
+        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "body": "✅ **Docker Hub 푸시 완료**\n\n📍 **위치**: GitHub → Docker Hub\n📊 **진행률**: ▓▓▓▓░░░░░░ (40%)\n🔄 **상태**: 이미지 업로드 완료\n\n🐳 **이미지**: 7171man/testpark:latest\n🏷️ **태그**: latest, ${{ github.sha }}",
+            "connectColor": "#4CAF50"
+          }'
+
+    - name: Trigger deployment and notify
+      if: success()
+      run: |
+        # 60% - 웹훅 트리거 알림
+        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "body": "🌐 **실서버 배포 트리거**\n\n📍 **위치**: GitHub → 실서버\n📊 **진행률**: ▓▓▓▓▓▓░░░░ (60%)\n🔄 **상태**: 웹훅 요청 전송 중\n\n🖥️ **대상**: carpenterhosting.cafe24.com\n⏱️ **예상 시간**: 1-2분",
+            "connectColor": "#9C27B0"
           }'
 
         # 웹훅을 통한 실서버 배포 트리거
@@ -69,16 +100,19 @@ jobs:
 
         # Extract potential error info
         ERROR_STEP=""
+        PROGRESS=""
         if [ "${{ steps.build.outcome }}" == "failure" ]; then
           ERROR_STEP="Docker 이미지 빌드/푸시 실패"
+          PROGRESS="▓▓░░░░░░░░ (20%에서 중단)"
         else
           ERROR_STEP="워크플로우 실행 중 오류 발생"
+          PROGRESS="░░░░░░░░░░ (초기 단계에서 중단)"
         fi
 
-        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/83760d2c508acfed35c1944e8a199f9b" \
+        curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
           -H "Content-Type: application/json" \
           -d "{
-            \"body\": \"❌ GitHub Actions 빌드 실패!\\n프로젝트: testpark\\n커밋: ${{ github.sha }}\\n브랜치: ${{ github.ref_name }}\\n실패 단계: ${ERROR_STEP}\\n로그 확인: ${WORKFLOW_URL}\\n\\n⚠️ 실서버 배포가 중단되었습니다.\",
-            \"connectColor\": \"#FF4444\"
+            \"body\": \"🚨 **TestPark 자동배포 실패**\\n\\n📍 **위치**: GitHub 서버\\n📊 **진행률**: ${PROGRESS}\\n❌ **상태**: 배포 중단됨\\n\\n🔍 **오류 정보**:\\n• 실패 단계: ${ERROR_STEP}\\n• 커밋: ${{ github.sha }}\\n• 브랜치: ${{ github.ref_name }}\\n\\n🛠️ **필요한 조치**:\\n1️⃣ 로그 확인: [GitHub Actions 로그](${WORKFLOW_URL})\\n2️⃣ 코드 수정 후 재푸시\\n3️⃣ 또는 수동 배포 실행\\n\\n⚠️ **실서버 배포가 중단되었습니다**\",
+            \"connectColor\": \"#F44336\"
           }"
         echo "❌ 빌드 중 오류가 발생했습니다: ${ERROR_STEP}"

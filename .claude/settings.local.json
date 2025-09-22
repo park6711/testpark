@@ -34,7 +34,12 @@
       "Bash(/Users/sewookpark/Documents/testpark/impossibleterm/views.py)",
       "Bash(do)",
       "Bash(done)",
-      "Bash(docker-compose exec:*)"
+      "Bash(docker-compose exec:*)",
+      "Bash(docker-compose stop:*)",
+      "Bash(npm install:*)",
+      "Bash(docker-compose build:*)",
+      "Bash(docker-compose up:*)",
+      "Read(//Users/haseongdal/Documents/**)"
     ],
     "deny": [],
     "ask": []

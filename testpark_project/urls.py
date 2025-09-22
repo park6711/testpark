@@ -21,6 +21,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', include('accounts.api_urls')),  # API 경로 추가
     path('auth/', include('accounts.urls')),
     path('staff/', include('staff.urls')),
     path('member/', include('member.urls')),

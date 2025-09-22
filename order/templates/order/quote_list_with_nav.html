@@ -1,0 +1,416 @@
+{% extends 'staff/base.html' %}
+{% load static %}
+
+{% block title %}견적의뢰 관리 - PMIS 2.0{% endblock %}
+
+{% block extra_css %}
+<!-- 추가 CSS -->
+<link href="/static/js/common-styles.css" rel="stylesheet">
+<style>
+    .main-content {
+        padding-top: 20px;
+    }
+
+    /* React 컨테이너 스타일 */
+    #react-root {
+        width: 100%;
+        min-height: calc(100vh - 140px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="react-root"></div>
+
+<!-- CSRF Token -->
+<script>
+    window.csrfToken = '{{ csrf_token }}';
+    window.API_BASE_URL = '/order/api';
+</script>
+
+<!-- React CDN -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+<!-- API 헬퍼 함수 -->
+<script>
+// API 요청 함수
+window.apiRequest = async (url, options = {}) => {
+    const defaultOptions = {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': window.csrfToken,
+        },
+    };
+
+    const config = { ...defaultOptions, ...options };
+
+    try {
+        const response = await fetch(url, config);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('API Request Error:', error);
+        throw error;
+    }
+};
+</script>
+
+<!-- 의뢰리스트 React 컴포넌트 (순수 JavaScript) -->
+<script>
+const { useState, useEffect } = React;
+
+const QuoteListApp = () => {
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        total_pages: 1,
+        total_items: 0,
+        has_next: false,
+        has_previous: false,
+        page_size: 20
+    });
+    const [selectedRows, setSelectedRows] = useState([]);
+    const [filters, setFilters] = useState({
+        search: '',
+        status: '',
+        urgent_only: false
+    });
+
+    // 데이터 로드
+    const loadData = async (page = 1) => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                page: page.toString(),
+                page_size: pagination.page_size.toString(),
+                ...filters
+            });
+
+            const response = await window.apiRequest(`${window.API_BASE_URL}/orders/?${params}`);
+            if (response.success) {
+                setData(response.data);
+                setPagination(response.pagination);
+            } else {
+                alert('데이터 로드 실패: ' + response.error);
+            }
+        } catch (error) {
+            console.error('데이터 로드 실패:', error);
+            alert('데이터를 불러오는데 실패했습니다.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    // 검색 핸들러
+    const handleSearch = () => {
+        loadData(1);
+    };
+
+    // 선택 관리
+    const handleSelectAll = (e) => {
+        if (e.target.checked) {
+            setSelectedRows(data.map(item => item.id));
+        } else {
+            setSelectedRows([]);
+        }
+    };
+
+    const handleSelectRow = (id) => {
+        if (selectedRows.includes(id)) {
+            setSelectedRows(selectedRows.filter(rowId => rowId !== id));
+        } else {
+            setSelectedRows([...selectedRows, id]);
+        }
+    };
+
+    // 일괄 삭제
+    const handleBulkDelete = async () => {
+        if (selectedRows.length === 0) {
+            alert('삭제할 항목을 선택해주세요.');
+            return;
+        }
+
+        const confirmMessage = selectedRows.length === 1
+            ? '선택한 1개 항목을 삭제하시겠습니까?'
+            : `선택한 ${selectedRows.length}개 항목을 삭제하시겠습니까?`;
+
+        if (!confirm(confirmMessage)) return;
+
+        try {
+            const response = await window.apiRequest(`${window.API_BASE_URL}/orders/bulk-delete/`, {
+                method: 'POST',
+                body: JSON.stringify({ order_ids: selectedRows })
+            });
+
+            if (response.success) {
+                alert(response.data.message);
+                setSelectedRows([]);
+                loadData();
+            }
+        } catch (error) {
+            alert('삭제 중 오류가 발생했습니다.');
+        }
+    };
+
+    const getStatusBadgeClass = (status) => {
+        const classes = {
+            '대기중': 'badge bg-warning text-dark',
+            '할당': 'badge bg-primary text-white',
+            '반려': 'badge bg-danger text-white',
+            '취소': 'badge bg-secondary text-white',
+            '제외': 'badge bg-dark text-white',
+            '업체미비': 'badge bg-info text-white'
+        };
+        return classes[status] || 'badge bg-secondary text-white';
+    };
+
+    return React.createElement('div', { className: 'container-fluid' }, [
+        // 헤더
+        React.createElement('div', {
+            key: 'header',
+            className: 'd-flex justify-content-between align-items-center mb-4'
+        }, [
+            React.createElement('h1', {
+                key: 'title',
+                className: 'h3 mb-0'
+            }, '견적의뢰 관리'),
+            React.createElement('div', {
+                key: 'actions',
+                className: 'd-flex gap-2'
+            }, [
+                React.createElement('button', {
+                    key: 'refresh',
+                    className: 'btn btn-outline-primary',
+                    onClick: () => loadData()
+                }, '새로고침'),
+                React.createElement('button', {
+                    key: 'new',
+                    className: 'btn btn-success',
+                    onClick: () => window.open('/order/api/orders/create/', '_blank')
+                }, '➕ 새 의뢰')
+            ])
+        ]),
+
+        // 필터
+        React.createElement('div', {
+            key: 'filters',
+            className: 'card mb-4'
+        }, React.createElement('div', {
+            className: 'card-body'
+        }, React.createElement('div', {
+            className: 'row g-3'
+        }, [
+            React.createElement('div', {
+                key: 'search',
+                className: 'col-md-4'
+            }, React.createElement('div', {
+                className: 'input-group'
+            }, [
+                React.createElement('input', {
+                    key: 'search-input',
+                    type: 'text',
+                    className: 'form-control',
+                    placeholder: '고객명, 연락처, 지역, 공사내용 검색',
+                    value: filters.search,
+                    onChange: (e) => setFilters(prev => ({...prev, search: e.target.value})),
+                    onKeyPress: (e) => e.key === 'Enter' && handleSearch()
+                }),
+                React.createElement('button', {
+                    key: 'search-btn',
+                    className: 'btn btn-primary',
+                    onClick: handleSearch
+                }, '검색')
+            ])),
+            React.createElement('div', {
+                key: 'status',
+                className: 'col-md-2'
+            }, React.createElement('select', {
+                className: 'form-select',
+                value: filters.status,
+                onChange: (e) => setFilters(prev => ({...prev, status: e.target.value}))
+            }, [
+                React.createElement('option', { key: 'all', value: '' }, '전체 상태'),
+                React.createElement('option', { key: 'wait', value: '대기중' }, '대기중'),
+                React.createElement('option', { key: 'assign', value: '할당' }, '할당'),
+                React.createElement('option', { key: 'reject', value: '반려' }, '반려')
+            ])),
+            React.createElement('div', {
+                key: 'urgent',
+                className: 'col-md-2'
+            }, React.createElement('div', {
+                className: 'form-check'
+            }, [
+                React.createElement('input', {
+                    key: 'urgent-check',
+                    className: 'form-check-input',
+                    type: 'checkbox',
+                    checked: filters.urgent_only,
+                    onChange: (e) => setFilters(prev => ({...prev, urgent_only: e.target.checked}))
+                }),
+                React.createElement('label', {
+                    key: 'urgent-label',
+                    className: 'form-check-label'
+                }, '긴급 의뢰만')
+            ]))
+        ]))),
+
+        // 테이블
+        React.createElement('div', {
+            key: 'table-container',
+            className: 'card'
+        }, [
+            React.createElement('div', {
+                key: 'card-header',
+                className: 'card-header d-flex justify-content-between align-items-center'
+            }, [
+                React.createElement('h5', {
+                    key: 'table-title',
+                    className: 'mb-0'
+                }, `총 ${pagination.total_items}건`),
+                React.createElement('button', {
+                    key: 'delete-btn',
+                    className: 'btn btn-danger btn-sm',
+                    onClick: handleBulkDelete,
+                    disabled: selectedRows.length === 0
+                }, `선택 삭제 (${selectedRows.length})`)
+            ]),
+            React.createElement('div', {
+                key: 'card-body',
+                className: 'card-body'
+            }, [
+                loading ? React.createElement('div', {
+                    key: 'loading',
+                    className: 'text-center py-4'
+                }, [
+                    React.createElement('div', {
+                        key: 'spinner',
+                        className: 'spinner-border'
+                    }),
+                    React.createElement('div', {
+                        key: 'loading-text',
+                        className: 'mt-2'
+                    }, '데이터를 불러오는 중...')
+                ]) : React.createElement('div', {
+                    key: 'table-wrapper',
+                    className: 'table-responsive'
+                }, React.createElement('table', {
+                    className: 'table table-hover'
+                }, [
+                    React.createElement('thead', {
+                        key: 'thead',
+                        className: 'table-light'
+                    }, React.createElement('tr', { key: 'header-row' }, [
+                        React.createElement('th', {
+                            key: 'select',
+                            width: '40'
+                        }, React.createElement('input', {
+                            type: 'checkbox',
+                            className: 'form-check-input',
+                            checked: selectedRows.length === data.length && data.length > 0,
+                            onChange: handleSelectAll
+                        })),
+                        React.createElement('th', { key: 'date' }, '접수일시'),
+                        React.createElement('th', { key: 'name' }, '고객명'),
+                        React.createElement('th', { key: 'phone' }, '연락처'),
+                        React.createElement('th', { key: 'area' }, '지역'),
+                        React.createElement('th', { key: 'content' }, '공사내용'),
+                        React.createElement('th', { key: 'status' }, '상태'),
+                        React.createElement('th', { key: 'company' }, '할당업체')
+                    ])),
+                    React.createElement('tbody', {
+                        key: 'tbody'
+                    }, data.length === 0 ? React.createElement('tr', {
+                        key: 'empty'
+                    }, React.createElement('td', {
+                        colSpan: 8,
+                        className: 'text-center py-4 text-muted'
+                    }, '데이터가 없습니다.')) : data.map((row, index) =>
+                        React.createElement('tr', {
+                            key: row.id,
+                            className: row.urgent ? 'table-warning' : ''
+                        }, [
+                            React.createElement('td', {
+                                key: 'select'
+                            }, React.createElement('input', {
+                                type: 'checkbox',
+                                className: 'form-check-input',
+                                checked: selectedRows.includes(row.id),
+                                onChange: () => handleSelectRow(row.id)
+                            })),
+                            React.createElement('td', {
+                                key: 'date',
+                                className: 'small'
+                            }, new Date(row.created_at).toLocaleString('ko-KR')),
+                            React.createElement('td', {
+                                key: 'name'
+                            }, [
+                                React.createElement('div', { key: 'name' }, row.customer_name),
+                                React.createElement('small', {
+                                    key: 'nick',
+                                    className: 'text-muted'
+                                }, row.nickname || '')
+                            ]),
+                            React.createElement('td', { key: 'phone' }, row.customer_phone),
+                            React.createElement('td', { key: 'area' }, row.customer_address),
+                            React.createElement('td', { key: 'content' }, row.construction_content),
+                            React.createElement('td', {
+                                key: 'status'
+                            }, React.createElement('span', {
+                                className: getStatusBadgeClass(row.status)
+                            }, row.status)),
+                            React.createElement('td', {
+                                key: 'company'
+                            }, row.assigned_companies ? row.assigned_companies.map(c => c.name).join(', ') : '')
+                        ])
+                    ))
+                ]))
+            ])
+        ]),
+
+        // 페이지네이션
+        pagination.total_pages > 1 ? React.createElement('nav', {
+            key: 'pagination',
+            className: 'mt-4'
+        }, React.createElement('ul', {
+            className: 'pagination justify-content-center'
+        }, [
+            React.createElement('li', {
+                key: 'prev',
+                className: `page-item ${!pagination.has_previous ? 'disabled' : ''}`
+            }, React.createElement('button', {
+                className: 'page-link',
+                onClick: () => loadData(pagination.current_page - 1),
+                disabled: !pagination.has_previous
+            }, '이전')),
+            ...Array.from({ length: pagination.total_pages }, (_, i) =>
+                React.createElement('li', {
+                    key: i,
+                    className: `page-item ${pagination.current_page === i + 1 ? 'active' : ''}`
+                }, React.createElement('button', {
+                    className: 'page-link',
+                    onClick: () => loadData(i + 1)
+                }, i + 1))
+            ),
+            React.createElement('li', {
+                key: 'next',
+                className: `page-item ${!pagination.has_next ? 'disabled' : ''}`
+            }, React.createElement('button', {
+                className: 'page-link',
+                onClick: () => loadData(pagination.current_page + 1),
+                disabled: !pagination.has_next
+            }, '다음'))
+        ])) : null
+    ]);
+};
+
+// React DOM 렌더링
+ReactDOM.render(React.createElement(QuoteListApp), document.getElementById('react-root'));
+</script>
+{% endblock %}

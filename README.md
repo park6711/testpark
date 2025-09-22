@@ -270,4 +270,4 @@ python manage.py runserver 8001  # 다른 포트 사용
 ```
 GitHub Push → GitHub Actions → Webhook API → Docker Deployment → Jandi Notification
              (CI/CD Pipeline)   (Port 8080)    (TestPark Service)     (팀 알림)
-```
+```# TestPark v2.0 알림 시스템 테스트 Mon 22 Sep 2025 01:27:19 PM KST

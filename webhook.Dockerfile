@@ -1,8 +1,8 @@
 # TestPark 웹훅 서버 Dockerfile
 FROM node:18-alpine
 
-# 필수 패키지 설치 (Docker CLI 포함)
-RUN apk add --no-cache curl docker-cli bash
+# 필수 패키지 설치 (Docker CLI 및 Docker Compose 포함)
+RUN apk add --no-cache curl docker-cli docker-compose bash
 
 # 작업 디렉토리를 /var/www/testpark로 설정 (마운트된 경로와 일치)
 WORKDIR /var/www/testpark

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>견적의뢰 관리 시스템</title>
+    <!-- Ant Design CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/antd@5.12.8/dist/reset.css" />
+</head>
+<body>
+<div id="root" style="padding: 20px;">테스트 페이지</div>
+
+<!-- React & ReactDOM -->
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+<!-- Babel for JSX -->
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Ant Design -->
+<script src="https://unpkg.com/dayjs@1.11.10/dayjs.min.js"></script>
+<script src="https://unpkg.com/antd@5.12.8/dist/antd.min.js"></script>
+
+<!-- Ant Design Icons -->
+<script src="https://unpkg.com/@ant-design/icons@5.2.6/dist/index.umd.min.js"></script>
+
+<!-- Axios for API calls -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<script type="text/babel">
+const { Card, Typography } = antd;
+const { Title } = Typography;
+
+const TestComponent = () => {
+    return (
+        <Card>
+            <Title level={3}>견적의뢰 관리 시스템 - 테스트</Title>
+            <p>Ant Design이 정상적으로 로드되었습니다.</p>
+        </Card>
+    );
+};
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<TestComponent />);
+</script>
+
+</body>
+</html>

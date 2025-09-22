@@ -10,7 +10,8 @@ const PORT = process.env.WEBHOOK_PORT || 8080;
 const SECRET = process.env.WEBHOOK_SECRET || 'testpark-webhook-secret';
 const DEPLOY_SCRIPT = process.env.DEPLOY_SCRIPT || '/app/deploy-docker.sh';
 
-app.use(express.raw({ type: 'application/json' }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Docker Hub Webhook 핸들러
 app.post('/webhook/dockerhub', (req, res) => {
@@ -44,6 +45,9 @@ app.post('/deploy-from-github', (req, res) => {
     const body = req.body;
     let payload;
 
+    console.log('🔍 GitHub Actions 원본 요청 데이터:', JSON.stringify(body, null, 2));
+    console.log('🔍 Content-Type:', req.headers['content-type']);
+
     try {
         payload = typeof body === 'string' ? JSON.parse(body) : body;
     } catch (e) {
@@ -55,10 +59,10 @@ app.post('/deploy-from-github', (req, res) => {
     }
 
     console.log('🚀 GitHub Actions 배포 요청을 받았습니다...');
-    console.log(`📦 프로젝트: ${payload.project}`);
-    console.log(`📝 커밋: ${payload.commit}`);
-    console.log(`🌿 브랜치: ${payload.branch}`);
-    console.log(`🐳 이미지: ${payload.image}`);
+    console.log(`📦 프로젝트: ${payload.project || 'undefined'}`);
+    console.log(`📝 커밋: ${payload.commit || 'undefined'}`);
+    console.log(`🌿 브랜치: ${payload.branch || 'undefined'}`);
+    console.log(`🐳 이미지: ${payload.image || 'undefined'}`);
 
     try {
         const output = execSync(`bash ${DEPLOY_SCRIPT}`, { encoding: 'utf8' });
