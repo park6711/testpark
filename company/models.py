@@ -86,6 +86,22 @@ class Company(models.Model):
     sGallery = models.TextField(blank=True, verbose_name='갤러리방')
     sEstimate = models.TextField(blank=True, verbose_name='견적방')
 
+    # 새로 추가된 필드들
+    sStop = models.TextField(blank=True, verbose_name='일시정지 사유')
+    dateStopStart = models.DateField(null=True, blank=True, verbose_name='일시정지 시작일')
+    dateStopEnd = models.DateField(null=True, blank=True, verbose_name='일시정지 종료일')
+    nLevel = models.IntegerField(default=0, verbose_name='현재레벨')
+    nGrade = models.IntegerField(default=0, verbose_name='현재등급')
+    nApplyGrade = models.IntegerField(default=0, verbose_name='적용등급')
+    sApplyGradeReason = models.CharField(max_length=200, blank=True, verbose_name='적용등급 사유')
+    nAssignAll2 = models.IntegerField(default=0, verbose_name='올수리 2일 할당수')
+    nAssignPart2 = models.IntegerField(default=0, verbose_name='부분수리 2일 할당수')
+    nAssignAllTerm = models.IntegerField(default=0, verbose_name='올수리 평가기간 할당수')
+    nAssignPartTerm = models.IntegerField(default=0, verbose_name='부분수리 평가기간 할당수')
+    nAssignMax = models.IntegerField(default=0, verbose_name='최대할당수')
+    fAssignPercent = models.FloatField(default=0.0, verbose_name='할당퍼센트')
+    fAssignLack = models.FloatField(default=0.0, verbose_name='고정비업체 할당부족개수')
+
     class Meta:
         db_table = 'company'
         verbose_name = '업체'

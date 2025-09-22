@@ -591,9 +591,8 @@
                         <span class="dropdown-item" style="color: #ccc; cursor: not-allowed;">사업자 리스트 (권한없음)</span>
                     {% endif %}
                     <a href="/stop/" class="dropdown-item">일시정지 기간</a>
-                    <a href="/impossibleterm/" class="dropdown-item">공사 불가능 기간</a>
-                    <a href="{% url 'possiblearea:possi_manage' %}" class="dropdown-item">공사 가능 지역</a>
-                    <a href="#" class="dropdown-item">업체 상태</a>
+                    <a href="/impossibleterm/" class="dropdown-item">불가능 기간</a>
+                    <a href="{% url 'possiblearea:possi_manage' %}" class="dropdown-item">가능 지역</a>
                 </div>
             </div>
 
@@ -602,8 +601,8 @@
                 <a href="#" class="menu-link">의뢰할당</a>
                 <div class="dropdown">
                     <a href="#" class="dropdown-item">의뢰 리스트</a>
-                    <a href="#" class="dropdown-item">공동 리스트</a>
-                    <a href="#" class="dropdown-item">공구 정보</a>
+                    <a href="{% url 'gonggu:gonggu_list' %}" class="dropdown-item">공동구매 리스트</a>
+                    <a href="/companycondition/" class="dropdown-item">업체 상태</a>
                     <a href="#" class="dropdown-item">가능지역 현황판</a>
                 </div>
             </div>

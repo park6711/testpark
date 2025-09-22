@@ -1,0 +1,346 @@
+{% extends 'member/base.html' %}
+
+{% block title %}
+{% if form_type == 'create' %}공동구매 생성{% else %}공동구매 수정{% endif %} - PMIS 2.0
+{% endblock %}
+
+{% block page_title %}
+{% if form_type == 'create' %}공동구매 생성{% else %}공동구매 수정{% endif %}
+{% endblock %}
+
+{% block page_subtitle %}
+{% if form_type == 'create' %}새로운 공동구매를 생성합니다{% else %}공동구매 정보를 수정합니다{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        {% if form_type == 'create' %}공동구매 생성{% else %}공동구매 수정{% endif %}
+    </h1>
+    <p class="page-subtitle">
+        {% if form_type == 'create' %}새로운 공동구매를 생성합니다{% else %}공동구매 정보를 수정합니다{% endif %}
+    </p>
+</div>
+
+<div class="form-container">
+    <form method="POST" class="gonggu-form">
+        {% csrf_token %}
+
+        <div class="form-section">
+            <h3 class="section-title">기본 정보</h3>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="nStepType" class="form-label">단계구분 *</label>
+                    <select name="nStepType" id="nStepType" class="form-control" required>
+                        <option value="">선택하세요</option>
+                        <option value="0" {% if gonggu.nStepType == 0 %}selected{% endif %}>준비중</option>
+                        <option value="1" {% if gonggu.nStepType == 1 %}selected{% endif %}>진행중</option>
+                        <option value="2" {% if gonggu.nStepType == 2 %}selected{% endif %}>일시정지</option>
+                        <option value="3" {% if gonggu.nStepType == 3 %}selected{% endif %}>마감</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="nType" class="form-label">구분 *</label>
+                    <select name="nType" id="nType" class="form-control" required>
+                        <option value="">선택하세요</option>
+                        <option value="0" {% if gonggu.nType == 0 %}selected{% endif %}>올수리</option>
+                        <option value="1" {% if gonggu.nType == 1 %}selected{% endif %}>부분기타</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sNo" class="form-label">공구회차</label>
+                    <input type="text" name="sNo" id="sNo" class="form-control"
+                           value="{{ gonggu.sNo|default:'' }}" placeholder="공구회차를 입력하세요">
+                </div>
+
+                <div class="form-group">
+                    <label for="sName" class="form-label">공구이름 *</label>
+                    <input type="text" name="sName" id="sName" class="form-control"
+                           value="{{ gonggu.sName|default:'' }}" placeholder="공구이름을 입력하세요" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label for="sStrength" class="form-label">특징</label>
+                    <textarea name="sStrength" id="sStrength" class="form-control" rows="3"
+                              placeholder="공동구매의 특징을 입력하세요">{{ gonggu.sStrength|default:'' }}</textarea>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label for="sPost" class="form-label">게시물 URL</label>
+                    <input type="url" name="sPost" id="sPost" class="form-control"
+                           value="{{ gonggu.sPost|default:'' }}" placeholder="https://example.com">
+                    <small class="form-text">게시물 링크를 입력하세요 (선택사항)</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                {% if form_type == 'create' %}생성하기{% else %}수정하기{% endif %}
+            </button>
+            <a href="{% url 'gonggu:gonggu_list' %}" class="btn btn-secondary">목록으로</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.form-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.gonggu-form {
+    padding: 30px;
+}
+
+.form-section {
+    margin-bottom: 30px;
+}
+
+.section-title {
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    flex: 1;
+}
+
+.form-group.full-width {
+    flex: none;
+    width: 100%;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+    font-size: 14px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-control[required] {
+    border-left: 3px solid #007bff;
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-text {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #666;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    padding-top: 20px;
+    border-top: 1px solid #f8f9fa;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+    transform: translateY(-1px);
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .gonggu-form {
+        padding: 20px;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+}
+
+/* 필드 유효성 검사 스타일 */
+.form-control:invalid {
+    border-color: #dc3545;
+}
+
+.form-control:valid {
+    border-color: #28a745;
+}
+
+/* 선택 필드 스타일 개선 */
+select.form-control {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 8px center;
+    background-repeat: no-repeat;
+    background-size: 16px;
+    padding-right: 35px;
+    appearance: none;
+}
+
+/* 로딩 상태 */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* 성공/에러 메시지가 이미 base.html에 있으므로 추가 스타일 불필요 */
+</style>
+
+<script>
+// 폼 유효성 검사
+document.querySelector('.gonggu-form').addEventListener('submit', function(e) {
+    const requiredFields = this.querySelectorAll('[required]');
+    let isValid = true;
+
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            field.style.borderColor = '#dc3545';
+            isValid = false;
+        } else {
+            field.style.borderColor = '#28a745';
+        }
+    });
+
+    if (!isValid) {
+        e.preventDefault();
+        showToast('필수 항목을 모두 입력해주세요.', 'error');
+        return false;
+    }
+
+    // 제출 버튼 비활성화 (중복 제출 방지)
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = '처리 중...';
+});
+
+// URL 형식 검증
+document.getElementById('sPost').addEventListener('blur', function() {
+    const url = this.value.trim();
+    if (url && !isValidUrl(url)) {
+        this.style.borderColor = '#dc3545';
+        showToast('올바른 URL 형식을 입력해주세요.', 'warning');
+    } else if (url) {
+        this.style.borderColor = '#28a745';
+    }
+});
+
+function isValidUrl(string) {
+    try {
+        new URL(string);
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+// 토스트 알림
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+
+    const style = toast.style;
+    style.position = 'fixed';
+    style.top = '20px';
+    style.right = '20px';
+    style.padding = '12px 24px';
+    style.borderRadius = '4px';
+    style.color = 'white';
+    style.fontSize = '14px';
+    style.zIndex = '9999';
+    style.opacity = '0';
+    style.transition = 'opacity 0.3s ease';
+
+    if (type === 'success') {
+        style.backgroundColor = '#28a745';
+    } else if (type === 'error') {
+        style.backgroundColor = '#dc3545';
+    } else if (type === 'warning') {
+        style.backgroundColor = '#ffc107';
+        style.color = '#212529';
+    } else {
+        style.backgroundColor = '#17a2b8';
+    }
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        style.opacity = '1';
+    }, 100);
+
+    setTimeout(() => {
+        style.opacity = '0';
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+</script>
+{% endblock %}

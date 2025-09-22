@@ -30,6 +30,13 @@ urlpatterns = [
     path('stop/', include('stop.urls')),
     path('impossibleterm/', include('impossibleterm.urls')),
     path('possiblearea/', include('possiblearea.urls')),
+    path('order/', include('order.urls')),
+    path('gonggu/', include('gonggu.urls')),
+    path('contract/', include('contract.urls')),
+    path('evaluation/', include('evaluation.urls')),
+    path('template/', include('template.urls')),
+    path('point/', include('point.urls')),
+    path('companycondition/', include('companycondition.urls')),
     path('', include('demo.urls')),
 ]
 

@@ -1,0 +1,488 @@
+{% extends 'member/base.html' %}
+
+{% block title %}공동구매 가능 지역 관리 - PMIS 2.0{% endblock %}
+{% block page_title %}공동구매 가능 지역 관리{% endblock %}
+{% block page_subtitle %}참여업체별 지역 설정{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<!-- 페이지 액션 버튼 -->
+<div class="page-actions">
+    <button type="button" onclick="closeAreaManage()" class="btn btn-secondary">닫기</button>
+</div>
+
+<!-- 페이지 정보 -->
+<div class="page-info">
+    <p><strong>공동구매:</strong> {{ gonggu.sName }}</p>
+    <p><strong>참여업체:</strong> {{ gonggu_company.get_company_name }}</p>
+</div>
+
+<div class="area-manage-container">
+    <!-- 추가지역 섹션 -->
+    <div class="area-section">
+        <h3 class="section-title">추가지역 (전국, 광역지역, 시군구지역 모두 가능)</h3>
+        <div class="area-input-group">
+            <select id="additionalAreaSelect" class="form-control">
+                <option value="">지역을 선택하세요</option>
+                {% for area in all_areas %}
+                <option value="{{ area.no }}">{{ area.get_full_name }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" onclick="addArea(0)" class="btn btn-success">추가</button>
+        </div>
+        <div class="area-list" id="additionalAreaList">
+            {% for area in additional_areas %}
+            <div class="area-item" data-area-id="{{ area.noArea }}" data-type="0">
+                <span class="area-name">
+                    {% if area.noArea == 0 %}🌍{% elif area.noArea|floatformat:0|length == 4 and area.noArea|divisibleby:1000 %}🏛️{% else %}🏢{% endif %}
+                    {{ area.get_area_name }}
+                </span>
+                <button type="button" onclick="removeArea({{ area.noArea }}, 0)" class="btn btn-danger btn-xs">×</button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 제외지역 섹션 -->
+    <div class="area-section">
+        <h3 class="section-title">제외지역 (시군구지역 중 통합시 제외)</h3>
+        <div class="area-input-group">
+            <select id="excludedAreaSelect" class="form-control">
+                <option value="">지역을 선택하세요</option>
+                {% for area in filtered_areas %}
+                <option value="{{ area.no }}">{{ area.get_full_name }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" onclick="addArea(1)" class="btn btn-success">추가</button>
+        </div>
+        <div class="area-list" id="excludedAreaList">
+            {% for area in excluded_areas %}
+            <div class="area-item" data-area-id="{{ area.noArea }}" data-type="1">
+                <span class="area-name">
+                    {% if area.noArea == 0 %}🌍{% elif area.noArea|floatformat:0|length == 4 and area.noArea|divisibleby:1000 %}🏛️{% else %}🏢{% endif %}
+                    {{ area.get_area_name }}
+                </span>
+                <button type="button" onclick="removeArea({{ area.noArea }}, 1)" class="btn btn-danger btn-xs">×</button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 실제할당지역 섹션 -->
+    <div class="area-section">
+        <h3 class="section-title">계산된 실제할당지역 (시군구지역 중 통합시 제외)</h3>
+        <div class="calculated-info">
+            <p class="info-text">실제할당지역 = 추가지역 - 제외지역</p>
+        </div>
+        <div class="area-list" id="assignedAreaList">
+            {% for area in assigned_areas %}
+            <div class="area-item assigned" data-area-id="{{ area.noArea }}" data-type="2">
+                <span class="area-name">
+                    {% if area.noArea == 0 %}🌍{% elif area.noArea|floatformat:0|length == 4 and area.noArea|divisibleby:1000 %}🏛️{% else %}🏢{% endif %}
+                    {{ area.get_area_name }}
+                </span>
+                <span class="area-type-badge">실제할당</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* 페이지 액션 버튼 스타일 */
+.page-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    justify-content: flex-end;
+}
+
+/* 페이지 정보 스타일 */
+.page-info {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.page-info p {
+    margin: 5px 0;
+    color: #555;
+}
+
+.area-manage-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.area-section {
+    padding: 30px;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.area-section:last-child {
+    border-bottom: none;
+}
+
+.section-title {
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.area-input-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.area-input-group select {
+    flex: 1;
+    max-width: 400px;
+}
+
+.area-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-height: 60px;
+    padding: 15px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+}
+
+.area-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    font-size: 14px;
+}
+
+.area-item.assigned {
+    background: #e3f2fd;
+    border-color: #2196f3;
+}
+
+.area-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.area-type-badge {
+    background: #2196f3;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.calculated-info {
+    margin-bottom: 15px;
+}
+
+.info-text {
+    color: #666;
+    font-style: italic;
+    margin: 0;
+    font-size: 14px;
+}
+
+/* 버튼 스타일 */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
+.btn-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #1e7e34;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.btn-xs {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.form-control {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* 삭제됨 - 이제 page-actions로 대체 */
+
+/* 반응형 */
+@media (max-width: 768px) {
+    .page-actions {
+        justify-content: flex-start;
+    }
+
+    .area-input-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .area-input-group select {
+        max-width: none;
+    }
+
+    .area-section {
+        padding: 20px;
+    }
+}
+</style>
+
+<script>
+// 현재 상태를 추적하는 변수들
+let currentAdditionalAreas = new Set();
+let currentExcludedAreas = new Set();
+
+// 페이지 로드 시 현재 지역 상태 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    // 기존 추가지역 로드
+    document.querySelectorAll('#additionalAreaList .area-item').forEach(item => {
+        currentAdditionalAreas.add(parseInt(item.dataset.areaId));
+    });
+
+    // 기존 제외지역 로드
+    document.querySelectorAll('#excludedAreaList .area-item').forEach(item => {
+        currentExcludedAreas.add(parseInt(item.dataset.areaId));
+    });
+
+    updateAssignedAreas();
+});
+
+function addArea(areaType) {
+    const selectId = areaType === 0 ? 'additionalAreaSelect' : 'excludedAreaSelect';
+    const select = document.getElementById(selectId);
+
+    if (!select.value) {
+        showToast('지역을 선택해주세요.', 'error');
+        return;
+    }
+
+    const areaId = parseInt(select.value);
+    const areaText = select.options[select.selectedIndex].text;
+
+    // AJAX로 서버에 지역 추가 요청
+    fetch(`/gonggu/company/{{ gonggu_company.no }}/area-manage/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            action: 'add',
+            area_type: areaType,
+            area_id: areaId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 성공 시 화면에 지역 추가
+            const listId = areaType === 0 ? 'additionalAreaList' : 'excludedAreaList';
+            const list = document.getElementById(listId);
+
+            const areaItem = document.createElement('div');
+            areaItem.className = 'area-item';
+            areaItem.dataset.areaId = areaId;
+            areaItem.dataset.type = areaType;
+
+            // PossibleArea 방식의 아이콘 포함 표시
+            const displayName = data.data.display_name || areaText;
+            areaItem.innerHTML = `
+                <span class="area-name">${displayName}</span>
+                <button type="button" onclick="removeArea(${areaId}, ${areaType})" class="btn btn-danger btn-xs">×</button>
+            `;
+
+            list.appendChild(areaItem);
+
+            // 상태 업데이트
+            if (areaType === 0) {
+                currentAdditionalAreas.add(areaId);
+            } else {
+                currentExcludedAreas.add(areaId);
+            }
+
+            // 실제할당지역 새로고침
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+
+            showToast('지역이 추가되었습니다.', 'success');
+        } else {
+            showToast(data.error || '지역 추가 중 오류가 발생했습니다.', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('네트워크 오류가 발생했습니다.', 'error');
+    });
+
+    // 선택 초기화
+    select.value = '';
+}
+
+function removeArea(areaId, areaType) {
+    // AJAX로 서버에 지역 삭제 요청
+    fetch(`/gonggu/company/{{ gonggu_company.no }}/area-manage/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            action: 'remove',
+            area_type: areaType,
+            area_id: areaId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 성공 시 화면에서 지역 제거
+            const listId = areaType === 0 ? 'additionalAreaList' : 'excludedAreaList';
+            const list = document.getElementById(listId);
+
+            const areaItem = list.querySelector(`[data-area-id="${areaId}"]`);
+            if (areaItem) {
+                areaItem.remove();
+            }
+
+            // 상태 업데이트
+            if (areaType === 0) {
+                currentAdditionalAreas.delete(areaId);
+            } else {
+                currentExcludedAreas.delete(areaId);
+            }
+
+            // 실제할당지역 새로고침
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+
+            showToast('지역이 삭제되었습니다.', 'success');
+        } else {
+            showToast(data.error || '지역 삭제 중 오류가 발생했습니다.', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('네트워크 오류가 발생했습니다.', 'error');
+    });
+}
+
+function updateAssignedAreas() {
+    // TODO: 실제할당지역 계산 로직 구현
+    // 현재는 간단한 표시만
+    console.log('추가지역:', Array.from(currentAdditionalAreas));
+    console.log('제외지역:', Array.from(currentExcludedAreas));
+}
+
+// saveAreas 함수는 더 이상 필요하지 않음 (개별 추가/삭제로 대체)
+
+function closeAreaManage() {
+    window.history.back();
+}
+
+// 토스트 알림
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.textContent = message;
+
+    const style = toast.style;
+    style.position = 'fixed';
+    style.top = '20px';
+    style.right = '20px';
+    style.padding = '12px 24px';
+    style.borderRadius = '4px';
+    style.color = 'white';
+    style.fontSize = '14px';
+    style.zIndex = '9999';
+    style.opacity = '0';
+    style.transition = 'opacity 0.3s ease';
+
+    if (type === 'success') {
+        style.backgroundColor = '#28a745';
+    } else if (type === 'error') {
+        style.backgroundColor = '#dc3545';
+    } else {
+        style.backgroundColor = '#17a2b8';
+    }
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        style.opacity = '1';
+    }, 100);
+
+    setTimeout(() => {
+        style.opacity = '0';
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+</script>
+
+{% endblock %}

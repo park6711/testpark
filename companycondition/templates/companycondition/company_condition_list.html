@@ -1,0 +1,958 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}업체 상태{% endblock %}
+
+{% block page_title %}<span id="page-title">업체 상태</span>{% endblock %}
+{% block page_subtitle %}업체의 상태 정보를 조회하고 관리합니다.{% endblock %}
+
+{% block content %}
+{% if not not_logged_in %}
+{{ block.super }}
+{% endif %}
+
+{% csrf_token %}
+
+{% if not not_logged_in %}
+<style>
+    .form-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 30px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 25px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+    }
+
+    .company-info-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 30px;
+        margin-top: 20px;
+        display: none;
+    }
+
+    .info-row {
+        display: flex;
+        margin-bottom: 15px;
+        align-items: center;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: #333;
+        width: 250px;
+        font-size: 14px;
+    }
+
+    .info-value {
+        color: #555;
+        font-size: 14px;
+        flex: 1;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #545b62;
+    }
+
+    /* 드롭다운 스타일 */
+    .company-search-container {
+        position: relative;
+    }
+
+    .company-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 4px 4px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .company-item {
+        padding: 10px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: background-color 0.2s ease;
+    }
+
+    .company-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .company-item.active {
+        background-color: #e7f3ff;
+    }
+
+    .company-item:last-child {
+        border-bottom: none;
+    }
+
+    .company-name {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .company-meta {
+        font-size: 12px;
+        color: #666;
+        margin-top: 2px;
+    }
+
+    /* 선택된 업체 표시 */
+    .selected-company {
+        margin-top: 8px;
+        padding: 8px 12px;
+        background: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 4px;
+        display: none;
+        font-size: 14px;
+    }
+
+    .clear-company {
+        background: none;
+        border: none;
+        float: right;
+        color: #666;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .clear-company:hover {
+        color: #333;
+    }
+
+    /* 커스텀 모달 스타일 */
+    .custom-modal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .custom-modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        border-radius: 8px;
+        width: 400px;
+        max-width: 90%;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .custom-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .custom-modal-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .custom-modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #aaa;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .custom-modal-close:hover {
+        color: #000;
+    }
+
+    .custom-modal-body {
+        margin-bottom: 20px;
+    }
+
+    .custom-modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    /* Badge 스타일 (Company 리스트와 동일) */
+    .badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        margin: 0 2px;
+    }
+
+    .badge-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .badge-warning {
+        background-color: #ffc107;  /* 노랑색으로 변경 (순수단종) */
+        color: black;
+    }
+
+    .badge-secondary {
+        background-color: #28a745;  /* 녹색으로 변경 (일반토탈) */
+        color: white;
+    }
+
+    .badge-success {
+        background-color: #6c757d;  /* 회색으로 변경 (btoc제휴) */
+        color: white;
+    }
+
+    .badge-info {
+        background-color: #ffc0cb;  /* 연한분홍색으로 변경 (부분단종) */
+        color: #333;
+    }
+
+    .badge-light {
+        background-color: #f8f9fa;
+        color: #6c757d;
+        border: 1px solid #dee2e6;
+    }
+
+    .badge-dark {
+        background-color: #343a40;
+        color: white;
+    }
+
+    .badge-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    /* 알림 토스트 스타일 */
+    .toast-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 20000;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+        font-size: 14px;
+        font-weight: 500;
+        max-width: 300px;
+    }
+
+    .toast-notification.show {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    .toast-notification.error {
+        background: #dc3545;
+    }
+</style>
+
+<!-- 업체 선택 -->
+<div class="form-container">
+    <div class="form-group">
+        <label for="company-search" class="form-label">
+            열린업체 <span style="color: red;">*</span>
+        </label>
+        <div class="company-search-container">
+            <input type="text"
+                   id="company-search"
+                   class="form-control"
+                   placeholder="업체명을 입력하여 검색하세요..."
+                   autocomplete="off"
+                   style="padding-right: 40px;"
+                   readonly>
+            <div id="search-icon" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #666; font-size: 16px; cursor: pointer;">🔍</div>
+            <div id="company-dropdown" class="company-dropdown"></div>
+        </div>
+        <input type="hidden" id="company-select" value="">
+        <div id="selected-company" class="selected-company">
+            <span id="selected-company-name"></span>
+            <button type="button" id="clear-company" class="clear-company">✕</button>
+        </div>
+    </div>
+</div>
+
+<!-- 업체 상태 정보 -->
+<div id="company-info" class="company-info-container">
+    <!-- 등급 정보 섹션 -->
+    <div class="info-section">
+        <h4 id="grade-section-title" style="margin-bottom: 20px; color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px;">등급 정보</h4>
+
+        <div class="info-row">
+            <div class="info-label">현재 레벨:</div>
+            <div class="info-value" id="info-level">-</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">현재 등급:</div>
+            <div class="info-value" id="info-grade">-</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">현재 적용등급:</div>
+            <div class="info-value">
+                <span id="info-apply-grade">-</span>
+                {% if current_staff and current_staff.nCompanyAuthority >= 2 %}
+                    <button type="button" id="change-grade-btn" class="btn btn-primary" style="margin-left: 15px;">적용등급 변경</button>
+                {% else %}
+                    <button type="button" class="btn btn-secondary" style="margin-left: 15px; cursor: not-allowed;" disabled title="수정 권한이 없습니다">적용등급 변경</button>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">적용등급 변경사유:</div>
+            <div class="info-value" id="info-apply-grade-reason">-</div>
+        </div>
+    </div>
+
+    <!-- 할당수 정보 섹션 -->
+    <div class="info-section" style="margin-top: 30px;">
+        <h4 id="assign-section-title" style="margin-bottom: 20px; color: #333; border-bottom: 2px solid #28a745; padding-bottom: 10px;">할당수 정보</h4>
+
+        <div class="info-row">
+            <div class="info-label">최근 2일 할당수(올수리):</div>
+            <div class="info-value" id="info-assign-all-2">-</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">최근 3일 할당수(부분수리):</div>
+            <div class="info-value" id="info-assign-part-2">-</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">현재 평가기간 할당수(올수리):</div>
+            <div class="info-value" id="info-assign-all-term">-</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">현재 평가기간 할당수(부분수리):</div>
+            <div class="info-value" id="info-assign-part-term">-</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">현재 적용등급을 고려한 최대할당수:</div>
+            <div class="info-value" id="info-assign-max">-</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">현재 적용등급을 고려한 할당퍼센트:</div>
+            <div class="info-value" id="info-assign-percent">-</div>
+        </div>
+
+        <div class="info-row">
+            <div class="info-label">고정비업체 할당부족 개수:</div>
+            <div class="info-value" id="info-assign-lack">-</div>
+        </div>
+    </div>
+</div>
+
+<!-- 적용등급 변경 모달 -->
+<div id="grade-modal" class="custom-modal">
+    <div class="custom-modal-content">
+        <div class="custom-modal-header">
+            <h3 class="custom-modal-title">적용등급 변경</h3>
+            <button type="button" class="custom-modal-close" onclick="closeGradeModal()">&times;</button>
+        </div>
+        <div class="custom-modal-body">
+            <div class="form-group">
+                <label class="form-label">현재 등급:</label>
+                <div class="form-control" style="background-color: #f8f9fa; color: #6c757d;" id="modal-current-grade">-</div>
+            </div>
+            <div class="form-group">
+                <label for="modal-apply-grade" class="form-label">현재 적용등급:</label>
+                <select id="modal-apply-grade" class="form-control">
+                    <!-- 0등급부터 100등급까지 옵션 동적 생성 -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="modal-apply-grade-reason" class="form-label">변경 사유:</label>
+                <textarea id="modal-apply-grade-reason" class="form-control" rows="3" placeholder="변경 사유를 입력해주세요..."></textarea>
+            </div>
+        </div>
+        <div class="custom-modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeGradeModal()">취소</button>
+            <button type="button" class="btn btn-primary" onclick="saveApplyGrade()">저장</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedCompanyId = null;
+let searchTimeout = null;
+
+// 현재 스텝의 권한 정보
+const currentStaffAuthority = {% if current_staff %}{{ current_staff.nCompanyAuthority }}{% else %}0{% endif %};
+
+// nType Badge 생성 함수
+function getTypeBadge(nType, typeText) {
+    let badgeClass = '';
+    switch(nType) {
+        case 0: badgeClass = 'badge-secondary'; break; // 일반토탈
+        case 1: badgeClass = 'badge-primary'; break;   // 고정비토탈
+        case 2: badgeClass = 'badge-info'; break;      // 부분단종
+        case 3: badgeClass = 'badge-warning'; break;   // 순수단종
+        case 4: badgeClass = 'badge-success'; break;   // btoc제휴
+        case 5: badgeClass = 'badge-dark'; break;      // btob제휴
+        default: badgeClass = 'badge-secondary'; break;
+    }
+    return `<span class="badge ${badgeClass}">${typeText}</span>`;
+}
+
+// nCondition Badge 생성 함수
+function getConditionBadge(nCondition, conditionText) {
+    let badgeClass = '';
+    switch(nCondition) {
+        case 0: badgeClass = 'badge-light'; break;   // 준비중
+        case 1: badgeClass = 'badge-success'; break; // 정상
+        case 2: badgeClass = 'badge-warning'; break; // 일시정지
+        case 3: badgeClass = 'badge-danger'; break;  // 탈퇴
+        default: badgeClass = 'badge-light'; break;
+    }
+    return `<span class="badge ${badgeClass}">${conditionText}</span>`;
+}
+
+// 권한에 따른 Company 링크 생성 함수
+function getCompanyLink(companyId, companyName) {
+    if (currentStaffAuthority === 0) {
+        // 권한없음: 접근 제한
+        return {
+            html: `<span style="color: #999; cursor: not-allowed;" title="접근 권한이 없습니다">${companyName}</span>`,
+            clickable: false
+        };
+    } else if (currentStaffAuthority === 1) {
+        // 읽기권한: 보기 화면
+        return {
+            html: `<a href="/company/view/${companyId}/" style="color: #333; text-decoration: underline; cursor: pointer;" title="보기 전용">${companyName}</a>`,
+            clickable: true
+        };
+    } else if (currentStaffAuthority === 2) {
+        // 쓰기권한: 수정 화면
+        return {
+            html: `<a href="/company/update/${companyId}/" style="color: #333; text-decoration: underline; cursor: pointer;" title="수정 가능">${companyName}</a>`,
+            clickable: true
+        };
+    } else {
+        // 기타 권한: 보기 화면
+        return {
+            html: `<a href="/company/view/${companyId}/" style="color: #333; text-decoration: underline; cursor: pointer;">${companyName}</a>`,
+            clickable: true
+        };
+    }
+}
+
+// DOM이 로드된 후 이벤트 리스너 추가
+document.addEventListener('DOMContentLoaded', function() {
+    // 업체 검색 - 클릭 시 전체 업체 표시
+    document.getElementById('company-search').addEventListener('click', function() {
+        console.log('Search input clicked, readOnly:', this.readOnly);
+        if (this.readOnly) {
+            // 읽기 전용일 때 클릭하면 검색 모드로 전환
+            this.readOnly = false;
+            this.placeholder = "업체명을 입력하여 검색하세요...";
+            this.focus();
+            loadAllCompanies();
+        } else {
+            // 이미 검색 모드일 때
+            const query = this.value.trim();
+            if (query.length >= 1) {
+                searchCompanies(query);
+            } else {
+                loadAllCompanies();
+            }
+        }
+    });
+
+    // 검색 아이콘 클릭 시 전체 업체 표시
+    document.getElementById('search-icon').addEventListener('click', function() {
+        console.log('Search icon clicked');
+        const searchInput = document.getElementById('company-search');
+        searchInput.readOnly = false;
+        searchInput.placeholder = "업체명을 입력하여 검색하세요...";
+        searchInput.focus();
+        loadAllCompanies();
+    });
+
+    // 업체 검색 (입력 시에만)
+    document.getElementById('company-search').addEventListener('input', function() {
+        console.log('Input event, readOnly:', this.readOnly, 'value:', this.value);
+        if (this.readOnly) return;
+
+        const query = this.value.trim();
+
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+
+        searchTimeout = setTimeout(() => {
+            if (query.length >= 1) {
+                searchCompanies(query);
+            } else {
+                loadAllCompanies();
+            }
+        }, 300);
+    });
+});
+
+// 키보드 이벤트
+document.getElementById('company-search').addEventListener('keydown', function(e) {
+    const dropdown = document.getElementById('company-dropdown');
+
+    if (dropdown.style.display !== 'block') return;
+
+    const items = dropdown.querySelectorAll('.company-item');
+    const active = dropdown.querySelector('.company-item.active');
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (active) {
+            const next = active.nextElementSibling;
+            if (next) {
+                setActiveCompanyItem(items, Array.from(items).indexOf(next));
+            }
+        } else if (items.length > 0) {
+            setActiveCompanyItem(items, 0);
+        }
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (active) {
+            const prev = active.previousElementSibling;
+            if (prev) {
+                setActiveCompanyItem(items, Array.from(items).indexOf(prev));
+            }
+        }
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (active) {
+            selectCompany(active.dataset.companyId, active.dataset.companyName, active.dataset.companyType, active.dataset.companyCondition);
+        }
+    } else if (e.key === 'Escape') {
+        hideCompanyDropdown();
+    }
+});
+
+// 전체 업체 로드
+async function loadAllCompanies() {
+    try {
+        const response = await fetch('/companycondition/search/?q=');
+        const data = await response.json();
+
+        showCompanyDropdown(data.results);
+    } catch (error) {
+        console.error('업체 로드 오류:', error);
+    }
+}
+
+// 업체 검색 함수
+async function searchCompanies(query) {
+    try {
+        const response = await fetch(`/companycondition/search/?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        showCompanyDropdown(data.results);
+    } catch (error) {
+        console.error('업체 검색 오류:', error);
+    }
+}
+
+// 드롭다운 표시
+function showCompanyDropdown(companies) {
+    const dropdown = document.getElementById('company-dropdown');
+    dropdown.innerHTML = '';
+    dropdown.style.display = 'block';
+
+    if (companies.length === 0) {
+        const noResult = document.createElement('div');
+        noResult.className = 'company-item';
+        noResult.innerHTML = '<div style="color: #999; text-align: center;">검색 결과가 없습니다.</div>';
+        dropdown.appendChild(noResult);
+        return;
+    }
+
+    companies.forEach((company, index) => {
+        const item = document.createElement('div');
+        item.className = 'company-item';
+        item.dataset.companyId = company.id;
+        item.dataset.companyName = company.name;
+        item.dataset.companyType = company.type;
+        item.dataset.companyCondition = company.condition;
+        item.dataset.companyTypeValue = company.type_value;
+        item.dataset.companyConditionValue = company.condition_value;
+
+        item.innerHTML = `
+            <div class="company-name">${company.name}</div>
+            <div class="company-meta">${company.type} | ${company.condition}</div>
+        `;
+
+        item.addEventListener('click', function() {
+            selectCompany(company.id, company.name, company.type, company.condition);
+        });
+
+        dropdown.appendChild(item);
+
+        if (index === 0) {
+            setActiveCompanyItem(dropdown.querySelectorAll('.company-item'), 0);
+        }
+    });
+}
+
+// 드롭다운 숨기기
+function hideCompanyDropdown() {
+    document.getElementById('company-dropdown').style.display = 'none';
+}
+
+// 활성 아이템 설정
+function setActiveCompanyItem(items, index) {
+    items.forEach(item => item.classList.remove('active'));
+    if (items[index]) {
+        items[index].classList.add('active');
+    }
+}
+
+// 업체 선택
+function selectCompany(companyId, companyName, companyType, companyCondition) {
+    selectedCompanyId = companyId;
+
+    // 페이지 타이틀 업데이트 (권한에 따른 업체명 링크 생성)
+    const pageTitle = document.getElementById('page-title');
+    const companyLink = getCompanyLink(companyId, companyName);
+
+    // 드롭다운 아이템에서 type_value와 condition_value 가져오기
+    const clickedItem = document.querySelector('.company-item.active') ||
+                       document.querySelector(`[data-company-id="${companyId}"]`);
+
+    let typeBadge = companyType;
+    let conditionBadge = companyCondition;
+
+    if (clickedItem) {
+        const typeValue = parseInt(clickedItem.dataset.companyTypeValue || 0);
+        const conditionValue = parseInt(clickedItem.dataset.companyConditionValue || 0);
+        typeBadge = getTypeBadge(typeValue, companyType);
+        conditionBadge = getConditionBadge(conditionValue, companyCondition);
+    }
+
+    pageTitle.innerHTML = `업체 상태 - ${companyLink.html} ${typeBadge} ${conditionBadge}`;
+
+    // 검색 입력 필드 업데이트
+    const searchInput = document.getElementById('company-search');
+    searchInput.value = `${companyName} (${companyType} | ${companyCondition})`;
+    searchInput.readOnly = true;
+    searchInput.placeholder = "열린업체를 클릭하여 변경하세요";
+
+    document.getElementById('company-select').value = companyId;
+    document.getElementById('selected-company-name').innerHTML = `
+        <strong>${companyName}</strong><br>
+        <small>${companyType} | ${companyCondition}</small>
+    `;
+    document.getElementById('selected-company').style.display = 'block';
+    hideCompanyDropdown();
+
+    // 업체 상세 정보 로드
+    loadCompanyDetail(companyId);
+}
+
+// 업체 선택 해제
+document.getElementById('clear-company').addEventListener('click', function() {
+    selectedCompanyId = null;
+
+    // 페이지 타이틀 초기화
+    const pageTitle = document.getElementById('page-title');
+    pageTitle.textContent = '업체 상태';
+
+    // 검색 입력 필드 초기화
+    const searchInput = document.getElementById('company-search');
+    searchInput.value = '';
+    searchInput.readOnly = true;
+    searchInput.placeholder = "업체명을 입력하여 검색하세요...";
+
+    // 섹션 타이틀 초기화
+    document.getElementById('grade-section-title').textContent = '등급 정보';
+    document.getElementById('assign-section-title').textContent = '할당수 정보';
+
+    document.getElementById('company-select').value = '';
+    document.getElementById('selected-company').style.display = 'none';
+    document.getElementById('company-info').style.display = 'none';
+});
+
+// 업체 상세 정보 로드
+async function loadCompanyDetail(companyId) {
+    try {
+        const response = await fetch(`/companycondition/detail/${companyId}/`);
+        const data = await response.json();
+
+        if (data.error) {
+            showToast(data.error, 'error');
+            return;
+        }
+
+        // 섹션 타이틀 업데이트 (권한에 따른 업체명 링크 생성)
+        const sectionCompanyLink = getCompanyLink(companyId, data.name);
+        document.getElementById('grade-section-title').innerHTML = `${sectionCompanyLink.html} 등급 정보`;
+        document.getElementById('assign-section-title').innerHTML = `${sectionCompanyLink.html} 할당수 정보`;
+
+        // 정보 표시
+        document.getElementById('info-level').textContent = data.level + ' 레벨';
+        document.getElementById('info-grade').textContent = data.grade + ' 등급';
+        document.getElementById('info-apply-grade').textContent = data.apply_grade + ' 등급';
+        document.getElementById('info-apply-grade-reason').textContent = data.apply_grade_reason || '-';
+        document.getElementById('info-assign-all-2').textContent = data.assign_all_2 + ' 개';
+        document.getElementById('info-assign-part-2').textContent = data.assign_part_2 + ' 개';
+        document.getElementById('info-assign-all-term').textContent = data.assign_all_term + ' 개';
+        document.getElementById('info-assign-part-term').textContent = data.assign_part_term + ' 개';
+        document.getElementById('info-assign-max').textContent = data.assign_max + ' 개';
+        document.getElementById('info-assign-percent').textContent = data.assign_percent + ' %';
+        document.getElementById('info-assign-lack').textContent = data.assign_lack + ' 개';
+
+        document.getElementById('company-info').style.display = 'block';
+
+    } catch (error) {
+        console.error('업체 정보 로드 오류:', error);
+        showToast('업체 정보를 불러오는데 실패했습니다.', 'error');
+    }
+}
+
+// 적용등급 드롭다운 초기화 (0~100등급)
+function initializeGradeDropdown() {
+    const select = document.getElementById('modal-apply-grade');
+    select.innerHTML = ''; // 기존 옵션 제거
+
+    for (let i = 0; i <= 100; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = i + '등급';
+        select.appendChild(option);
+    }
+}
+
+// 적용등급 변경 모달
+const changeGradeBtn = document.getElementById('change-grade-btn');
+if (changeGradeBtn) {
+    changeGradeBtn.addEventListener('click', function() {
+        // 권한 체크
+        if (currentStaffAuthority < 2) {
+            showToast('적용등급 변경 권한이 없습니다.', 'error');
+            return;
+        }
+
+        if (!selectedCompanyId) return;
+
+        // 드롭다운 초기화
+        initializeGradeDropdown();
+
+        // 현재 등급과 적용등급 값을 모달에 설정
+        const currentGrade = document.getElementById('info-grade').textContent.replace(' 등급', '');
+        const currentApplyGrade = document.getElementById('info-apply-grade').textContent.replace(' 등급', '');
+        const currentReason = document.getElementById('info-apply-grade-reason').textContent;
+
+        document.getElementById('modal-current-grade').textContent = currentGrade + ' 등급';
+        document.getElementById('modal-apply-grade').value = currentApplyGrade;
+        document.getElementById('modal-apply-grade-reason').value = currentReason === '-' ? '' : currentReason;
+
+        document.getElementById('grade-modal').style.display = 'block';
+    });
+}
+
+// 적용등급 선택 시 자동 사유 입력
+document.getElementById('modal-apply-grade').addEventListener('change', function() {
+    if (!selectedCompanyId) return;
+
+    const newApplyGrade = this.value;
+    const currentGrade = document.getElementById('info-grade').textContent.replace(' 등급', '');
+    const currentApplyGrade = document.getElementById('info-apply-grade').textContent.replace(' 등급', '');
+
+    // 날짜 형식: YYMMDD (250921)
+    const today = new Date();
+    const year = String(today.getFullYear()).slice(-2); // 25
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // 09
+    const day = String(today.getDate()).padStart(2, '0'); // 21
+    const dateStr = year + month + day;
+
+    // Staff.sNick 정보 가져오기 (현재 세션에서)
+    const staffNick = '{{ current_staff.sNick|default:request.session.staff_user.name }}';
+
+    // 자동 사유 생성: (Staff.sNick) + 날짜 + "nGrade=>nApplyGrade"
+    const autoReason = `(${staffNick}) ${dateStr} ${currentGrade}=>${newApplyGrade}`;
+
+    // 기존 입력값이 있으면 뒷쪽에 추가, 없으면 새로 설정
+    const reasonTextarea = document.getElementById('modal-apply-grade-reason');
+    const currentReasonValue = reasonTextarea.value.trim();
+
+    if (currentReasonValue) {
+        // 기존 내용이 있으면 뒷쪽에 추가
+        reasonTextarea.value = currentReasonValue + ' ' + autoReason;
+    } else {
+        // 기존 내용이 없으면 새로 설정
+        reasonTextarea.value = autoReason;
+    }
+});
+
+// 모달 닫기
+function closeGradeModal() {
+    document.getElementById('grade-modal').style.display = 'none';
+}
+
+// 적용등급 저장
+async function saveApplyGrade() {
+    if (!selectedCompanyId) return;
+
+    const applyGrade = document.getElementById('modal-apply-grade').value;
+    const applyGradeReason = document.getElementById('modal-apply-grade-reason').value.trim();
+
+    try {
+        const response = await fetch(`/companycondition/update/${selectedCompanyId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                apply_grade: parseInt(applyGrade),
+                apply_grade_reason: applyGradeReason
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // UI 업데이트
+            document.getElementById('info-apply-grade').textContent = data.apply_grade + ' 등급';
+            document.getElementById('info-apply-grade-reason').textContent = data.apply_grade_reason || '-';
+
+            closeGradeModal();
+            showToast(data.message, 'success');
+        } else {
+            showToast(data.error || '저장에 실패했습니다.', 'error');
+        }
+
+    } catch (error) {
+        console.error('저장 오류:', error);
+        showToast('저장에 실패했습니다.', 'error');
+    }
+}
+
+// 모달 외부 클릭시 닫기
+document.getElementById('grade-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeGradeModal();
+    }
+});
+
+// 토스트 알림 표시 함수
+function showToast(message, type = 'success') {
+    // 기존 토스트 제거
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+
+    // 새 토스트 생성
+    const toast = document.createElement('div');
+    toast.className = `toast-notification ${type}`;
+    toast.textContent = message;
+
+    document.body.appendChild(toast);
+
+    // 애니메이션으로 표시
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 100);
+
+    // 3초 후 자동 제거
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// 외부 클릭시 드롭다운 닫기
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.company-search-container')) {
+        hideCompanyDropdown();
+    }
+});
+</script>
+
+{% endif %}
+{% endblock %}
