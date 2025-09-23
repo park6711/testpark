@@ -1,0 +1,249 @@
+{% extends "staff/base.html" %}
+{% load humanize %}
+
+{% block title %}포인트 관리{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <h2 class="mb-4">포인트 관리</h2>
+
+    <!-- 검색 및 필터 섹션 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="{% url 'point:point_list' %}" id="searchForm">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="search" class="form-label">통합 검색</label>
+                        <input type="text" class="form-control" id="search" name="search"
+                               value="{{ request.GET.search }}"
+                               placeholder="업체명, 작업자, 메모 검색">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="company" class="form-label">업체</label>
+                        <select class="form-select" id="company" name="company">
+                            <option value="">전체 업체</option>
+                            {% for company in companies %}
+                            <option value="{{ company.no }}" {% if request.GET.company == company.no|stringformat:"s" %}selected{% endif %}>
+                                {{ company.sName2 }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="type" class="form-label">구분</label>
+                        <select class="form-select" id="type" name="type">
+                            <option value="">전체</option>
+                            {% for value, label in point_types %}
+                            <option value="{{ value }}" {% if request.GET.type == value|stringformat:"s" %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="start_date" class="form-label">시작일</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date"
+                               value="{{ request.GET.start_date }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="end_date" class="form-label">종료일</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date"
+                               value="{{ request.GET.end_date }}">
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">검색</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 액션 버튼 -->
+    <div class="d-flex justify-content-between mb-3">
+        <div>
+            <a href="{% url 'point:point_create' %}" class="btn btn-success">
+                <i class="fas fa-plus"></i> 포인트 추가
+            </a>
+            <a href="{% url 'point:company_points' %}" class="btn btn-info">
+                <i class="fas fa-building"></i> 업체별 최종 포인트 보기
+            </a>
+        </div>
+        <div>
+            <span class="badge bg-secondary">총 {{ points.paginator.count }}건</span>
+        </div>
+    </div>
+
+    <!-- 포인트 리스트 테이블 -->
+    <div class="table-responsive">
+        <table class="table table-hover table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>No</th>
+                    <th>업체명</th>
+                    <th>일시</th>
+                    <th>구분</th>
+                    <th>계약보고ID</th>
+                    <th>작업자</th>
+                    <th class="text-end">이전 포인트</th>
+                    <th class="text-end">사용 포인트</th>
+                    <th class="text-end">잔액 포인트</th>
+                    <th>메모</th>
+                    <th class="text-center">작업</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for point in points %}
+                <tr>
+                    <td>{{ point.no }}</td>
+                    <td>
+                        <strong>{{ point.noCompany.sName2 }}</strong>
+                        <br>
+                        <small class="text-muted">{{ point.noCompany.sName1 }}</small>
+                    </td>
+                    <td>
+                        {{ point.time|date:"Y-m-d" }}<br>
+                        <small>{{ point.time|date:"H:i:s" }}</small>
+                    </td>
+                    <td>
+                        <span class="badge" style="background-color: {{ point.get_type_display_with_color.color }}">
+                            {{ point.get_type_display_with_color.type }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if point.noCompanyReport %}
+                            <a href="#" class="text-decoration-none" title="{{ point.noCompanyReport.sMemo }}">
+                                #{{ point.noCompanyReport.no }}
+                            </a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ point.sWorker|default:"-" }}</td>
+                    <td class="text-end">{{ point.nPrePoint|intcomma }}</td>
+                    <td class="text-end">
+                        {% if point.nUsePoint != 0 %}
+                            <span class="text-danger">{{ point.nUsePoint|intcomma }}</span>
+                        {% else %}
+                            0
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <strong>{{ point.nRemainPoint|intcomma }}</strong>
+                        <br>
+                        <small>
+                            {{ point.get_point_change_display }}
+                        </small>
+                    </td>
+                    <td>
+                        <span title="{{ point.sMemo }}">
+                            {{ point.get_memo_preview }}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'point:point_detail' point.no %}"
+                               class="btn btn-outline-info" title="보기">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'point:point_update' point.no %}"
+                               class="btn btn-outline-warning" title="수정">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button type="button" class="btn btn-outline-danger"
+                                    onclick="confirmDelete({{ point.no }}, '{{ point.noCompany.sName2 }}')"
+                                    title="삭제">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="11" class="text-center py-5 text-muted">
+                        <i class="fas fa-inbox fa-3x mb-3"></i>
+                        <p>포인트 내역이 없습니다.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 페이지네이션 -->
+    {% if points.has_other_pages %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            {% if points.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">처음</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ points.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">이전</a>
+            </li>
+            {% endif %}
+
+            {% for num in points.paginator.page_range %}
+                {% if points.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > points.number|add:'-3' and num < points.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if points.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ points.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">다음</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ points.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">마지막</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">포인트 삭제 확인</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="deleteMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                <form id="deleteForm" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">삭제</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete(pointId, companyName) {
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    document.getElementById('deleteMessage').textContent =
+        `정말로 ${companyName}의 포인트 내역 #${pointId}을(를) 삭제하시겠습니까?`;
+    document.getElementById('deleteForm').action =
+        "{% url 'point:point_delete' 0 %}".replace('0', pointId);
+    modal.show();
+}
+
+// 엔터키로 검색 실행
+document.getElementById('searchForm').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        this.submit();
+    }
+});
+</script>
+{% endblock %}

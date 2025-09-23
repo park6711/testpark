@@ -90,13 +90,13 @@ class Point(models.Model):
         change = self.get_point_change()
         if change > 0:
             return format_html(
-                '<span style="color: #28a745; font-weight: bold;">+{:,}</span>',
-                change
+                '<span style="color: #28a745; font-weight: bold;">+{}</span>',
+                f'{change:,}'
             )
         elif change < 0:
             return format_html(
-                '<span style="color: #dc3545; font-weight: bold;">{:,}</span>',
-                change
+                '<span style="color: #dc3545; font-weight: bold;">{}</span>',
+                f'{change:,}'
             )
         else:
             return format_html(

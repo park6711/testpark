@@ -1,0 +1,146 @@
+{% extends "staff/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-3">
+    <h2 class="mb-4">{{ title }}</h2>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            {{ form.non_field_errors }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="{{ form.noCompany.id_for_label }}" class="form-label">
+                                업체 <span class="text-danger">*</span>
+                            </label>
+                            {{ form.noCompany }}
+                            {% if form.noCompany.errors %}
+                            <div class="text-danger small">{{ form.noCompany.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.nType.id_for_label }}" class="form-label">
+                                구분
+                            </label>
+                            {{ form.nType }}
+                            {% if form.nType.errors %}
+                            <div class="text-danger small">{{ form.nType.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.noCompanyReport.id_for_label }}" class="form-label">
+                                계약보고
+                            </label>
+                            {{ form.noCompanyReport }}
+                            {% if form.noCompanyReport.errors %}
+                            <div class="text-danger small">{{ form.noCompanyReport.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">관련 계약보고가 있는 경우 선택하세요.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.nUsePoint.id_for_label }}" class="form-label">
+                                사용 포인트
+                            </label>
+                            {{ form.nUsePoint }}
+                            {% if form.nUsePoint.errors %}
+                            <div class="text-danger small">{{ form.nUsePoint.errors }}</div>
+                            {% endif %}
+                            <small class="text-muted">포인트를 차감하는 경우 양수로 입력하세요.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.sWorker.id_for_label }}" class="form-label">
+                                작업자
+                            </label>
+                            {{ form.sWorker }}
+                            {% if form.sWorker.errors %}
+                            <div class="text-danger small">{{ form.sWorker.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.sMemo.id_for_label }}" class="form-label">
+                                메모
+                            </label>
+                            {{ form.sMemo }}
+                            {% if form.sMemo.errors %}
+                            <div class="text-danger small">{{ form.sMemo.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'point:point_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> 취소
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> {{ button_text }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- 도움말 -->
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-info-circle"></i> 도움말
+                    </h5>
+                    <ul class="small mb-0">
+                        <li>업체를 선택하면 해당 업체의 현재 포인트 잔액을 기준으로 계산됩니다.</li>
+                        <li>사용 포인트는 차감할 포인트를 양수로 입력합니다.</li>
+                        <li>포인트 추가(적립)는 사용 포인트에 음수를 입력하거나 0을 입력합니다.</li>
+                        <li>계약보고는 관련된 계약이 있는 경우에만 선택합니다.</li>
+                        <li>메모에는 포인트 변동 사유를 상세히 기록하는 것이 좋습니다.</li>
+                    </ul>
+                </div>
+            </div>
+
+            {% if point %}
+            <!-- 현재 포인트 정보 (수정 시) -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">현재 정보</h5>
+                    <dl class="row small">
+                        <dt class="col-6">포인트 ID:</dt>
+                        <dd class="col-6">#{{ point.no }}</dd>
+
+                        <dt class="col-6">등록일시:</dt>
+                        <dd class="col-6">{{ point.time|date:"Y-m-d H:i" }}</dd>
+
+                        <dt class="col-6">이전 포인트:</dt>
+                        <dd class="col-6">{{ point.nPrePoint|default:0 }}</dd>
+
+                        <dt class="col-6">현재 잔액:</dt>
+                        <dd class="col-6"><strong>{{ point.nRemainPoint|default:0 }}</strong></dd>
+                    </dl>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+// 업체 선택 시 현재 포인트 표시 (AJAX로 구현 가능)
+document.getElementById('id_noCompany').addEventListener('change', function() {
+    // TODO: AJAX로 선택한 업체의 현재 포인트 가져오기
+});
+</script>
+{% endblock %}
