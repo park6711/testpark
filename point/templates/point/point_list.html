@@ -1,0 +1,558 @@
+{% extends 'staff/base.html' %}
+{% load humanize %}
+
+{% block title %}포인트 내역 - PMIS 2.0{% endblock %}
+{% block page_title %}포인트 내역{% endblock %}
+{% block page_subtitle %}포인트 관리 및 조회{% endblock %}
+
+{% block content %}
+<!-- 페이지 헤더 -->
+<div class="page-header">
+    <h1 class="page-title">포인트 내역</h1>
+    <p class="page-subtitle">업체별 포인트 관리 및 조회</p>
+</div>
+
+<!-- 필터 섹션 -->
+<div class="filter-section">
+    <form method="GET" id="filterForm" class="filter-form">
+        <div class="filter-row">
+            <!-- 통합 검색 -->
+            <div class="search-group">
+                <input type="text" name="search" value="{{ request.GET.search }}"
+                       placeholder="업체명, 작업자, 메모로 검색..." class="search-input">
+            </div>
+
+
+            <!-- 구분 필터 -->
+            <div class="filter-group">
+                <label>구분:</label>
+                <select name="type" class="filter-select">
+                    <option value="">전체</option>
+                    {% for value, label in point_types %}
+                    <option value="{{ value }}" {% if request.GET.type == value|stringformat:"s" %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <!-- 날짜 필터 -->
+            <div class="filter-group">
+                <label>시작일:</label>
+                <input type="date" name="start_date" value="{{ request.GET.start_date }}" class="date-input">
+            </div>
+
+            <div class="filter-group">
+                <label>종료일:</label>
+                <input type="date" name="end_date" value="{{ request.GET.end_date }}" class="date-input">
+            </div>
+
+            <!-- 검색 버튼 -->
+            <div class="action-group">
+                <button type="submit" class="btn btn-primary">검색</button>
+                <a href="{% url 'point:point_list' %}" class="btn btn-secondary">초기화</a>
+                <a href="{% url 'point:point_create' %}" class="btn btn-success">+ 포인트 추가</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- 결과 요약 -->
+<div class="result-summary">
+    <span>총 <strong>{{ points.paginator.count }}</strong>건의 포인트 내역이 있습니다.</span>
+</div>
+
+<!-- 테이블 -->
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th width="5%">No</th>
+                <th width="15%">업체명</th>
+                <th width="12%">일시</th>
+                <th width="8%">구분</th>
+                <th width="8%">계약보고</th>
+                <th width="8%">작업자</th>
+                <th width="10%">이전포인트</th>
+                <th width="10%">적용포인트</th>
+                <th width="10%">잔액포인트</th>
+                <th width="14%">메모</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for point in points %}
+            <tr class="data-row" onclick="window.location.href='{% url 'point:point_detail' point.no %}'">
+                <td>{{ point.no }}</td>
+                <td class="company-name">
+                    {% if point.noCompany %}
+                        <strong>{{ point.noCompany.sName2 }}</strong>
+                        <div class="sub-text">{{ point.noCompany.sName1 }}</div>
+                    {% else %}
+                        <strong style="color: #dc3545;">삭제된 업체</strong>
+                        <div class="sub-text" style="color: #999;">업체 정보 없음</div>
+                    {% endif %}
+                </td>
+                <td>
+                    {{ point.time|date:"Y-m-d" }}
+                    <div class="sub-text">{{ point.time|date:"H:i:s" }}</div>
+                </td>
+                <td>
+                    {% if point.nType == 0 %}
+                        <span class="badge badge-secondary">기타</span>
+                    {% elif point.nType == 1 %}
+                        <span class="badge badge-success">취소환불</span>
+                    {% elif point.nType == 2 %}
+                        <span class="badge badge-warning">과/미입금</span>
+                    {% elif point.nType == 3 %}
+                        <span class="badge badge-info">페이백적립</span>
+                    {% elif point.nType == 4 %}
+                        <span class="badge badge-primary">닷컴전환</span>
+                    {% elif point.nType == 5 %}
+                        <span class="badge badge-danger">포인트소멸</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if point.noCompanyReport %}
+                        <span class="link-text">#{{ point.noCompanyReport.no }}</span>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ point.sWorker|default:"-" }}</td>
+                <td class="number-cell">{{ point.nPrePoint|intcomma }}</td>
+                <td class="number-cell">
+                    <strong class="{% if point.nUsePoint > 0 %}text-primary{% elif point.nUsePoint < 0 %}text-danger{% endif %}">
+                        {% if point.nUsePoint != 0 %}
+                            {{ point.nUsePoint|intcomma }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </strong>
+                </td>
+                <td class="number-cell">
+                    <strong class="{% if point.nRemainPoint < 0 %}text-danger{% elif point.nRemainPoint > 0 %}text-primary{% endif %}">
+                        {{ point.nRemainPoint|intcomma }}
+                    </strong>
+                </td>
+                <td class="memo-cell" title="{{ point.sMemo }}">
+                    {{ point.get_memo_preview }}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="10" class="empty-message">
+                    포인트 내역이 없습니다.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- 페이지네이션 -->
+{% if points.has_other_pages %}
+<div class="pagination-container">
+    <div class="pagination">
+        {% if points.has_previous %}
+            <a href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link">처음</a>
+            <a href="?page={{ points.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link">이전</a>
+        {% endif %}
+
+        <span class="page-info">
+            {{ points.number }} / {{ points.paginator.num_pages }}
+        </span>
+
+        {% if points.has_next %}
+            <a href="?page={{ points.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link">다음</a>
+            <a href="?page={{ points.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="page-link">마지막</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+
+<style>
+/* 페이지 헤더 */
+.page-header {
+    margin-bottom: 20px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.page-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin: 0 0 5px 0;
+}
+
+.page-subtitle {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* 필터 섹션 */
+.filter-section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.filter-form {
+    width: 100%;
+}
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.filter-row:last-child {
+    margin-bottom: 0;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-group label {
+    font-weight: bold;
+    color: #333;
+    min-width: 60px;
+}
+
+.search-group {
+    flex: 1;
+    display: flex;
+    gap: 10px;
+}
+
+.search-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.filter-select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    min-width: 150px;
+}
+
+.date-input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.action-group {
+    margin-left: auto;
+    display: flex;
+    gap: 10px;
+}
+
+/* 결과 요약 */
+.result-summary {
+    padding: 10px 20px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    color: #666;
+}
+
+/* 테이블 */
+.table-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.data-table th {
+    background: #f8f9fa;
+    color: #333;
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: bold;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.data-table td {
+    padding: 10px 8px;
+    text-align: center;
+    border-bottom: 1px solid #dee2e6;
+    vertical-align: middle;
+}
+
+.data-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.data-row:hover {
+    background-color: #f8f9fa;
+}
+
+.company-name {
+    text-align: left !important;
+}
+
+.sub-text {
+    font-size: 11px;
+    color: #999;
+}
+
+.number-cell {
+    text-align: right !important;
+    font-family: monospace;
+}
+
+.memo-cell {
+    text-align: left !important;
+    font-size: 12px;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.change-text {
+    font-size: 11px;
+}
+
+.text-danger {
+    color: #dc3545;
+}
+
+.text-success {
+    color: #28a745;
+}
+
+.text-primary {
+    color: #007bff;
+}
+
+.empty-message {
+    padding: 40px !important;
+    text-align: center;
+    color: #999;
+}
+
+/* 액션 버튼 */
+.action-cell {
+    white-space: nowrap;
+}
+
+.btn-icon {
+    padding: 4px 8px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.2s;
+}
+
+.btn-icon:hover {
+    color: #333;
+}
+
+.btn-edit:hover {
+    color: #ffc107;
+}
+
+.btn-delete:hover {
+    color: #dc3545;
+}
+
+/* 버튼 */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
+.btn-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #1e7e34;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #bd2130;
+}
+
+/* 배지 */
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.badge-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.badge-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.badge-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-info {
+    background-color: #17a2b8;
+    color: white;
+}
+
+/* 링크 텍스트 */
+.link-text {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.link-text:hover {
+    text-decoration: underline;
+}
+
+/* 페이지네이션 */
+.pagination-container {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.pagination {
+    display: inline-flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.page-link {
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    color: #333;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.page-link:hover {
+    background: #f8f9fa;
+    border-color: #007bff;
+    color: #007bff;
+}
+
+.page-info {
+    padding: 8px 16px;
+    color: #666;
+    font-weight: bold;
+}
+
+/* 모달 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+}
+
+.modal-buttons {
+    margin-top: 20px;
+    text-align: right;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+</style>
+
+
+{% endblock %}
