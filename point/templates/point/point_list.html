@@ -64,9 +64,6 @@
             <a href="{% url 'point:point_create' %}" class="btn btn-success">
                 <i class="fas fa-plus"></i> 포인트 추가
             </a>
-            <a href="{% url 'point:company_points' %}" class="btn btn-info">
-                <i class="fas fa-building"></i> 업체별 최종 포인트 보기
-            </a>
         </div>
         <div>
             <span class="badge bg-secondary">총 {{ points.paginator.count }}건</span>

@@ -12,7 +12,4 @@ urlpatterns = [
     path('create/', views.point_create, name='point_create'),
     path('<int:pk>/update/', views.point_update, name='point_update'),
     path('<int:pk>/delete/', views.point_delete, name='point_delete'),
-
-    # 업체별 최종 포인트
-    path('company-points/', views.company_points, name='company_points'),
 ]
