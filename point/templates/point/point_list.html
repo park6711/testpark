@@ -1,4 +1,4 @@
-{% extends 'member/base.html' %}
+{% extends 'staff/base.html' %}
 {% load humanize %}
 
 {% block title %}포인트 내역 - PMIS 2.0{% endblock %}
@@ -22,18 +22,6 @@
                        placeholder="업체명, 작업자, 메모로 검색..." class="search-input">
             </div>
 
-            <!-- 업체 필터 -->
-            <div class="filter-group">
-                <label>업체:</label>
-                <select name="company" class="filter-select">
-                    <option value="">전체 업체</option>
-                    {% for company in companies %}
-                    <option value="{{ company.no }}" {% if request.GET.company == company.no|stringformat:"s" %}selected{% endif %}>
-                        {{ company.sName2 }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
 
             <!-- 구분 필터 -->
             <div class="filter-group">
@@ -88,10 +76,9 @@
                 <th width="8%">계약보고</th>
                 <th width="8%">작업자</th>
                 <th width="10%">이전포인트</th>
-                <th width="10%">사용포인트</th>
+                <th width="10%">적용포인트</th>
                 <th width="10%">잔액포인트</th>
-                <th width="9%">메모</th>
-                <th width="5%">관리</th>
+                <th width="14%">메모</th>
             </tr>
         </thead>
         <tbody>
@@ -99,8 +86,13 @@
             <tr class="data-row" onclick="window.location.href='{% url 'point:point_detail' point.no %}'">
                 <td>{{ point.no }}</td>
                 <td class="company-name">
-                    <strong>{{ point.noCompany.sName2 }}</strong>
-                    <div class="sub-text">{{ point.noCompany.sName1 }}</div>
+                    {% if point.noCompany %}
+                        <strong>{{ point.noCompany.sName2 }}</strong>
+                        <div class="sub-text">{{ point.noCompany.sName1 }}</div>
+                    {% else %}
+                        <strong style="color: #dc3545;">삭제된 업체</strong>
+                        <div class="sub-text" style="color: #999;">업체 정보 없음</div>
+                    {% endif %}
                 </td>
                 <td>
                     {{ point.time|date:"Y-m-d" }}
@@ -130,41 +122,27 @@
                 </td>
                 <td>{{ point.sWorker|default:"-" }}</td>
                 <td class="number-cell">{{ point.nPrePoint|intcomma }}</td>
-                <td class="number-cell {% if point.nUsePoint > 0 %}text-danger{% endif %}">
-                    {% if point.nUsePoint != 0 %}
-                        {{ point.nUsePoint|intcomma }}
-                    {% else %}
-                        0
-                    {% endif %}
+                <td class="number-cell">
+                    <strong class="{% if point.nUsePoint > 0 %}text-primary{% elif point.nUsePoint < 0 %}text-danger{% endif %}">
+                        {% if point.nUsePoint != 0 %}
+                            {{ point.nUsePoint|intcomma }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </strong>
                 </td>
                 <td class="number-cell">
                     <strong class="{% if point.nRemainPoint < 0 %}text-danger{% elif point.nRemainPoint > 0 %}text-primary{% endif %}">
                         {{ point.nRemainPoint|intcomma }}
                     </strong>
-                    {% with change=point.get_point_change %}
-                        {% if change > 0 %}
-                            <div class="change-text text-success">+{{ change|intcomma }}</div>
-                        {% elif change < 0 %}
-                            <div class="change-text text-danger">{{ change|intcomma }}</div>
-                        {% endif %}
-                    {% endwith %}
                 </td>
                 <td class="memo-cell" title="{{ point.sMemo }}">
                     {{ point.get_memo_preview }}
                 </td>
-                <td class="action-cell" onclick="event.stopPropagation();">
-                    <a href="{% url 'point:point_update' point.no %}" class="btn-icon btn-edit" title="수정">
-                        <i class="fas fa-edit"></i>
-                    </a>
-                    <button type="button" class="btn-icon btn-delete"
-                            onclick="confirmDelete({{ point.no }}, '{{ point.noCompany.sName2 }}')" title="삭제">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="11" class="empty-message">
+                <td colspan="10" class="empty-message">
                     포인트 내역이 없습니다.
                 </td>
             </tr>
@@ -194,20 +172,6 @@
 </div>
 {% endif %}
 
-<!-- 삭제 확인 모달 -->
-<div id="deleteModal" class="modal" style="display: none;">
-    <div class="modal-content">
-        <h3>포인트 삭제 확인</h3>
-        <p id="deleteMessage"></p>
-        <div class="modal-buttons">
-            <button type="button" class="btn btn-secondary" onclick="closeModal()">취소</button>
-            <form id="deleteForm" method="post" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-danger">삭제</button>
-            </form>
-        </div>
-    </div>
-</div>
 
 <style>
 /* 페이지 헤더 */
@@ -587,28 +551,8 @@
     gap: 10px;
     justify-content: flex-end;
 }
+
 </style>
 
-<script>
-function confirmDelete(pointId, companyName) {
-    document.getElementById('deleteMessage').textContent =
-        `정말로 ${companyName}의 포인트 내역 #${pointId}을(를) 삭제하시겠습니까?`;
-    document.getElementById('deleteForm').action =
-        "{% url 'point:point_delete' 0 %}".replace('0', pointId);
-    document.getElementById('deleteModal').style.display = 'flex';
-}
-
-function closeModal() {
-    document.getElementById('deleteModal').style.display = 'none';
-}
-
-// 모달 외부 클릭 시 닫기
-window.onclick = function(event) {
-    const modal = document.getElementById('deleteModal');
-    if (event.target == modal) {
-        modal.style.display = 'none';
-    }
-}
-</script>
 
 {% endblock %}

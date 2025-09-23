@@ -19,9 +19,12 @@ class Point(models.Model):
     no = models.AutoField(primary_key=True, verbose_name='포인트내역ID')
     noCompany = models.ForeignKey(
         Company,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,  # Company 삭제 시 NULL로 설정
+        null=True,  # NULL 허용
+        blank=True,
         verbose_name='업체ID',
-        related_name='point_records'
+        related_name='point_records',
+        db_column='noCompany'  # 기존 컬럼명 유지
     )
     time = models.DateTimeField(default=timezone.now, verbose_name='타임스탬프')
     nType = models.IntegerField(choices=TYPE_CHOICES, default=0, verbose_name='구분')
@@ -46,7 +49,8 @@ class Point(models.Model):
         ordering = ['-time', '-no']
 
     def __str__(self):
-        return f"포인트 {self.no} - {self.noCompany.sName1 if self.noCompany else 'N/A'} ({self.get_nType_display()})"
+        company_name = self.noCompany.sName2 if self.noCompany else '삭제된 업체'
+        return f"포인트 {self.no} - {company_name} ({self.get_nType_display()})"
 
     def get_type_display_with_icon(self):
         """포인트 타입을 아이콘과 함께 표시"""

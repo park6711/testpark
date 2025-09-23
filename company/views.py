@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.db.models import Q
 from .models import Company, ContractFile
 from license.models import License
+from point.models import Point
 
 
 def safe_int(value, default=0):
@@ -499,6 +500,15 @@ def company_delete(request, pk):
 
     company = get_object_or_404(Company, pk=pk)
     company_name = company.sCompanyName
+
+    # 포인트 잔액 확인
+    last_point = Point.objects.filter(noCompany=company).order_by('-time', '-no').first()
+    if last_point and last_point.nRemainPoint != 0:
+        messages.warning(
+            request,
+            f'업체 "{company_name}"의 포인트 잔액이 {last_point.nRemainPoint:,}원 있습니다. '
+            f'삭제하면 포인트 내역은 보존되지만 업체 정보는 "삭제된 업체"로 표시됩니다.'
+        )
 
     # 연관된 파일들 삭제
     file_fields = [

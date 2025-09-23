@@ -1,4 +1,4 @@
-{% extends 'member/base.html' %}
+{% extends 'staff/base.html' %}
 
 {% block title %}{{ title }} - PMIS 2.0{% endblock %}
 {% block page_title %}{{ title }}{% endblock %}
@@ -12,7 +12,7 @@
 </div>
 
 <div class="form-container">
-    <form method="post" novalidate>
+    <form method="post" action="" novalidate>
         {% csrf_token %}
 
         {% if form.non_field_errors %}
@@ -27,7 +27,15 @@
 
             <div class="form-group">
                 <label for="{{ form.noCompany.id_for_label }}" class="required">업체</label>
-                {{ form.noCompany }}
+                <div class="searchable-select-wrapper">
+                    <input type="text"
+                           id="company-search"
+                           class="form-control search-input"
+                           placeholder="업체명 입력..."
+                           autocomplete="off">
+                    {{ form.noCompany }}
+                    <div id="company-dropdown" class="search-dropdown"></div>
+                </div>
                 {% if form.noCompany.errors %}
                 <div class="error-message">{{ form.noCompany.errors }}</div>
                 {% endif %}
@@ -56,17 +64,51 @@
             <h3 class="section-title">포인트 정보</h3>
 
             <div class="form-group">
-                <label for="{{ form.nUsePoint.id_for_label }}">사용 포인트</label>
-                {{ form.nUsePoint }}
+                <label>현재 잔액포인트</label>
+                <input type="text"
+                       id="pre-point"
+                       class="form-control"
+                       value="0"
+                       readonly
+                       style="background-color: #f8f9fa; font-weight: bold; text-align: right;">
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.nUsePoint.id_for_label }}">적용 포인트</label>
+                <input type="text"
+                       id="id_nUsePoint_display"
+                       class="form-control"
+                       placeholder="적용 포인트를 입력하세요"
+                       style="text-align: right;">
+                <input type="hidden"
+                       name="nUsePoint"
+                       id="id_nUsePoint"
+                       value="">
                 {% if form.nUsePoint.errors %}
                 <div class="error-message">{{ form.nUsePoint.errors }}</div>
                 {% endif %}
-                <p class="help-text">포인트를 차감하는 경우 양수로 입력하세요.</p>
+                <p class="help-text">양수(+): 포인트 증가, 음수(-): 포인트 감소</p>
+            </div>
+
+            <div class="form-group">
+                <label>적용 후 예상 잔액포인트</label>
+                <input type="text"
+                       id="remain-point"
+                       class="form-control"
+                       value="0"
+                       readonly
+                       style="background-color: #f8f9fa; font-weight: bold; text-align: right; font-size: 1.2em;">
             </div>
 
             <div class="form-group">
                 <label for="{{ form.sWorker.id_for_label }}">작업자</label>
-                {{ form.sWorker }}
+                <input type="text"
+                       name="sWorker"
+                       id="id_sWorker"
+                       class="form-control"
+                       value="{{ current_staff.sNick|default:current_staff.sName }}"
+                       readonly
+                       style="background-color: #f8f9fa;">
                 {% if form.sWorker.errors %}
                 <div class="error-message">{{ form.sWorker.errors }}</div>
                 {% endif %}
@@ -117,17 +159,6 @@
     </form>
 </div>
 
-<!-- 도움말 -->
-<div class="help-section">
-    <h3 class="section-title">도움말</h3>
-    <ul class="help-list">
-        <li>업체를 선택하면 해당 업체의 현재 포인트 잔액을 기준으로 계산됩니다.</li>
-        <li>사용 포인트는 차감할 포인트를 양수로 입력합니다.</li>
-        <li>포인트 추가(적립)는 사용 포인트에 음수를 입력하거나 0을 입력합니다.</li>
-        <li>계약보고는 관련된 계약이 있는 경우에만 선택합니다.</li>
-        <li>메모에는 포인트 변동 사유를 상세히 기록하는 것이 좋습니다.</li>
-    </ul>
-</div>
 
 <style>
 /* 페이지 헤더 */
@@ -295,25 +326,6 @@
     justify-content: center;
 }
 
-/* 도움말 섹션 */
-.help-section {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.help-list {
-    margin: 0;
-    padding-left: 20px;
-}
-
-.help-list li {
-    margin-bottom: 8px;
-    color: #666;
-    font-size: 14px;
-    line-height: 1.6;
-}
 
 /* 버튼 */
 .btn {
@@ -332,8 +344,14 @@
     color: white;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
     background-color: #0056b3;
+}
+
+.btn-primary:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.5;
 }
 
 .btn-secondary {
@@ -343,6 +361,76 @@
 
 .btn-secondary:hover {
     background-color: #545b62;
+}
+
+/* 검색 가능한 드롭다운 스타일 */
+.searchable-select-wrapper {
+    position: relative;
+}
+
+.searchable-select-wrapper select {
+    display: none;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.search-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 300px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 100;
+}
+
+.search-dropdown.show {
+    display: block;
+}
+
+.dropdown-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+}
+
+.dropdown-item:hover,
+.dropdown-item.selected {
+    background-color: #f0f0f0;
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item .company-name {
+    font-weight: bold;
+    color: #333;
+}
+
+.dropdown-item .company-code {
+    font-size: 12px;
+    color: #666;
+    margin-left: 8px;
+}
+
+.no-results {
+    padding: 20px;
+    text-align: center;
+    color: #999;
 }
 
 /* 반응형 디자인 */
@@ -362,15 +450,403 @@
 </style>
 
 <script>
-// 업체 선택 시 현재 포인트 표시 (AJAX로 구현 가능)
 document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('company-search');
     const companySelect = document.getElementById('id_noCompany');
-    if (companySelect) {
-        companySelect.addEventListener('change', function() {
-            // TODO: AJAX로 선택한 업체의 현재 포인트 가져오기
-            // 향후 구현 예정
+    const dropdown = document.getElementById('company-dropdown');
+
+    if (!searchInput || !companySelect) return;
+
+    // 모든 옵션 데이터 수집
+    const companies = [];
+    for (let option of companySelect.options) {
+        if (option.value) {
+            companies.push({
+                value: option.value,
+                text: option.text,
+                element: option
+            });
+        }
+    }
+
+    // 기존 선택값이 있으면 검색창에 표시
+    if (companySelect.value) {
+        const selected = companies.find(c => c.value === companySelect.value);
+        if (selected) {
+            searchInput.value = selected.text;
+        }
+    }
+
+    // 한글 초성 검색 함수
+    function getChosung(str) {
+        const cho = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+        let result = "";
+        for (let i = 0; i < str.length; i++) {
+            const code = str.charCodeAt(i) - 44032;
+            if (code > -1 && code < 11172) {
+                result += cho[Math.floor(code / 588)];
+            } else {
+                result += str.charAt(i);
+            }
+        }
+        return result;
+    }
+
+    // 검색 필터링 함수
+    function filterCompanies(searchTerm) {
+        if (!searchTerm) return companies;
+
+        searchTerm = searchTerm.toLowerCase();
+        const searchChosung = getChosung(searchTerm);
+
+        return companies.filter(company => {
+            const companyText = company.text.toLowerCase();
+            const companyChosung = getChosung(company.text.toLowerCase());
+
+            // 일반 텍스트 검색 또는 초성 검색
+            return companyText.includes(searchTerm) ||
+                   companyChosung.includes(searchChosung) ||
+                   companyText.startsWith(searchTerm);
         });
     }
+
+    // 드롭다운 표시 함수
+    function showDropdown(filtered) {
+        dropdown.innerHTML = '';
+
+        if (filtered.length === 0) {
+            dropdown.innerHTML = '<div class="no-results">검색 결과가 없습니다</div>';
+        } else {
+            filtered.forEach(company => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                if (company.value === companySelect.value) {
+                    item.classList.add('selected');
+                }
+
+                // 업체명에서 코드와 이름 분리 (예: "서울1호 (업체명)")
+                const match = company.text.match(/^(.+?)\s*\((.+?)\)$/);
+                if (match) {
+                    item.innerHTML = `
+                        <span class="company-name">${match[1]}</span>
+                        <span class="company-code">(${match[2]})</span>
+                    `;
+                } else {
+                    item.innerHTML = `<span class="company-name">${company.text}</span>`;
+                }
+
+                item.addEventListener('click', function() {
+                    selectCompany(company);
+                });
+
+                dropdown.appendChild(item);
+            });
+        }
+
+        dropdown.classList.add('show');
+    }
+
+    // 업체 선택 함수
+    function selectCompany(company) {
+        searchInput.value = company.text;
+        companySelect.value = company.value;
+        dropdown.classList.remove('show');
+
+        // 이전 포인트 가져오기
+        if (company.value) {
+            fetchPreviousPoint(company.value);
+        } else {
+            updatePoints(0);
+        }
+
+        // change 이벤트 트리거
+        const event = new Event('change', { bubbles: true });
+        companySelect.dispatchEvent(event);
+
+        // 버튼 상태 업데이트
+        validateUsePoint();
+    }
+
+    // 검색 입력 이벤트
+    searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value;
+        const filtered = filterCompanies(searchTerm);
+
+        if (searchTerm.length > 0) {
+            showDropdown(filtered.slice(0, 20)); // 최대 20개 표시
+        } else {
+            dropdown.classList.remove('show');
+            // 검색어가 지워지면 업체 선택도 초기화
+            companySelect.value = '';
+            updatePoints(0);
+            validateUsePoint();
+        }
+    });
+
+    // 포커스 이벤트
+    searchInput.addEventListener('focus', function(e) {
+        const searchTerm = e.target.value;
+        if (searchTerm.length > 0) {
+            const filtered = filterCompanies(searchTerm);
+            showDropdown(filtered.slice(0, 20));
+        } else {
+            // 검색어가 없으면 모든 업체 표시
+            showDropdown(companies.slice(0, 20));
+        }
+    });
+
+    // 외부 클릭 시 드롭다운 닫기
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('show');
+        }
+    });
+
+    // 키보드 네비게이션
+    let selectedIndex = -1;
+    searchInput.addEventListener('keydown', function(e) {
+        const items = dropdown.querySelectorAll('.dropdown-item:not(.no-results)');
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+            updateSelection(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = Math.max(selectedIndex - 1, 0);
+            updateSelection(items);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (selectedIndex >= 0 && items[selectedIndex]) {
+                items[selectedIndex].click();
+            }
+        } else if (e.key === 'Escape') {
+            dropdown.classList.remove('show');
+            selectedIndex = -1;
+        }
+    });
+
+    function updateSelection(items) {
+        items.forEach((item, index) => {
+            if (index === selectedIndex) {
+                item.classList.add('selected');
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+    }
+
+    // 이전 포인트 가져오기 함수
+    function fetchPreviousPoint(companyId) {
+        fetch(`/point/api/previous-point/${companyId}/`)
+            .then(response => response.json())
+            .then(data => {
+                updatePoints(data.previous_point || 0);
+            })
+            .catch(error => {
+                console.error('Error fetching previous point:', error);
+                updatePoints(0);
+            });
+    }
+
+    // 포인트 업데이트 함수
+    function updatePoints(previousPoint) {
+        const prePointInput = document.getElementById('pre-point');
+        const usePointInput = document.getElementById('id_nUsePoint');
+        const remainPointInput = document.getElementById('remain-point');
+
+        // 이전 포인트 설정
+        prePointInput.value = previousPoint.toLocaleString();
+        prePointInput.dataset.value = previousPoint;
+
+        // 잔액 계산
+        calculateRemainPoint();
+    }
+
+    // 천 단위 콤마 포맷 함수
+    function formatNumber(value) {
+        // 숫자가 아닌 문자 제거 (음수 기호는 유지)
+        value = value.replace(/[^0-9-]/g, '');
+
+        // 음수 기호는 맨 앞에만 허용
+        const isNegative = value.startsWith('-');
+        value = value.replace(/-/g, '');
+
+        // 숫자를 정수로 변환
+        const number = parseInt(value) || 0;
+
+        // 천 단위 콤마 추가
+        const formatted = number.toLocaleString('ko-KR');
+
+        return isNegative ? '-' + formatted : formatted;
+    }
+
+    // 적용 포인트 입력 처리
+    const usePointDisplay = document.getElementById('id_nUsePoint_display');
+    const usePointHidden = document.getElementById('id_nUsePoint');
+
+    if (usePointDisplay) {
+        // 입력 시 콤마 포맷 적용
+        usePointDisplay.addEventListener('input', function(e) {
+            const cursorPos = e.target.selectionStart;
+            const oldLength = e.target.value.length;
+
+            // 포맷된 값 설정
+            const formatted = formatNumber(e.target.value);
+            e.target.value = formatted;
+
+            // hidden 필드에 실제 값 설정
+            const actualValue = formatted.replace(/,/g, '');
+            usePointHidden.value = actualValue;
+
+            // 커서 위치 조정
+            const newLength = formatted.length;
+            const diff = newLength - oldLength;
+            e.target.setSelectionRange(cursorPos + diff, cursorPos + diff);
+
+            // 잔액 계산
+            calculateRemainPoint();
+
+            // 0값 체크
+            validateUsePoint();
+        });
+
+        // 포커스 아웃 시 값 정리
+        usePointDisplay.addEventListener('blur', function(e) {
+            const formatted = formatNumber(e.target.value);
+            e.target.value = formatted;
+            const actualValue = formatted.replace(/,/g, '');
+            usePointHidden.value = actualValue;
+
+            // 0값 체크
+            validateUsePoint();
+        });
+    }
+
+    // 적용 포인트 유효성 검사
+    function validateUsePoint() {
+        const usePointHidden = document.getElementById('id_nUsePoint');
+        const usePointDisplay = document.getElementById('id_nUsePoint_display');
+        const submitBtn = document.querySelector('button[type="submit"]');
+        const errorDiv = usePointDisplay.parentElement.querySelector('.error-message') ||
+                         document.createElement('div');
+
+        const value = parseInt(usePointHidden.value) || 0;
+
+        if (value === 0) {
+            // 에러 메시지 표시
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = '적용 포인트는 0이 될 수 없습니다.';
+            errorDiv.style.display = 'block';
+
+            if (!usePointDisplay.parentElement.querySelector('.error-message')) {
+                usePointDisplay.parentElement.appendChild(errorDiv);
+            }
+
+            // 제출 버튼 비활성화
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.5';
+            }
+
+            // 입력 필드 테두리 빨간색
+            usePointDisplay.style.borderColor = '#dc3545';
+        } else {
+            // 에러 제거
+            if (errorDiv.parentElement) {
+                errorDiv.style.display = 'none';
+            }
+
+            // 업체 선택 여부도 함께 확인
+            if (submitBtn) {
+                if (companySelect.value) {
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                } else {
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.5';
+                }
+            }
+
+            // 입력 필드 테두리 정상
+            usePointDisplay.style.borderColor = '#ddd';
+        }
+    }
+
+    // 잔액 포인트 계산 함수 수정
+    function calculateRemainPoint() {
+        const prePointInput = document.getElementById('pre-point');
+        const usePointHidden = document.getElementById('id_nUsePoint');
+        const remainPointInput = document.getElementById('remain-point');
+
+        const prePoint = parseInt(prePointInput.dataset.value) || 0;
+        const usePoint = parseInt(usePointHidden.value) || 0;
+        const remainPoint = prePoint + usePoint;
+
+        remainPointInput.value = remainPoint.toLocaleString();
+
+        // 잔액에 따라 색상 변경
+        if (remainPoint < 0) {
+            remainPointInput.style.color = '#dc3545'; // 빨간색
+        } else if (remainPoint > 0) {
+            remainPointInput.style.color = '#007bff'; // 파란색
+        } else {
+            remainPointInput.style.color = '#333'; // 기본색
+        }
+    }
+
+    // 폼 제출 시 유효성 검사
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const usePointHidden = document.getElementById('id_nUsePoint');
+            const value = parseInt(usePointHidden.value) || 0;
+
+            if (value === 0) {
+                e.preventDefault();
+                alert('적용 포인트는 0이 될 수 없습니다.');
+                const usePointDisplay = document.getElementById('id_nUsePoint_display');
+                if (usePointDisplay) {
+                    usePointDisplay.focus();
+                }
+                return false;
+            }
+
+            // 업체 선택 확인
+            if (!companySelect.value) {
+                e.preventDefault();
+                alert('업체를 선택해주세요.');
+                if (searchInput) {
+                    searchInput.focus();
+                    searchInput.style.borderColor = '#dc3545';
+                    setTimeout(() => {
+                        searchInput.style.borderColor = '#ddd';
+                    }, 3000);
+                }
+                return false;
+            }
+        });
+    }
+
+    // 초기 로드 시 선택된 업체가 있으면 이전 포인트 가져오기
+    if (companySelect && companySelect.value) {
+        fetchPreviousPoint(companySelect.value);
+    }
+
+    // 초기 로드 시 버튼 상태 설정
+    const submitBtn = document.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        // 업체가 선택되어 있지 않으면 버튼 비활성화
+        if (!companySelect || !companySelect.value) {
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.5';
+            submitBtn.title = '업체를 선택해주세요';
+        }
+    }
+
+    // 초기 로드 시 적용 포인트 검증
+    validateUsePoint();
 });
 </script>
 

@@ -12,4 +12,7 @@ urlpatterns = [
     path('create/', views.point_create, name='point_create'),
     path('<int:pk>/update/', views.point_update, name='point_update'),
     path('<int:pk>/delete/', views.point_delete, name='point_delete'),
+
+    # API
+    path('api/previous-point/<int:company_id>/', views.get_previous_point, name='get_previous_point'),
 ]

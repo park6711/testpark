@@ -26,8 +26,7 @@ class PointForm(forms.ModelForm):
             }),
             'nUsePoint': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': '사용 포인트를 입력하세요',
-                'min': 0,
+                'placeholder': '적용 포인트를 입력하세요',
             }),
             'sWorker': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -43,9 +42,9 @@ class PointForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # 업체 목록 필터링 (살아있는 업체만)
+        # 업체 목록 필터링 (활성 업체만)
         self.fields['noCompany'].queryset = Company.objects.filter(
-            bAlive=True
+            dateWithdraw__isnull=True
         ).order_by('sName2')
 
         # 업체 선택 시 label 변경
@@ -60,52 +59,15 @@ class PointForm(forms.ModelForm):
         self.fields['noCompanyReport'].label_from_instance = lambda obj: f"#{obj.no} - {obj.get_nType_display()}"
 
     def clean_nUsePoint(self):
-        """사용 포인트 검증"""
+        """적용 포인트 검증"""
         nUsePoint = self.cleaned_data.get('nUsePoint')
-        if nUsePoint is None:
-            nUsePoint = 0
-        if nUsePoint < 0:
-            raise forms.ValidationError("사용 포인트는 0 이상이어야 합니다.")
+        if nUsePoint is None or nUsePoint == 0:
+            raise forms.ValidationError("적용 포인트는 0이 될 수 없습니다.")
+        # 음수값도 허용 (포인트 적립)
         return nUsePoint
 
     def clean(self):
         """전체 검증"""
         cleaned_data = super().clean()
-        noCompany = cleaned_data.get('noCompany')
-        nUsePoint = cleaned_data.get('nUsePoint', 0)
-
-        if self.instance.pk:  # 수정인 경우
-            # 현재 포인트 잔액 확인
-            current_remain = self.instance.nPrePoint
-            new_remain = current_remain - nUsePoint
-
-            if new_remain < 0:
-                raise forms.ValidationError(
-                    f"잔액이 마이너스가 될 수 없습니다. "
-                    f"현재 이전 포인트: {current_remain:,}, "
-                    f"사용 포인트: {nUsePoint:,}, "
-                    f"예상 잔액: {new_remain:,}"
-                )
-        else:  # 신규 추가인 경우
-            if noCompany:
-                # 현재 포인트 잔액 확인
-                last_point = Point.objects.filter(
-                    noCompany=noCompany
-                ).order_by('-time', '-no').first()
-
-                if last_point:
-                    current_remain = last_point.nRemainPoint
-                else:
-                    current_remain = 0
-
-                new_remain = current_remain - nUsePoint
-
-                if new_remain < 0:
-                    raise forms.ValidationError(
-                        f"잔액이 마이너스가 될 수 없습니다. "
-                        f"현재 포인트: {current_remain:,}, "
-                        f"사용 포인트: {nUsePoint:,}, "
-                        f"예상 잔액: {new_remain:,}"
-                    )
-
+        # 잔액이 마이너스가 되는 것도 허용 (실제 비즈니스 요구사항에 따름)
         return cleaned_data

@@ -1,4 +1,4 @@
-{% extends 'member/base.html' %}
+{% extends 'staff/base.html' %}
 {% load humanize %}
 
 {% block title %}포인트 상세 정보 - PMIS 2.0{% endblock %}
@@ -14,9 +14,11 @@
 
 <!-- 액션 버튼 -->
 <div class="action-buttons">
-    <a href="{% url 'point:point_update' point.no %}" class="btn btn-warning">수정</a>
-    <button type="button" class="btn btn-danger" onclick="confirmDelete({{ point.no }}, '{{ point.noCompany.sName2 }}')">삭제</button>
-    <a href="{% url 'point:point_list' %}" class="btn btn-secondary">목록으로</a>
+    <a href="{% url 'point:point_list' %}" class="btn btn-secondary" style="padding: 8px 24px;">목록으로</a>
+    <button id="edit-btn" class="btn btn-warning" onclick="toggleEditMode()">수정</button>
+    <button id="delete-btn" class="btn btn-danger" onclick="confirmDelete()">삭제</button>
+    <button id="save-btn" class="btn btn-warning" style="display: none;">저장</button>
+    <button id="cancel-btn" class="btn btn-secondary" style="display: none;" onclick="cancelEdit()">취소</button>
 </div>
 
 <div class="detail-container">
@@ -43,19 +45,29 @@
                 <tr>
                     <th>구분</th>
                     <td>
-                        {% if point.nType == 0 %}
-                            <span class="badge badge-secondary">기타</span>
-                        {% elif point.nType == 1 %}
-                            <span class="badge badge-success">취소환불</span>
-                        {% elif point.nType == 2 %}
-                            <span class="badge badge-warning">과/미입금</span>
-                        {% elif point.nType == 3 %}
-                            <span class="badge badge-info">페이백적립</span>
-                        {% elif point.nType == 4 %}
-                            <span class="badge badge-primary">닷컴전환</span>
-                        {% elif point.nType == 5 %}
-                            <span class="badge badge-danger">포인트소멸</span>
-                        {% endif %}
+                        <span id="type-display">
+                            {% if point.nType == 0 %}
+                                <span class="badge badge-secondary">기타</span>
+                            {% elif point.nType == 1 %}
+                                <span class="badge badge-success">취소환불</span>
+                            {% elif point.nType == 2 %}
+                                <span class="badge badge-warning">과/미입금</span>
+                            {% elif point.nType == 3 %}
+                                <span class="badge badge-info">페이백적립</span>
+                            {% elif point.nType == 4 %}
+                                <span class="badge badge-primary">닷컴전환</span>
+                            {% elif point.nType == 5 %}
+                                <span class="badge badge-danger">포인트소멸</span>
+                            {% endif %}
+                        </span>
+                        <select id="type-edit" class="form-select" style="display: none;" data-original="{{ point.nType }}">
+                            <option value="0" {% if point.nType == 0 %}selected{% endif %}>기타</option>
+                            <option value="1" {% if point.nType == 1 %}selected{% endif %}>취소환불액</option>
+                            <option value="2" {% if point.nType == 2 %}selected{% endif %}>과/미입금</option>
+                            <option value="3" {% if point.nType == 3 %}selected{% endif %}>페이백 적립</option>
+                            <option value="4" {% if point.nType == 4 %}selected{% endif %}>닷컴포인트 전환</option>
+                            <option value="5" {% if point.nType == 5 %}selected{% endif %}>포인트 소멸</option>
+                        </select>
                     </td>
                 </tr>
                 <tr>
@@ -70,7 +82,10 @@
                 </tr>
                 <tr>
                     <th>작업자</th>
-                    <td>{{ point.sWorker|default:"-" }}</td>
+                    <td>
+                        <span id="worker-display">{{ point.sWorker|default:"-" }}</span>
+                        <input type="text" id="worker-edit" class="form-control" value="{{ point.sWorker }}" style="display: none;" data-original="{{ point.sWorker }}">
+                    </td>
                 </tr>
             </tbody>
         </table>
@@ -86,35 +101,27 @@
                     <td class="number-cell">{{ point.nPrePoint|intcomma }}</td>
                 </tr>
                 <tr>
-                    <th>사용 포인트</th>
-                    <td class="number-cell {% if point.nUsePoint > 0 %}text-danger{% endif %}">
-                        {% if point.nUsePoint != 0 %}
-                            -{{ point.nUsePoint|intcomma }}
-                        {% else %}
-                            0
-                        {% endif %}
+                    <th>적용 포인트</th>
+                    <td class="number-cell">
+                        <span id="usepoint-display">
+                            <strong class="{% if point.nUsePoint > 0 %}text-primary{% elif point.nUsePoint < 0 %}text-danger{% endif %}" style="font-size: 20px;">
+                                {% if point.nUsePoint != 0 %}
+                                    {{ point.nUsePoint|intcomma }}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </strong>
+                        </span>
+                        <input type="text" id="usepoint-edit" class="form-control" value="{{ point.nUsePoint }}" style="display: none; text-align: right;" data-original="{{ point.nUsePoint }}" onchange="calculateRemainPoint()">
                     </td>
                 </tr>
                 <tr>
                     <th>잔액 포인트</th>
                     <td class="number-cell">
-                        <strong class="{% if point.nRemainPoint < 0 %}text-danger{% elif point.nRemainPoint > 0 %}text-primary{% endif %}" style="font-size: 20px;">
+                        <strong id="remainpoint-display" class="{% if point.nRemainPoint < 0 %}text-danger{% elif point.nRemainPoint > 0 %}text-primary{% endif %}" style="font-size: 20px;">
                             {{ point.nRemainPoint|intcomma }}
                         </strong>
-                    </td>
-                </tr>
-                <tr>
-                    <th>변동량</th>
-                    <td class="number-cell">
-                        {% with change=point.get_point_change %}
-                            {% if change > 0 %}
-                                <span class="text-success">+{{ change|intcomma }}</span>
-                            {% elif change < 0 %}
-                                <span class="text-danger">{{ change|intcomma }}</span>
-                            {% else %}
-                                <span>0</span>
-                            {% endif %}
-                        {% endwith %}
+                        <input type="hidden" id="prepoint-value" value="{{ point.nPrePoint }}">
                     </td>
                 </tr>
             </tbody>
@@ -122,14 +129,17 @@
     </div>
 
     <!-- 메모 -->
-    {% if point.sMemo %}
     <div class="detail-section">
         <h3 class="section-title">메모</h3>
-        <div class="memo-content">
-            {{ point.sMemo|linebreaksbr }}
+        <div id="memo-display" class="memo-content">
+            {% if point.sMemo %}
+                {{ point.sMemo|linebreaksbr }}
+            {% else %}
+                <span class="text-muted">메모 없음</span>
+            {% endif %}
         </div>
+        <textarea id="memo-edit" class="form-control" rows="4" style="display: none;" data-original="{{ point.sMemo }}">{{ point.sMemo }}</textarea>
     </div>
-    {% endif %}
 
     <!-- 최근 포인트 내역 -->
     <div class="detail-section">
@@ -141,7 +151,9 @@
                     <th>No</th>
                     <th>일시</th>
                     <th>구분</th>
-                    <th>잔액 포인트</th>
+                    <th>이전포인트</th>
+                    <th>적용포인트</th>
+                    <th>잔액포인트</th>
                     <th>메모</th>
                 </tr>
             </thead>
@@ -165,8 +177,18 @@
                             <span class="badge badge-danger">포인트소멸</span>
                         {% endif %}
                     </td>
+                    <td class="number-cell">{{ recent.nPrePoint|intcomma }}</td>
                     <td class="number-cell">
-                        <strong>{{ recent.nRemainPoint|intcomma }}</strong>
+                        <strong class="{% if recent.nUsePoint > 0 %}text-primary{% elif recent.nUsePoint < 0 %}text-danger{% endif %}">
+                            {% if recent.nUsePoint != 0 %}
+                                {{ recent.nUsePoint|intcomma }}
+                            {% else %}
+                                0
+                            {% endif %}
+                        </strong>
+                    </td>
+                    <td class="number-cell">
+                        <strong class="{% if recent.nRemainPoint > 0 %}text-primary{% elif recent.nRemainPoint < 0 %}text-danger{% endif %}">{{ recent.nRemainPoint|intcomma }}</strong>
                     </td>
                     <td class="memo-cell">{{ recent.get_memo_preview }}</td>
                 </tr>
@@ -179,20 +201,6 @@
     </div>
 </div>
 
-<!-- 삭제 확인 모달 -->
-<div id="deleteModal" class="modal" style="display: none;">
-    <div class="modal-content">
-        <h3>포인트 삭제 확인</h3>
-        <p id="deleteMessage"></p>
-        <div class="modal-buttons">
-            <button type="button" class="btn btn-secondary" onclick="closeModal()">취소</button>
-            <form id="deleteForm" method="post" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-danger">삭제</button>
-            </form>
-        </div>
-    </div>
-</div>
 
 <style>
 /* 페이지 헤더 */
@@ -364,10 +372,18 @@
 .btn-warning {
     background-color: #ffc107;
     color: #212529;
+    font-weight: 500;
 }
 
 .btn-warning:hover {
     background-color: #e0a800;
+    color: #212529;
+}
+
+.btn-warning:disabled {
+    background-color: #ffc107;
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .btn-danger {
@@ -382,6 +398,7 @@
 .btn-secondary {
     background-color: #6c757d;
     color: white;
+    min-width: 100px;
 }
 
 .btn-secondary:hover {
@@ -460,28 +477,440 @@
     gap: 10px;
     justify-content: flex-end;
 }
+
+/* 수정 모드 스타일 */
+.form-control, .form-select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    width: 100%;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.edit-mode {
+    background-color: #fffbf0;
+}
+
+/* 삭제 모달 스타일 */
+.modal-info {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 4px;
+    margin: 20px 0;
+    line-height: 1.8;
+}
+
+.modal-info strong {
+    color: #333;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.text-danger {
+    color: #dc3545;
+    font-weight: bold;
+}
 </style>
 
 <script>
-function confirmDelete(pointId, companyName) {
-    document.getElementById('deleteMessage').textContent =
-        `정말로 ${companyName}의 포인트 내역 #${pointId}을(를) 삭제하시겠습니까?`;
-    document.getElementById('deleteForm').action =
-        "{% url 'point:point_delete' 0 %}".replace('0', pointId);
+let editMode = false;
+let originalValues = {};
+
+// 커스텀 메시지 표시 함수
+function showMessage(message) {
+    document.getElementById('messageText').textContent = message;
+    document.getElementById('messageModal').style.display = 'flex';
+}
+
+function closeMessageModal() {
+    document.getElementById('messageModal').style.display = 'none';
+}
+
+function toggleEditMode() {
+    editMode = true;
+
+    // 버튼 상태 변경
+    document.getElementById('edit-btn').style.display = 'none';
+    document.getElementById('delete-btn').style.display = 'none';
+    document.getElementById('save-btn').style.display = 'inline-block';
+    document.getElementById('cancel-btn').style.display = 'inline-block';
+
+    // 수정 가능한 필드 표시
+    document.getElementById('type-display').style.display = 'none';
+    document.getElementById('type-edit').style.display = 'block';
+
+    document.getElementById('worker-display').style.display = 'none';
+    document.getElementById('worker-edit').style.display = 'block';
+
+    document.getElementById('usepoint-display').style.display = 'none';
+    document.getElementById('usepoint-edit').style.display = 'block';
+
+    document.getElementById('memo-display').style.display = 'none';
+    document.getElementById('memo-edit').style.display = 'block';
+
+    // 배경색 변경
+    document.querySelector('.detail-container').classList.add('edit-mode');
+
+    // 포맷된 숫자 입력 처리
+    formatNumberInput();
+
+    // 초기 유효성 검증
+    validateUsePoint();
+}
+
+function cancelEdit() {
+    editMode = false;
+
+    // 원래 값으로 복원
+    const usePointEdit = document.getElementById('usepoint-edit');
+    document.getElementById('type-edit').value = document.getElementById('type-edit').dataset.original;
+    document.getElementById('worker-edit').value = document.getElementById('worker-edit').dataset.original;
+    usePointEdit.value = usePointEdit.dataset.original;
+    document.getElementById('memo-edit').value = document.getElementById('memo-edit').dataset.original;
+
+    // 에러 메시지 제거
+    const errorDiv = document.getElementById('usepoint-error');
+    if (errorDiv) {
+        errorDiv.remove();
+    }
+
+    // 입력 필드 스타일 복원
+    usePointEdit.style.borderColor = '#ddd';
+    usePointEdit.style.backgroundColor = 'white';
+
+    // 버튼 상태 변경
+    document.getElementById('edit-btn').style.display = 'inline-block';
+    document.getElementById('delete-btn').style.display = 'inline-block';
+    const saveBtn = document.getElementById('save-btn');
+    saveBtn.style.display = 'none';
+    saveBtn.disabled = false;
+    saveBtn.style.opacity = '1';
+    saveBtn.style.cursor = 'pointer';
+    document.getElementById('cancel-btn').style.display = 'none';
+
+    // 표시 모드로 전환
+    document.getElementById('type-display').style.display = 'block';
+    document.getElementById('type-edit').style.display = 'none';
+
+    document.getElementById('worker-display').style.display = 'block';
+    document.getElementById('worker-edit').style.display = 'none';
+
+    document.getElementById('usepoint-display').style.display = 'block';
+    document.getElementById('usepoint-edit').style.display = 'none';
+
+    document.getElementById('memo-display').style.display = 'block';
+    document.getElementById('memo-edit').style.display = 'none';
+
+    // 배경색 복원
+    document.querySelector('.detail-container').classList.remove('edit-mode');
+}
+
+function calculateRemainPoint() {
+    const prePoint = parseInt(document.getElementById('prepoint-value').value) || 0;
+    const usePointInput = document.getElementById('usepoint-edit');
+    const usePoint = parseInt(usePointInput.value.replace(/,/g, '')) || 0;
+    const remainPoint = prePoint + usePoint;
+
+    const remainDisplay = document.getElementById('remainpoint-display');
+    remainDisplay.textContent = remainPoint.toLocaleString('ko-KR');
+
+    // 색상 업데이트
+    remainDisplay.className = '';
+    if (remainPoint < 0) {
+        remainDisplay.className = 'text-danger';
+    } else if (remainPoint > 0) {
+        remainDisplay.className = 'text-primary';
+    }
+    remainDisplay.style.fontSize = '20px';
+    remainDisplay.style.fontWeight = 'bold';
+}
+
+function formatNumberInput() {
+    const usePointInput = document.getElementById('usepoint-edit');
+
+    usePointInput.addEventListener('input', function(e) {
+        const value = e.target.value.replace(/[^0-9-]/g, '');
+        const isNegative = value.startsWith('-');
+        const number = parseInt(value.replace(/-/g, '')) || 0;
+        const formatted = isNegative ? '-' + number.toLocaleString('ko-KR') : number.toLocaleString('ko-KR');
+        e.target.value = formatted;
+        calculateRemainPoint();
+        validateUsePoint();
+        checkForChanges();
+    });
+
+    usePointInput.addEventListener('blur', function(e) {
+        validateUsePoint();
+        checkForChanges();
+    });
+
+    // 다른 필드에도 변경 감지 리스너 추가
+    document.getElementById('type-edit').addEventListener('change', checkForChanges);
+    document.getElementById('worker-edit').addEventListener('input', checkForChanges);
+    document.getElementById('memo-edit').addEventListener('input', checkForChanges);
+}
+
+// 변경사항 체크 함수
+function checkForChanges() {
+    const currentType = document.getElementById('type-edit').value;
+    const currentWorker = document.getElementById('worker-edit').value;
+    const currentUsePoint = parseInt(document.getElementById('usepoint-edit').value.replace(/,/g, '')) || 0;
+    const currentMemo = document.getElementById('memo-edit').value;
+
+    const originalType = document.getElementById('type-edit').dataset.original;
+    const originalWorker = document.getElementById('worker-edit').dataset.original;
+    const originalUsePoint = parseInt(document.getElementById('usepoint-edit').dataset.original) || 0;
+    const originalMemo = document.getElementById('memo-edit').dataset.original || '';
+
+    const hasChanges =
+        currentType !== originalType ||
+        currentWorker !== originalWorker ||
+        currentUsePoint !== originalUsePoint ||
+        currentMemo !== originalMemo;
+
+    const saveBtn = document.getElementById('save-btn');
+    if (saveBtn) {
+        // 적용 포인트가 0이 아니고 변경사항이 있을 때만 활성화
+        const usePointValid = currentUsePoint !== 0;
+        if (hasChanges && usePointValid) {
+            saveBtn.title = '변경사항을 저장합니다';
+        } else if (!hasChanges) {
+            saveBtn.title = '수정된 데이터가 없습니다';
+        } else {
+            saveBtn.title = '적용 포인트는 0이 될 수 없습니다';
+        }
+    }
+}
+
+function validateUsePoint() {
+    const usePointInput = document.getElementById('usepoint-edit');
+    const saveBtn = document.getElementById('save-btn');
+    const value = parseInt(usePointInput.value.replace(/,/g, '')) || 0;
+
+    if (value === 0) {
+        usePointInput.style.borderColor = '#dc3545';
+        usePointInput.style.backgroundColor = '#fff5f5';
+
+        // 에러 메시지 표시
+        let errorDiv = document.getElementById('usepoint-error');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.id = 'usepoint-error';
+            errorDiv.style.color = '#dc3545';
+            errorDiv.style.fontSize = '12px';
+            errorDiv.style.marginTop = '5px';
+            usePointInput.parentElement.appendChild(errorDiv);
+        }
+        errorDiv.textContent = '적용 포인트는 0이 될 수 없습니다.';
+
+        // 저장 버튼 비활성화
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.style.opacity = '0.5';
+            saveBtn.style.cursor = 'not-allowed';
+        }
+    } else {
+        usePointInput.style.borderColor = '#ddd';
+        usePointInput.style.backgroundColor = 'white';
+
+        // 에러 메시지 제거
+        const errorDiv = document.getElementById('usepoint-error');
+        if (errorDiv) {
+            errorDiv.remove();
+        }
+
+        // 저장 버튼 활성화
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.style.opacity = '1';
+            saveBtn.style.cursor = 'pointer';
+        }
+    }
+}
+
+function saveChanges() {
+    // 버튼 포커스 제거
+    document.getElementById('save-btn').blur();
+
+    // 적용 포인트 0 체크
+    const usePoint = parseInt(document.getElementById('usepoint-edit').value.replace(/,/g, '')) || 0;
+    if (usePoint === 0) {
+        showMessage('적용 포인트는 0이 될 수 없습니다.');
+        return false;
+    }
+
+    // 현재 값 가져오기
+    const currentType = document.getElementById('type-edit').value;
+    const currentWorker = document.getElementById('worker-edit').value;
+    const currentUsePoint = usePoint;
+    const currentMemo = document.getElementById('memo-edit').value;
+
+    // 원래 값 가져오기
+    const originalType = document.getElementById('type-edit').dataset.original;
+    const originalWorker = document.getElementById('worker-edit').dataset.original;
+    const originalUsePoint = parseInt(document.getElementById('usepoint-edit').dataset.original) || 0;
+    const originalMemo = document.getElementById('memo-edit').dataset.original || '';
+
+    // 변경사항 체크
+    const hasChanges =
+        currentType !== originalType ||
+        currentWorker !== originalWorker ||
+        currentUsePoint !== originalUsePoint ||
+        currentMemo !== originalMemo;
+
+    // 변경사항이 없으면 메시지 표시
+    if (!hasChanges) {
+        showMessage('수정된 데이터가 없습니다.');
+        return false;
+    }
+
+    const data = {
+        nType: currentType,
+        sWorker: currentWorker,
+        nUsePoint: currentUsePoint,
+        sMemo: currentMemo
+    };
+
+    // CSRF 토큰 가져오기
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                      document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+
+    fetch(`/point/{{ point.no }}/update/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        }
+        throw new Error('수정 실패');
+    })
+    .then(data => {
+        showMessage('포인트 정보가 수정되었습니다.');
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
+    })
+    .catch(error => {
+        showMessage('수정 중 오류가 발생했습니다: ' + error.message);
+    });
+    return false;
+}
+
+// 삭제 확인 모달 표시
+function confirmDelete() {
+    // 버튼 포커스 제거
+    document.getElementById('delete-btn').blur();
+
+    // 수정 모드에서는 삭제 불가
+    if (editMode) {
+        showMessage('수정 모드에서는 삭제할 수 없습니다. 먼저 취소를 클릭해주세요.');
+        return false;
+    }
     document.getElementById('deleteModal').style.display = 'flex';
 }
 
-function closeModal() {
+// 삭제 모달 닫기
+function closeDeleteModal() {
     document.getElementById('deleteModal').style.display = 'none';
 }
 
-// 모달 외부 클릭 시 닫기
-window.onclick = function(event) {
-    const modal = document.getElementById('deleteModal');
-    if (event.target == modal) {
-        modal.style.display = 'none';
-    }
+// 포인트 삭제
+function deletePoint() {
+    // CSRF 토큰 가져오기
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                      document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+
+    fetch(`/point/{{ point.no }}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            closeDeleteModal();
+            showMessage(data.error);
+        } else {
+            showMessage('포인트 내역이 삭제되었습니다.');
+            setTimeout(() => {
+                window.location.href = '{% url "point:point_list" %}';
+            }, 1000);
+        }
+    })
+    .catch(error => {
+        closeDeleteModal();
+        showMessage('삭제 중 오류가 발생했습니다: ' + error.message);
+    });
 }
+// 이벤트 리스너 등록
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('save-btn').addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        saveChanges();
+        return false;
+    });
+});
+</script>
+
+<!-- 메시지 모달 -->
+<div id="messageModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 300px;">
+        <p id="messageText" style="margin: 0; padding: 10px 0;"></p>
+        <div class="modal-buttons" style="margin-top: 15px;">
+            <button class="btn btn-primary" onclick="closeMessageModal()">확인</button>
+        </div>
+    </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div id="deleteModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3>포인트 삭제 확인</h3>
+        <p>정말로 이 포인트 내역을 삭제하시겠습니까?</p>
+        <p class="text-danger">⚠️ 이 작업은 되돌릴 수 없습니다.</p>
+
+        <div class="modal-info">
+            <strong>삭제할 포인트 정보:</strong><br>
+            - 포인트 번호: #{{ point.no }}<br>
+            - 업체명: {{ point.noCompany.sName2|default:"삭제된 업체" }}<br>
+            - 적용 포인트: {{ point.nUsePoint|floatformat:0 }}<br>
+            - 잔액 포인트: {{ point.nRemainPoint|floatformat:0 }}
+        </div>
+
+        <div class="modal-buttons">
+            <button class="btn btn-danger" onclick="deletePoint()">삭제</button>
+            <button class="btn btn-secondary" onclick="closeDeleteModal()">취소</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 삭제 모달 외부 클릭 시 닫기
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
+    }
+});
+
+// 메시지 모달 외부 클릭 시 닫기
+document.getElementById('messageModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeMessageModal();
+    }
+});
 </script>
 
 {% endblock %}
