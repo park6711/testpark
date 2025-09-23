@@ -1,195 +1,487 @@
-{% extends "staff/base.html" %}
+{% extends 'member/base.html' %}
 {% load humanize %}
 
-{% block title %}포인트 상세 정보{% endblock %}
+{% block title %}포인트 상세 정보 - PMIS 2.0{% endblock %}
+{% block page_title %}포인트 상세 정보{% endblock %}
+{% block page_subtitle %}포인트 내역 #{{ point.no }}{% endblock %}
 
 {% block content %}
-<div class="container mt-3">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>포인트 상세 정보</h2>
-        <div>
-            <a href="{% url 'point:point_update' point.no %}" class="btn btn-warning">
-                <i class="fas fa-edit"></i> 수정
-            </a>
-            <button type="button" class="btn btn-danger"
-                    onclick="confirmDelete({{ point.no }}, '{{ point.noCompany.sName2 }}')">
-                <i class="fas fa-trash"></i> 삭제
-            </button>
-            <a href="{% url 'point:point_list' %}" class="btn btn-secondary">
-                <i class="fas fa-list"></i> 목록으로
-            </a>
-        </div>
+<!-- 페이지 헤더 -->
+<div class="page-header">
+    <h1 class="page-title">포인트 상세 정보</h1>
+    <p class="page-subtitle">포인트 내역 #{{ point.no }}</p>
+</div>
+
+<!-- 액션 버튼 -->
+<div class="action-buttons">
+    <a href="{% url 'point:point_update' point.no %}" class="btn btn-warning">수정</a>
+    <button type="button" class="btn btn-danger" onclick="confirmDelete({{ point.no }}, '{{ point.noCompany.sName2 }}')">삭제</button>
+    <a href="{% url 'point:point_list' %}" class="btn btn-secondary">목록으로</a>
+</div>
+
+<div class="detail-container">
+    <!-- 기본 정보 -->
+    <div class="detail-section">
+        <h3 class="section-title">기본 정보</h3>
+        <table class="detail-table">
+            <tbody>
+                <tr>
+                    <th>포인트 ID</th>
+                    <td>#{{ point.no }}</td>
+                </tr>
+                <tr>
+                    <th>업체명</th>
+                    <td>
+                        <strong>{{ point.noCompany.sName2 }}</strong>
+                        <span class="sub-text">({{ point.noCompany.sName1 }})</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>일시</th>
+                    <td>{{ point.time|date:"Y-m-d H:i:s" }}</td>
+                </tr>
+                <tr>
+                    <th>구분</th>
+                    <td>
+                        {% if point.nType == 0 %}
+                            <span class="badge badge-secondary">기타</span>
+                        {% elif point.nType == 1 %}
+                            <span class="badge badge-success">취소환불</span>
+                        {% elif point.nType == 2 %}
+                            <span class="badge badge-warning">과/미입금</span>
+                        {% elif point.nType == 3 %}
+                            <span class="badge badge-info">페이백적립</span>
+                        {% elif point.nType == 4 %}
+                            <span class="badge badge-primary">닷컴전환</span>
+                        {% elif point.nType == 5 %}
+                            <span class="badge badge-danger">포인트소멸</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>계약보고</th>
+                    <td>
+                        {% if point.noCompanyReport %}
+                            #{{ point.noCompanyReport.no }} - {{ point.noCompanyReport.get_nType_display }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>작업자</th>
+                    <td>{{ point.sWorker|default:"-" }}</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
-    <div class="row">
-        <!-- 기본 정보 -->
-        <div class="col-md-8">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">포인트 정보</h5>
-                </div>
-                <div class="card-body">
-                    <table class="table table-bordered">
-                        <tbody>
-                            <tr>
-                                <th width="30%">포인트 ID</th>
-                                <td>#{{ point.no }}</td>
-                            </tr>
-                            <tr>
-                                <th>업체명</th>
-                                <td>
-                                    <strong>{{ point.noCompany.sName2 }}</strong>
-                                    <br>
-                                    <small class="text-muted">{{ point.noCompany.sName1 }}</small>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>일시</th>
-                                <td>{{ point.time|date:"Y-m-d H:i:s" }}</td>
-                            </tr>
-                            <tr>
-                                <th>구분</th>
-                                <td>
-                                    <span class="badge" style="background-color: {{ point.get_type_display_with_color.color }}">
-                                        {{ point.get_type_display_with_color.type }}
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>계약보고</th>
-                                <td>
-                                    {% if point.noCompanyReport %}
-                                        #{{ point.noCompanyReport.no }} - {{ point.noCompanyReport.get_nType_display }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>작업자</th>
-                                <td>{{ point.sWorker|default:"-" }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    <!-- 포인트 변동 -->
+    <div class="detail-section">
+        <h3 class="section-title">포인트 변동</h3>
+        <table class="detail-table">
+            <tbody>
+                <tr>
+                    <th>이전 포인트</th>
+                    <td class="number-cell">{{ point.nPrePoint|intcomma }}</td>
+                </tr>
+                <tr>
+                    <th>사용 포인트</th>
+                    <td class="number-cell {% if point.nUsePoint > 0 %}text-danger{% endif %}">
+                        {% if point.nUsePoint != 0 %}
+                            -{{ point.nUsePoint|intcomma }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>잔액 포인트</th>
+                    <td class="number-cell">
+                        <strong class="{% if point.nRemainPoint < 0 %}text-danger{% elif point.nRemainPoint > 0 %}text-primary{% endif %}" style="font-size: 20px;">
+                            {{ point.nRemainPoint|intcomma }}
+                        </strong>
+                    </td>
+                </tr>
+                <tr>
+                    <th>변동량</th>
+                    <td class="number-cell">
+                        {% with change=point.get_point_change %}
+                            {% if change > 0 %}
+                                <span class="text-success">+{{ change|intcomma }}</span>
+                            {% elif change < 0 %}
+                                <span class="text-danger">{{ change|intcomma }}</span>
+                            {% else %}
+                                <span>0</span>
+                            {% endif %}
+                        {% endwith %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
-            <!-- 포인트 변동 정보 -->
-            <div class="card mb-4">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">포인트 변동</h5>
-                </div>
-                <div class="card-body">
-                    <table class="table table-bordered">
-                        <tbody>
-                            <tr>
-                                <th width="30%">이전 포인트</th>
-                                <td class="text-end">{{ point.nPrePoint|intcomma }}</td>
-                            </tr>
-                            <tr>
-                                <th>사용 포인트</th>
-                                <td class="text-end text-danger">
-                                    {% if point.nUsePoint != 0 %}
-                                        -{{ point.nUsePoint|intcomma }}
-                                    {% else %}
-                                        0
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>잔액 포인트</th>
-                                <td class="text-end">
-                                    <strong class="fs-4">{{ point.nRemainPoint|intcomma }}</strong>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>변동량</th>
-                                <td class="text-end">
-                                    {{ point.get_point_change_display }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- 메모 -->
-            {% if point.sMemo %}
-            <div class="card">
-                <div class="card-header bg-secondary text-white">
-                    <h5 class="mb-0">메모</h5>
-                </div>
-                <div class="card-body">
-                    <p class="mb-0" style="white-space: pre-wrap;">{{ point.sMemo }}</p>
-                </div>
-            </div>
-            {% endif %}
+    <!-- 메모 -->
+    {% if point.sMemo %}
+    <div class="detail-section">
+        <h3 class="section-title">메모</h3>
+        <div class="memo-content">
+            {{ point.sMemo|linebreaksbr }}
         </div>
+    </div>
+    {% endif %}
 
-        <!-- 최근 포인트 내역 -->
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header bg-dark text-white">
-                    <h5 class="mb-0">{{ point.noCompany.sName2 }}의 최근 내역</h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                        {% for recent in recent_points %}
-                        <a href="{% url 'point:point_detail' recent.no %}"
-                           class="list-group-item list-group-item-action">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">{{ recent.get_nType_display }}</h6>
-                                <small>{{ recent.time|date:"m/d" }}</small>
-                            </div>
-                            <p class="mb-1">
-                                잔액: <strong>{{ recent.nRemainPoint|intcomma }}</strong>
-                            </p>
-                            <small class="text-muted">
-                                {{ recent.get_memo_preview }}
-                            </small>
-                        </a>
-                        {% empty %}
-                        <div class="list-group-item">
-                            <p class="mb-0 text-center text-muted">다른 내역이 없습니다.</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- 최근 포인트 내역 -->
+    <div class="detail-section">
+        <h3 class="section-title">{{ point.noCompany.sName2 }}의 최근 내역</h3>
+        {% if recent_points %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>일시</th>
+                    <th>구분</th>
+                    <th>잔액 포인트</th>
+                    <th>메모</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for recent in recent_points %}
+                <tr class="data-row" onclick="window.location.href='{% url 'point:point_detail' recent.no %}'">
+                    <td>{{ recent.no }}</td>
+                    <td>{{ recent.time|date:"m/d H:i" }}</td>
+                    <td>
+                        {% if recent.nType == 0 %}
+                            <span class="badge badge-secondary">기타</span>
+                        {% elif recent.nType == 1 %}
+                            <span class="badge badge-success">취소환불</span>
+                        {% elif recent.nType == 2 %}
+                            <span class="badge badge-warning">과/미입금</span>
+                        {% elif recent.nType == 3 %}
+                            <span class="badge badge-info">페이백적립</span>
+                        {% elif recent.nType == 4 %}
+                            <span class="badge badge-primary">닷컴전환</span>
+                        {% elif recent.nType == 5 %}
+                            <span class="badge badge-danger">포인트소멸</span>
+                        {% endif %}
+                    </td>
+                    <td class="number-cell">
+                        <strong>{{ recent.nRemainPoint|intcomma }}</strong>
+                    </td>
+                    <td class="memo-cell">{{ recent.get_memo_preview }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="empty-message">다른 포인트 내역이 없습니다.</p>
+        {% endif %}
     </div>
 </div>
 
 <!-- 삭제 확인 모달 -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">포인트 삭제 확인</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p id="deleteMessage"></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
-                <form id="deleteForm" method="post" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">삭제</button>
-                </form>
-            </div>
+<div id="deleteModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3>포인트 삭제 확인</h3>
+        <p id="deleteMessage"></p>
+        <div class="modal-buttons">
+            <button type="button" class="btn btn-secondary" onclick="closeModal()">취소</button>
+            <form id="deleteForm" method="post" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">삭제</button>
+            </form>
         </div>
     </div>
 </div>
 
+<style>
+/* 페이지 헤더 */
+.page-header {
+    margin-bottom: 20px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.page-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin: 0 0 5px 0;
+}
+
+.page-subtitle {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* 액션 버튼 */
+.action-buttons {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+/* 상세 컨테이너 */
+.detail-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* 상세 섹션 */
+.detail-section {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+/* 상세 테이블 */
+.detail-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.detail-table th {
+    width: 30%;
+    padding: 12px;
+    background: #f8f9fa;
+    color: #333;
+    font-weight: bold;
+    text-align: left;
+    border: 1px solid #dee2e6;
+}
+
+.detail-table td {
+    padding: 12px;
+    border: 1px solid #dee2e6;
+}
+
+/* 데이터 테이블 */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.data-table th {
+    background: #f8f9fa;
+    color: #333;
+    padding: 10px 8px;
+    text-align: center;
+    font-weight: bold;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.data-table td {
+    padding: 10px 8px;
+    text-align: center;
+    border-bottom: 1px solid #dee2e6;
+    vertical-align: middle;
+}
+
+.data-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.data-row:hover {
+    background-color: #f8f9fa;
+}
+
+/* 메모 */
+.memo-content {
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.memo-cell {
+    text-align: left !important;
+    font-size: 12px;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 유틸리티 */
+.number-cell {
+    text-align: right !important;
+    font-family: monospace;
+}
+
+.sub-text {
+    font-size: 12px;
+    color: #999;
+}
+
+.text-danger {
+    color: #dc3545;
+}
+
+.text-success {
+    color: #28a745;
+}
+
+.text-primary {
+    color: #007bff;
+}
+
+.empty-message {
+    padding: 20px;
+    text-align: center;
+    color: #999;
+}
+
+/* 버튼 */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s;
+}
+
+.btn-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #bd2130;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
+/* 배지 */
+.badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.badge-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.badge-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.badge-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-info {
+    background-color: #17a2b8;
+    color: white;
+}
+
+/* 모달 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+}
+
+.modal-buttons {
+    margin-top: 20px;
+    text-align: right;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+</style>
+
 <script>
 function confirmDelete(pointId, companyName) {
-    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
     document.getElementById('deleteMessage').textContent =
         `정말로 ${companyName}의 포인트 내역 #${pointId}을(를) 삭제하시겠습니까?`;
     document.getElementById('deleteForm').action =
         "{% url 'point:point_delete' 0 %}".replace('0', pointId);
-    modal.show();
+    document.getElementById('deleteModal').style.display = 'flex';
+}
+
+function closeModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+
+// 모달 외부 클릭 시 닫기
+window.onclick = function(event) {
+    const modal = document.getElementById('deleteModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
 }
 </script>
+
 {% endblock %}

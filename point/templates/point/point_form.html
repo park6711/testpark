@@ -1,146 +1,377 @@
-{% extends "staff/base.html" %}
+{% extends 'member/base.html' %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ title }} - PMIS 2.0{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}포인트 내역 관리{% endblock %}
 
 {% block content %}
-<div class="container mt-3">
-    <h2 class="mb-4">{{ title }}</h2>
-
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-body">
-                    <form method="post" novalidate>
-                        {% csrf_token %}
-
-                        {% if form.non_field_errors %}
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            {{ form.non_field_errors }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                        {% endif %}
-
-                        <div class="mb-3">
-                            <label for="{{ form.noCompany.id_for_label }}" class="form-label">
-                                업체 <span class="text-danger">*</span>
-                            </label>
-                            {{ form.noCompany }}
-                            {% if form.noCompany.errors %}
-                            <div class="text-danger small">{{ form.noCompany.errors }}</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="{{ form.nType.id_for_label }}" class="form-label">
-                                구분
-                            </label>
-                            {{ form.nType }}
-                            {% if form.nType.errors %}
-                            <div class="text-danger small">{{ form.nType.errors }}</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="{{ form.noCompanyReport.id_for_label }}" class="form-label">
-                                계약보고
-                            </label>
-                            {{ form.noCompanyReport }}
-                            {% if form.noCompanyReport.errors %}
-                            <div class="text-danger small">{{ form.noCompanyReport.errors }}</div>
-                            {% endif %}
-                            <small class="text-muted">관련 계약보고가 있는 경우 선택하세요.</small>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="{{ form.nUsePoint.id_for_label }}" class="form-label">
-                                사용 포인트
-                            </label>
-                            {{ form.nUsePoint }}
-                            {% if form.nUsePoint.errors %}
-                            <div class="text-danger small">{{ form.nUsePoint.errors }}</div>
-                            {% endif %}
-                            <small class="text-muted">포인트를 차감하는 경우 양수로 입력하세요.</small>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="{{ form.sWorker.id_for_label }}" class="form-label">
-                                작업자
-                            </label>
-                            {{ form.sWorker }}
-                            {% if form.sWorker.errors %}
-                            <div class="text-danger small">{{ form.sWorker.errors }}</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="{{ form.sMemo.id_for_label }}" class="form-label">
-                                메모
-                            </label>
-                            {{ form.sMemo }}
-                            {% if form.sMemo.errors %}
-                            <div class="text-danger small">{{ form.sMemo.errors }}</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="d-flex justify-content-between">
-                            <a href="{% url 'point:point_list' %}" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> 취소
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save"></i> {{ button_text }}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <!-- 도움말 -->
-            <div class="card bg-light">
-                <div class="card-body">
-                    <h5 class="card-title">
-                        <i class="fas fa-info-circle"></i> 도움말
-                    </h5>
-                    <ul class="small mb-0">
-                        <li>업체를 선택하면 해당 업체의 현재 포인트 잔액을 기준으로 계산됩니다.</li>
-                        <li>사용 포인트는 차감할 포인트를 양수로 입력합니다.</li>
-                        <li>포인트 추가(적립)는 사용 포인트에 음수를 입력하거나 0을 입력합니다.</li>
-                        <li>계약보고는 관련된 계약이 있는 경우에만 선택합니다.</li>
-                        <li>메모에는 포인트 변동 사유를 상세히 기록하는 것이 좋습니다.</li>
-                    </ul>
-                </div>
-            </div>
-
-            {% if point %}
-            <!-- 현재 포인트 정보 (수정 시) -->
-            <div class="card mt-3">
-                <div class="card-body">
-                    <h5 class="card-title">현재 정보</h5>
-                    <dl class="row small">
-                        <dt class="col-6">포인트 ID:</dt>
-                        <dd class="col-6">#{{ point.no }}</dd>
-
-                        <dt class="col-6">등록일시:</dt>
-                        <dd class="col-6">{{ point.time|date:"Y-m-d H:i" }}</dd>
-
-                        <dt class="col-6">이전 포인트:</dt>
-                        <dd class="col-6">{{ point.nPrePoint|default:0 }}</dd>
-
-                        <dt class="col-6">현재 잔액:</dt>
-                        <dd class="col-6"><strong>{{ point.nRemainPoint|default:0 }}</strong></dd>
-                    </dl>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-    </div>
+<!-- 페이지 헤더 -->
+<div class="page-header">
+    <h1 class="page-title">{{ title }}</h1>
+    <p class="page-subtitle">포인트 내역 관리</p>
 </div>
+
+<div class="form-container">
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <!-- 기본 정보 섹션 -->
+        <div class="form-section">
+            <h3 class="section-title">기본 정보</h3>
+
+            <div class="form-group">
+                <label for="{{ form.noCompany.id_for_label }}" class="required">업체</label>
+                {{ form.noCompany }}
+                {% if form.noCompany.errors %}
+                <div class="error-message">{{ form.noCompany.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.nType.id_for_label }}">구분</label>
+                {{ form.nType }}
+                {% if form.nType.errors %}
+                <div class="error-message">{{ form.nType.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.noCompanyReport.id_for_label }}">계약보고</label>
+                {{ form.noCompanyReport }}
+                {% if form.noCompanyReport.errors %}
+                <div class="error-message">{{ form.noCompanyReport.errors }}</div>
+                {% endif %}
+                <p class="help-text">관련 계약보고가 있는 경우 선택하세요.</p>
+            </div>
+        </div>
+
+        <!-- 포인트 정보 섹션 -->
+        <div class="form-section">
+            <h3 class="section-title">포인트 정보</h3>
+
+            <div class="form-group">
+                <label for="{{ form.nUsePoint.id_for_label }}">사용 포인트</label>
+                {{ form.nUsePoint }}
+                {% if form.nUsePoint.errors %}
+                <div class="error-message">{{ form.nUsePoint.errors }}</div>
+                {% endif %}
+                <p class="help-text">포인트를 차감하는 경우 양수로 입력하세요.</p>
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.sWorker.id_for_label }}">작업자</label>
+                {{ form.sWorker }}
+                {% if form.sWorker.errors %}
+                <div class="error-message">{{ form.sWorker.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.sMemo.id_for_label }}">메모</label>
+                {{ form.sMemo }}
+                {% if form.sMemo.errors %}
+                <div class="error-message">{{ form.sMemo.errors }}</div>
+                {% endif %}
+                <p class="help-text">포인트 변동 사유를 상세히 기록하세요.</p>
+            </div>
+        </div>
+
+        <!-- 현재 정보 (수정 시) -->
+        {% if point %}
+        <div class="form-section info-section">
+            <h3 class="section-title">현재 포인트 정보</h3>
+            <table class="info-table">
+                <tbody>
+                    <tr>
+                        <th>포인트 ID</th>
+                        <td>#{{ point.no }}</td>
+                    </tr>
+                    <tr>
+                        <th>등록일시</th>
+                        <td>{{ point.time|date:"Y-m-d H:i:s" }}</td>
+                    </tr>
+                    <tr>
+                        <th>이전 포인트</th>
+                        <td class="number-cell">{{ point.nPrePoint|default:0 }}</td>
+                    </tr>
+                    <tr>
+                        <th>현재 잔액</th>
+                        <td class="number-cell"><strong>{{ point.nRemainPoint|default:0 }}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- 액션 버튼 -->
+        <div class="form-buttons">
+            <button type="submit" class="btn btn-primary">{{ button_text }}</button>
+            <a href="{% url 'point:point_list' %}" class="btn btn-secondary">취소</a>
+        </div>
+    </form>
+</div>
+
+<!-- 도움말 -->
+<div class="help-section">
+    <h3 class="section-title">도움말</h3>
+    <ul class="help-list">
+        <li>업체를 선택하면 해당 업체의 현재 포인트 잔액을 기준으로 계산됩니다.</li>
+        <li>사용 포인트는 차감할 포인트를 양수로 입력합니다.</li>
+        <li>포인트 추가(적립)는 사용 포인트에 음수를 입력하거나 0을 입력합니다.</li>
+        <li>계약보고는 관련된 계약이 있는 경우에만 선택합니다.</li>
+        <li>메모에는 포인트 변동 사유를 상세히 기록하는 것이 좋습니다.</li>
+    </ul>
+</div>
+
+<style>
+/* 페이지 헤더 */
+.page-header {
+    margin-bottom: 20px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.page-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin: 0 0 5px 0;
+}
+
+.page-subtitle {
+    color: #666;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* 폼 컨테이너 */
+.form-container {
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+/* 폼 섹션 */
+.form-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.form-section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #007bff;
+}
+
+/* 폼 그룹 */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #333;
+}
+
+.form-group label.required:after {
+    content: " *";
+    color: #dc3545;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* 도움말 텍스트 */
+.help-text {
+    margin-top: 5px;
+    font-size: 12px;
+    color: #666;
+}
+
+/* 에러 메시지 */
+.error-message {
+    margin-top: 5px;
+    font-size: 12px;
+    color: #dc3545;
+}
+
+/* 알림 */
+.alert {
+    padding: 12px 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+/* 정보 섹션 */
+.info-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 4px;
+}
+
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.info-table th {
+    width: 30%;
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: bold;
+    color: #333;
+    background: white;
+    border: 1px solid #dee2e6;
+}
+
+.info-table td {
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    background: white;
+}
+
+.number-cell {
+    text-align: right !important;
+    font-family: monospace;
+}
+
+/* 폼 버튼 */
+.form-buttons {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+/* 도움말 섹션 */
+.help-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.help-list {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.help-list li {
+    margin-bottom: 8px;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* 버튼 */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #545b62;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .form-container {
+        padding: 20px;
+    }
+
+    .form-buttons {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+    }
+}
+</style>
 
 <script>
 // 업체 선택 시 현재 포인트 표시 (AJAX로 구현 가능)
-document.getElementById('id_noCompany').addEventListener('change', function() {
-    // TODO: AJAX로 선택한 업체의 현재 포인트 가져오기
+document.addEventListener('DOMContentLoaded', function() {
+    const companySelect = document.getElementById('id_noCompany');
+    if (companySelect) {
+        companySelect.addEventListener('change', function() {
+            // TODO: AJAX로 선택한 업체의 현재 포인트 가져오기
+            // 향후 구현 예정
+        });
+    }
 });
 </script>
+
 {% endblock %}
