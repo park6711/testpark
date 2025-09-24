@@ -1,8 +1,23 @@
 {
-  "name": "TestPark 견적의뢰 관리 시스템",
   "short_name": "TestPark",
-  "start_url": "/order/pplist/",
+  "name": "TestPark 의뢰할당 관리 시스템",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
   "display": "standalone",
+  "theme_color": "#667eea",
   "background_color": "#ffffff",
-  "theme_color": "#667eea"
+  "description": "TestPark 의뢰할당 관리 시스템",
+  "lang": "ko-KR",
+  "orientation": "portrait"
 }

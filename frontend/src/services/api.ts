@@ -1,5 +1,5 @@
 // API 서비스
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '';
 
 export interface OrderData {
   no: number;

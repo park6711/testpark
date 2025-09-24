@@ -62,7 +62,17 @@
       "Read(//var/log/**)",
       "Bash(chmod:*)",
       "Bash(git checkout:*)",
-      "Bash(git rebase:*)"
+      "Bash(git rebase:*)",
+      "Bash(/var/www/testpark/network-test.sh:*)",
+      "Bash(cat:*)",
+      "Bash(for:*)",
+      "Bash(ls:*)",
+      "Bash(do echo -n \"$chunk.chunk.js: \")",
+      "WebFetch(domain:carpenterhosting.cafe24.com)",
+      "Bash(echo:*)",
+      "Bash(convert:*)",
+      "Bash(xargs:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Service Worker 초기화</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h1>Service Worker 초기화 중...</h1>
+    <div id="status"></div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+
+        // 1. 모든 Service Worker unregister
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+                registration.unregister();
+                statusDiv.innerHTML += '<p>Service Worker 제거됨: ' + registration.scope + '</p>';
+            }
+        });
+
+        // 2. 모든 캐시 삭제
+        caches.keys().then(function(names) {
+            for (let name of names) {
+                caches.delete(name);
+                statusDiv.innerHTML += '<p>캐시 삭제됨: ' + name + '</p>';
+            }
+        });
+
+        // 3. 3초 후 메인 페이지로 이동
+        setTimeout(function() {
+            statusDiv.innerHTML += '<p style="color: green;">✅ 초기화 완료! 메인 페이지로 이동합니다...</p>';
+            setTimeout(function() {
+                window.location.href = '/order/pplist/';
+            }, 1000);
+        }, 2000);
+    </script>
+</body>
+</html>

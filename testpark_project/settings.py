@@ -169,6 +169,11 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# 추가 정적 파일 디렉토리
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',  # React 빌드 파일 등
+]
+
 # Media files (User uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

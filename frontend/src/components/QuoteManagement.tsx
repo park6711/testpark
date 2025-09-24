@@ -87,11 +87,16 @@ const QuoteManagement: React.FC = () => {
   const handleGoogleSync = async () => {
     setSyncLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/order/api/sync-google-sheets/', {
+      // Django 컨텍스트에서 CSRF 토큰 가져오기
+      const csrfToken = (window as any).__DJANGO_CONTEXT__?.csrfToken;
+
+      const response = await fetch('/order/api/sync-google-sheets/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken || '',
         },
+        credentials: 'same-origin',
       });
 
       const data = await response.json();
