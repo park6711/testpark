@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from . import views, api_views
+from . import views, api_views, dashboard_views
 
 app_name = 'order'
 
@@ -22,4 +22,15 @@ urlpatterns = [
 
     # API 엔드포인트
     path('', include(router.urls)),
+
+    # 구글 시트 동기화 API
+    path('api/sync-google-sheets/', api_views.sync_google_sheets, name='sync_google_sheets'),
+
+    # 동기화 대시보드 API
+    path('api/dashboard/', include([
+        path('', dashboard_views.sync_dashboard, name='sync_dashboard'),
+        path('history/', dashboard_views.sync_history, name='sync_history'),
+        path('manual-sync/', dashboard_views.manual_sync, name='manual_sync'),
+        path('pending-orders/', dashboard_views.pending_orders, name='pending_orders'),
+    ])),
 ]

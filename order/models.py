@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+import uuid
 
 
 class Order(models.Model):
@@ -29,6 +30,7 @@ class Order(models.Model):
     # 기본 정보
     no = models.AutoField(primary_key=True, verbose_name='의뢰ID')
     time = models.DateTimeField(auto_now_add=True, verbose_name='접수일시')
+    google_sheet_uuid = models.CharField(max_length=50, blank=True, unique=True, null=True, verbose_name='구글 시트 UUID')
 
     # 지정 정보
     designation = models.CharField(max_length=200, blank=True, default='', verbose_name='지정')

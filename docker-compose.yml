@@ -11,14 +11,24 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - REACT_APP_API_URL=http://localhost:8000
+      # 개발 환경: localhost, 프로덕션: 실제 도메인 사용
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000}
       - CHOKIDAR_USEPOLLING=true  # 파일 변경 감지 개선
+      - NODE_OPTIONS=--max-old-space-size=4096  # Node.js 메모리 할당 증가
     restart: unless-stopped
     networks:
       - testpark-network
     labels:
       - "com.testpark.service=frontend"
       - "com.testpark.description=TestPark React Frontend"
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '2.0'
+        reservations:
+          memory: 2G
+          cpus: '1.0'
 
   # TestPark 메인 애플리케이션
   testpark:
@@ -40,6 +50,7 @@ services:
       - FORCE_SCRIPT_NAME=
       # 네트워크 최적화
       - DJANGO_SETTINGS_MODULE=testpark_project.settings
+      - PYTHONUNBUFFERED=1  # 로그 버퍼링 비활성화
     restart: unless-stopped
     networks:
       - testpark-network
@@ -54,6 +65,14 @@ services:
     labels:
       - "com.testpark.service=main"
       - "com.testpark.description=TestPark Django Application"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
 
   # TestPark 웹훅 서버
   webhook:

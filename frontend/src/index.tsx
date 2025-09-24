@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+// Ant Design 5+ 에서는 CSS import가 필요없음 (자동 적용)
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';

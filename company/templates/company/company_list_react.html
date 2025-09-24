@@ -1,0 +1,397 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>업체 관리 시스템</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- 공통 스타일 -->
+    <link href="{% static 'js/common-styles.css' %}" rel="stylesheet">
+
+    <!-- React and ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel Standalone for JSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+    <div id="react-root"></div>
+
+    <!-- CSRF Token -->
+    <script>
+        window.csrfToken = '{{ csrf_token }}';
+        window.API_BASE_URL = '/company/api';
+    </script>
+
+    <!-- 공통 라이브러리 -->
+    <script src="{% static 'js/api-helpers.js' %}"></script>
+    <script src="{% static 'js/common-react-components.js' %}"></script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { Search, Plus, Edit, Trash2, X, Eye, Users, Building2 } = lucide;
+
+        const CompanyManagementSystem = () => {
+            const [data, setData] = useState([]);
+            const [pagination, setPagination] = useState({
+                current_page: 1,
+                total_pages: 1,
+                total_items: 0,
+                has_next: false,
+                has_previous: false,
+                page_size: 20
+            });
+            const [loading, setLoading] = useState(false);
+            const [permissions, setPermissions] = useState({
+                can_read: false,
+                can_write: false
+            });
+            const [filters, setFilters] = useState({
+                search: '',
+                type: '',
+                condition: '',
+                union_only: false,
+                mentor_only: false
+            });
+
+            // 업체 타입 옵션
+            const typeOptions = [
+                { value: '0', label: '일반토탈' },
+                { value: '1', label: '고정비토탈' },
+                { value: '2', label: '부분단종' },
+                { value: '3', label: '순수단종' },
+                { value: '4', label: 'btoc제휴' },
+                { value: '5', label: 'btob제휴' }
+            ];
+
+            // 업체 상태 옵션
+            const conditionOptions = [
+                { value: '0', label: '준비중' },
+                { value: '1', label: '정상' },
+                { value: '2', label: '일시정지' },
+                { value: '3', label: '탈퇴' }
+            ];
+
+            // 데이터 로드
+            const loadData = async (page = 1, currentFilters = filters) => {
+                setLoading(true);
+                try {
+                    const response = await window.apiListRequest(
+                        `${window.API_BASE_URL}/companies`,
+                        currentFilters,
+                        page,
+                        pagination.page_size
+                    );
+
+                    if (response.success) {
+                        setData(response.data);
+                        setPagination(response.pagination);
+                        setPermissions(response.permissions);
+                    } else {
+                        window.showNotification(response.error || '데이터 로드 실패', 'error');
+                    }
+                } catch (error) {
+                    window.showNotification('데이터를 불러오는데 실패했습니다.', 'error');
+                    console.error('데이터 로드 실패:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            useEffect(() => {
+                loadData();
+            }, []);
+
+            // 필터 변경 핸들러
+            const handleFilterChange = (name, value) => {
+                const newFilters = { ...filters, [name]: value };
+                setFilters(newFilters);
+            };
+
+            // 검색 핸들러
+            const handleSearch = () => {
+                loadData(1, filters);
+            };
+
+            // 페이지 변경 핸들러
+            const handlePageChange = (page) => {
+                loadData(page, filters);
+            };
+
+            // 업체 삭제
+            const handleDelete = async (companyId) => {
+                if (!window.confirmAction('정말로 이 업체를 삭제하시겠습니까?')) {
+                    return;
+                }
+
+                try {
+                    const response = await window.apiCRUD.delete(`${window.API_BASE_URL}/companies/${companyId}/delete/`);
+                    if (response.success) {
+                        window.showNotification(response.message, 'success');
+                        loadData(); // 데이터 재로드
+                    }
+                } catch (error) {
+                    window.showNotification('삭제 중 오류가 발생했습니다.', 'error');
+                }
+            };
+
+            // 일괄 삭제
+            const handleBulkDelete = async (selectedIds) => {
+                if (selectedIds.length === 0) {
+                    window.showNotification('삭제할 업체를 선택해주세요.', 'warning');
+                    return;
+                }
+
+                const confirmMessage = selectedIds.length === 1
+                    ? '선택한 1개 업체를 삭제하시겠습니까?'
+                    : `선택한 ${selectedIds.length}개 업체를 삭제하시겠습니까?`;
+
+                if (!window.confirmAction(confirmMessage)) {
+                    return;
+                }
+
+                try {
+                    const response = await window.apiCRUD.create(`${window.API_BASE_URL}/companies/bulk-delete/`, {
+                        company_ids: selectedIds
+                    });
+
+                    if (response.success) {
+                        window.showNotification(response.data.message, 'success');
+                        loadData(); // 데이터 재로드
+                    }
+                } catch (error) {
+                    window.showNotification('삭제 중 오류가 발생했습니다.', 'error');
+                }
+            };
+
+            // 테이블 컬럼 정의
+            const columns = [
+                {
+                    key: 'company_name',
+                    title: '업체명',
+                    render: (value, row) => React.createElement('div', null, [
+                        React.createElement('div', { key: 'name', className: 'fw-bold' }, value || '미등록'),
+                        React.createElement('small', { key: 'display', className: 'text-muted' }, `${row.display_name1} ${row.display_name2}`.trim())
+                    ])
+                },
+                {
+                    key: 'type_display',
+                    title: '타입',
+                    render: (value, row) => React.createElement(window.StatusBadge, { status: value })
+                },
+                {
+                    key: 'condition_display',
+                    title: '상태',
+                    render: (value, row) => React.createElement(window.StatusBadge, {
+                        status: value,
+                        className: row.condition === 1 ? 'bg-success' : row.condition === 2 ? 'bg-warning' : 'bg-secondary'
+                    })
+                },
+                {
+                    key: 'ceo_name',
+                    title: '대표자',
+                    render: (value, row) => React.createElement('div', null, [
+                        React.createElement('div', { key: 'name' }, value || ''),
+                        React.createElement('small', { key: 'phone', className: 'text-muted' }, row.ceo_phone || '')
+                    ])
+                },
+                {
+                    key: 'address',
+                    title: '주소',
+                    render: (value) => React.createElement('span', {
+                        className: 'text-truncate d-inline-block',
+                        style: { maxWidth: '200px' },
+                        title: value
+                    }, value || '')
+                },
+                {
+                    key: 'features',
+                    title: '특성',
+                    render: (value, row) => {
+                        const features = [];
+                        if (row.is_union) features.push('연합회');
+                        if (row.is_mentor) features.push('멘토');
+                        return React.createElement('span', { className: 'small' }, features.join(', ') || '-');
+                    }
+                },
+                {
+                    key: 'manager',
+                    title: '담당스텝',
+                    render: (value) => React.createElement('span', { className: 'small' }, value || '-')
+                },
+                {
+                    key: 'actions',
+                    title: '작업',
+                    render: (value, row) => React.createElement('div', { className: 'd-flex gap-1' }, [
+                        React.createElement('button', {
+                            key: 'view',
+                            className: 'btn btn-sm btn-outline-primary',
+                            onClick: () => window.open(`/company/view/${row.id}/`, '_blank'),
+                            title: '상세보기'
+                        }, React.createElement(Eye, { size: 14 })),
+                        permissions.can_write ? React.createElement('button', {
+                            key: 'edit',
+                            className: 'btn btn-sm btn-outline-secondary',
+                            onClick: () => window.open(`/company/update/${row.id}/`, '_blank'),
+                            title: '수정'
+                        }, React.createElement(Edit, { size: 14 })) : null,
+                        permissions.can_write ? React.createElement('button', {
+                            key: 'delete',
+                            className: 'btn btn-sm btn-outline-danger',
+                            onClick: () => handleDelete(row.id),
+                            title: '삭제'
+                        }, React.createElement(Trash2, { size: 14 })) : null
+                    ])
+                }
+            ];
+
+            // 액션 버튼 정의
+            const actions = [
+                {
+                    label: '새 업체 추가',
+                    className: 'btn btn-success',
+                    onClick: () => window.open('/company/create/', '_blank'),
+                    icon: React.createElement(Plus, { size: 16 }),
+                    show: permissions.can_write
+                },
+                {
+                    label: '선택 삭제',
+                    className: 'btn btn-danger',
+                    requireSelection: true,
+                    onClick: handleBulkDelete,
+                    icon: React.createElement(Trash2, { size: 16 }),
+                    show: permissions.can_write
+                }
+            ].filter(action => action.show);
+
+            // 필터 옵션 정의
+            const filterOptions = [
+                {
+                    name: 'type',
+                    type: 'select',
+                    width: 2,
+                    allLabel: '전체 타입',
+                    options: typeOptions
+                },
+                {
+                    name: 'condition',
+                    type: 'select',
+                    width: 2,
+                    allLabel: '전체 상태',
+                    options: conditionOptions
+                },
+                {
+                    name: 'union_only',
+                    type: 'checkbox',
+                    width: 2,
+                    label: '연합회만'
+                },
+                {
+                    name: 'mentor_only',
+                    type: 'checkbox',
+                    width: 2,
+                    label: '멘토만'
+                }
+            ];
+
+            return React.createElement('div', { className: 'min-h-screen bg-gray-100' }, [
+                // 헤더
+                React.createElement('nav', {
+                    key: 'header',
+                    className: 'bg-white shadow-sm border-b'
+                }, React.createElement('div', {
+                    className: 'container-fluid'
+                }, React.createElement('div', {
+                    className: 'd-flex justify-content-between align-items-center py-3'
+                }, [
+                    React.createElement('h1', {
+                        key: 'title',
+                        className: 'h4 mb-0 text-gray-900 d-flex align-items-center gap-2'
+                    }, [
+                        React.createElement(Building2, { key: 'icon', size: 24 }),
+                        '업체 관리 시스템'
+                    ]),
+                    React.createElement('div', {
+                        key: 'nav-actions',
+                        className: 'd-flex gap-2'
+                    }, [
+                        React.createElement('a', {
+                            key: 'legacy',
+                            href: '/company/',
+                            className: 'btn btn-outline-secondary'
+                        }, '기존 버전'),
+                        React.createElement('button', {
+                            key: 'refresh',
+                            onClick: () => loadData(),
+                            className: 'btn btn-outline-primary'
+                        }, '새로고침')
+                    ])
+                ]))),
+
+                // 메인 컨텐츠
+                React.createElement('div', {
+                    key: 'content',
+                    className: 'container-fluid py-4'
+                }, [
+                    // 권한 체크
+                    !permissions.can_read ? React.createElement('div', {
+                        key: 'no-permission',
+                        className: 'alert alert-warning text-center'
+                    }, [
+                        React.createElement('h5', { key: 'title' }, '접근 권한이 없습니다'),
+                        React.createElement('p', { key: 'msg', className: 'mb-0' }, '업체 목록을 조회할 권한이 없습니다.')
+                    ]) : React.createElement('div', { key: 'main-content' }, [
+                        // 필터 패널
+                        React.createElement(window.FilterPanel, {
+                            key: 'filters',
+                            filters: filters,
+                            onFilterChange: handleFilterChange,
+                            onSearch: handleSearch,
+                            filterOptions: filterOptions,
+                            searchPlaceholder: '업체명, 대표자명, 주소, 담당스텝으로 검색...'
+                        }),
+
+                        // 데이터 테이블
+                        React.createElement('div', {
+                            key: 'table-wrapper',
+                            className: 'd-flex justify-content-between align-items-center mb-4'
+                        }, [
+                            React.createElement('h2', {
+                                key: 'title',
+                                className: 'h5 mb-0 d-flex align-items-center gap-2'
+                            }, [
+                                React.createElement(Users, { key: 'icon', size: 20 }),
+                                `업체 목록 (총 ${pagination.total_items}개)`
+                            ])
+                        ]),
+
+                        React.createElement(window.DataTable, {
+                            key: 'table',
+                            data: data,
+                            columns: columns,
+                            pagination: pagination,
+                            loading: loading,
+                            actions: actions,
+                            onPageChange: handlePageChange,
+                            onSelectionChange: () => {}, // 선택 상태는 DataTable 내부에서 관리
+                            className: 'testpark-card',
+                            emptyMessage: '등록된 업체가 없습니다.'
+                        })
+                    ])
+                ])
+            ]);
+        };
+
+        // React DOM 렌더링
+        ReactDOM.render(React.createElement(CompanyManagementSystem), document.getElementById('react-root'));
+    </script>
+</body>
+</html>

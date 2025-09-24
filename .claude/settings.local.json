@@ -39,9 +39,33 @@
       "Bash(npm install:*)",
       "Bash(docker-compose build:*)",
       "Bash(docker-compose up:*)",
-      "Read(//Users/haseongdal/Documents/**)"
+      "Read(//Users/haseongdal/Documents/**)",
+      "Bash(pip install:*)",
+      "Bash(pkill:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm start)",
+      "Bash(PORT=3001 npm start)",
+      "Bash(python manage.py runserver:*)",
+      "Bash(python manage.py collectstatic:*)",
+      "Bash(docker-compose:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(xargs rm:*)",
+      "Bash(bash:*)",
+      "Bash(tree:*)",
+      "Bash(python manage.py:*)",
+      "Read(//var/www/**)",
+      "Bash(python:*)",
+      "Bash(netstat:*)",
+      "Bash(awk:*)",
+      "Read(//var/log/**)",
+      "Bash(chmod:*)",
+      "Bash(git checkout:*)",
+      "Bash(git rebase:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "outputStyle": "Learning"
 }

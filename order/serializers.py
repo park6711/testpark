@@ -4,31 +4,15 @@ from company.models import Company
 from area.models import Area
 
 class OrderSerializer(serializers.ModelSerializer):
-    privacy_status = serializers.CharField(source='get_privacy_status', read_only=True)
-    schedule_status = serializers.CharField(source='get_schedule_status', read_only=True)
-    is_urgent = serializers.BooleanField(read_only=True)
-    assign_count = serializers.SerializerMethodField()
-    assign_status = serializers.SerializerMethodField()
-
     class Meta:
         model = Order
         fields = [
-            'no', 'time', 'sAppoint', 'sNick', 'sNaverID',
-            'sName', 'sPhone', 'sPost', 'sArea', 'dateSchedule',
-            'sConstruction', 'bPrivacy1', 'bPrivacy2',
-            'privacy_status', 'schedule_status', 'is_urgent',
-            'assign_count', 'assign_status', 'created_at', 'updated_at'
+            'no', 'time', 'designation', 'designation_type', 'sNick', 'sNaverID',
+            'sName', 'sPhone', 'post_link', 'sArea', 'dateSchedule',
+            'sConstruction', 'assigned_company', 'recent_status', 're_request_count',
+            'bPrivacy1', 'bPrivacy2', 'created_at', 'updated_at'
         ]
         read_only_fields = ['no', 'time', 'created_at', 'updated_at']
-
-    def get_assign_count(self, obj):
-        return Assign.objects.filter(noOrder=obj.no).count()
-
-    def get_assign_status(self, obj):
-        latest_assign = Assign.objects.filter(noOrder=obj.no).order_by('-no').first()
-        if latest_assign:
-            return latest_assign.get_nAssignType_display()
-        return '미할당'
 
 class AssignSerializer(serializers.ModelSerializer):
     construction_type_display = serializers.CharField(source='get_nConstructionType_display', read_only=True)

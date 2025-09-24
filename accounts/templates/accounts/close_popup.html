@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 완료</title>
+</head>
+<body>
+    <div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">
+        <h2>{{ success_message|default:"✅ 로그인 완료" }}</h2>
+        <p>창이 자동으로 닫힙니다...</p>
+        <div style="margin-top: 20px; font-size: 12px; color: #666;" id="countdown">
+            1초 후 자동으로 닫힙니다...
+        </div>
+    </div>
+    <script>
+        // 팝업창 즉시 닫기 (강화된 로직)
+        let countdown = 1;
+        const countdownElement = document.getElementById('countdown');
+
+        function closeWindow() {
+            console.log('로그인 완료 - 창 닫기 시도');
+
+            // 부모 창에 로그인 완료 신호 보내기
+            if (window.opener && !window.opener.closed) {
+                try {
+                    console.log('부모창에 login_complete 메시지 전송');
+                    window.opener.postMessage('login_complete', '*');
+                    window.opener.focus(); // 부모창에 포커스
+                } catch (e) {
+                    console.log('PostMessage failed:', e);
+                }
+            }
+
+            // 강제로 창 닫기 (여러 방법 시도)
+            try {
+                window.close();
+            } catch (e) {
+                console.log('window.close() failed:', e);
+                // 창이 안닫히면 부모창으로 리다이렉트
+                if (window.opener && !window.opener.closed) {
+                    window.opener.location.reload();
+                }
+                // 최후 수단으로 로그인 페이지로 이동
+                window.location.href = '{% url "accounts:login" %}';
+            }
+        }
+
+        function updateCountdown() {
+            if (countdown > 0) {
+                countdownElement.textContent = `${countdown}초 후 자동으로 닫힙니다...`;
+                countdown--;
+                setTimeout(updateCountdown, 1000);
+            } else {
+                countdownElement.textContent = '창을 닫는 중...';
+                closeWindow();
+            }
+        }
+
+        // 즉시 시작하고, 백업으로 500ms 후에도 실행
+        updateCountdown();
+        setTimeout(closeWindow, 1500); // 1.5초 후 강제 실행
+    </script>
+</body>
+</html>

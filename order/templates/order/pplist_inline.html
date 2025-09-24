@@ -3,8 +3,11 @@
 
 {% block title %}견적의뢰 관리 시스템{% endblock %}
 
+{% block page_title %}견적의뢰 관리 시스템{% endblock %}
+{% block page_subtitle %}실시간 의뢰 현황 및 업체 할당 관리{% endblock %}
+
 {% block content %}
-<div id="root"></div>
+<div id="root" style="min-height: 600px;"></div>
 
 <!-- Ant Design CSS -->
 <link rel="stylesheet" href="https://unpkg.com/antd@5.12.8/dist/reset.css" />
@@ -22,6 +25,7 @@
 
 <!-- Ant Design Icons -->
 <script src="https://unpkg.com/@ant-design/icons@5.2.6/dist/index.umd.min.js"></script>
+
 
 <!-- Axios for API calls -->
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -46,7 +50,7 @@
 
     // Axios 기본 설정
     axios.defaults.headers.common['X-CSRFToken'] = getCookie('csrftoken');
-    axios.defaults.baseURL = '/order/api';
+    axios.defaults.withCredentials = true;
 </script>
 
 <!-- React Component (Inline) -->
@@ -65,17 +69,18 @@ const {
     TeamOutlined, CalendarOutlined, PhoneOutlined, UserOutlined,
     HomeOutlined, ToolOutlined, MessageOutlined, LinkOutlined,
     CheckCircleOutlined, CloseCircleOutlined, SyncOutlined,
-    ExclamationCircleOutlined, ClockCircleOutlined
+    ExclamationCircleOutlined, ClockCircleOutlined, ReloadOutlined
 } = icons;
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 
+
 // API 서비스
 const api = {
     getOrders: async (params = {}) => {
         try {
-            const response = await axios.get('/orders/', { params });
+            const response = await axios.get('/order/api/orders/', { params });
             return response.data;
         } catch (error) {
             console.error('Error fetching orders:', error);
@@ -84,37 +89,37 @@ const api = {
     },
 
     updateField: async (id, data) => {
-        const response = await axios.post(`/orders/${id}/update_field/`, data);
+        const response = await axios.post(`/order/api/orders/${id}/update_field/`, data);
         return response.data;
     },
 
     updateStatus: async (id, data) => {
-        const response = await axios.post(`/orders/${id}/update_status/`, data);
+        const response = await axios.post(`/order/api/orders/${id}/update_status/`, data);
         return response.data;
     },
 
     addMemo: async (id, data) => {
-        const response = await axios.post(`/orders/${id}/add_memo/`, data);
+        const response = await axios.post(`/order/api/orders/${id}/add_memo/`, data);
         return response.data;
     },
 
     addQuoteLink: async (id, data) => {
-        const response = await axios.post(`/orders/${id}/add_quote_link/`, data);
+        const response = await axios.post(`/order/api/orders/${id}/add_quote_link/`, data);
         return response.data;
     },
 
     copyOrder: async (id) => {
-        const response = await axios.post(`/orders/${id}/copy/`);
+        const response = await axios.post(`/order/api/orders/${id}/copy/`);
         return response.data;
     },
 
     bulkDelete: async (orderIds) => {
-        const response = await axios.post('/orders/bulk_delete/', { order_ids: orderIds });
+        const response = await axios.post('/order/api/orders/bulk_delete/', { order_ids: orderIds });
         return response.data;
     },
 
     getCompanies: async () => {
-        const response = await axios.get('/companies/');
+        const response = await axios.get('/order/api/companies/');
         return response.data;
     },
 
@@ -156,6 +161,8 @@ const QuoteManagementSystem = () => {
     const [selectedRowKeys, setSelectedRowKeys] = useState([]);
     const [orders, setOrders] = useState([]);
     const [companies, setCompanies] = useState([]);
+    const [dataError, setDataError] = useState(null);
+    const [lastUpdated, setLastUpdated] = useState(null);
 
     // 모달 상태
     const [editModalVisible, setEditModalVisible] = useState(false);
@@ -212,6 +219,7 @@ const QuoteManagementSystem = () => {
 
     const loadData = async () => {
         setTableLoading(true);
+        setDataError(null);
         try {
             const [ordersResponse, companiesResponse] = await Promise.all([
                 api.getOrders(),
@@ -242,8 +250,11 @@ const QuoteManagementSystem = () => {
 
             setOrders(transformedOrders);
             setCompanies(companiesResponse);
+            setLastUpdated(new Date());
+            message.success(`데이터를 성공적으로 불러왔습니다. (총 ${transformedOrders.length}개)`);
         } catch (error) {
             console.error('데이터 로드 실패:', error);
+            setDataError(error.message || '데이터를 불러오는데 실패했습니다.');
             api.handleError(error);
         } finally {
             setTableLoading(false);
@@ -660,7 +671,11 @@ const QuoteManagementSystem = () => {
             <Card>
                 <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
                     <Col>
-                        <Title level={3} style={{ margin: 0 }}>견적의뢰 관리 시스템</Title>
+                        <Space align="center">
+                            <Title level={3} style={{ margin: 0 }}>견적의뢰 관리 시스템</Title>
+                            <Badge count={orders.length} showZero style={{ backgroundColor: '#52c41a' }} />
+                            {tableLoading && <Spin size="small" />}
+                        </Space>
                     </Col>
                     <Col>
                         <Space>
@@ -674,21 +689,59 @@ const QuoteManagementSystem = () => {
                                 </Button>
                             )}
                             <Button
+                                icon={<ReloadOutlined />}
+                                onClick={loadData}
+                                loading={tableLoading}
+                                title="데이터 새로고침"
+                            >
+                                새로고침
+                            </Button>
+                            <Button
                                 type="primary"
                                 icon={<PlusOutlined />}
                                 onClick={() => window.open('https://docs.google.com/forms/d/e/1FAIpQLSfOnhe1eBTRM5bb-r_XA6epsUkPctmqexzcwJk-MC5KlC3F4g/viewform', '_blank')}
                             >
                                 의뢰 추가
                             </Button>
-                            <Button
-                                icon={<SyncOutlined />}
-                                onClick={loadData}
-                            >
-                                새로고침
-                            </Button>
                         </Space>
                     </Col>
                 </Row>
+
+                {/* 상태 표시 */}
+                {dataError && (
+                    <Alert
+                        message="데이터 로딩 오류"
+                        description={
+                            <div>
+                                <div style={{ marginBottom: 8 }}>{dataError}</div>
+                                <Button
+                                    type="primary"
+                                    size="small"
+                                    onClick={loadData}
+                                    loading={tableLoading}
+                                    icon={<ReloadOutlined />}
+                                >
+                                    다시 시도
+                                </Button>
+                            </div>
+                        }
+                        type="error"
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                    />
+                )}
+
+                {/* 마지막 업데이트 시간 */}
+                {lastUpdated && !dataError && (
+                    <div style={{
+                        textAlign: 'right',
+                        marginBottom: 8,
+                        fontSize: 12,
+                        color: '#999'
+                    }}>
+                        마지막 업데이트: {lastUpdated.toLocaleString('ko-KR')}
+                    </div>
+                )}
 
                 <Table
                     rowSelection={rowSelection}
@@ -700,6 +753,20 @@ const QuoteManagementSystem = () => {
                         showSizeChanger: true,
                         showQuickJumper: true,
                         showTotal: (total) => `총 ${total}개`,
+                        pageSizeOptions: ['10', '20', '50', '100'],
+                    }}
+                    locale={{
+                        emptyText: (
+                            <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                                <FileTextOutlined style={{ fontSize: 48, color: '#d9d9d9', marginBottom: 16 }} />
+                                <div style={{ fontSize: 16, color: '#999', marginBottom: 8 }}>
+                                    등록된 견적의뢰가 없습니다
+                                </div>
+                                <div style={{ fontSize: 14, color: '#ccc' }}>
+                                    새로운 의뢰를 추가해보세요
+                                </div>
+                            </div>
+                        )
                     }}
                 />
             </Card>

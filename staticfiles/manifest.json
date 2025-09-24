@@ -1,0 +1,8 @@
+{
+  "name": "TestPark 견적의뢰 관리 시스템",
+  "short_name": "TestPark",
+  "start_url": "/order/pplist/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea"
+}

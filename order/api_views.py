@@ -1,11 +1,18 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Q, Count, Prefetch
 from django.db import transaction
 from datetime import datetime
 import json
+
+# Google Sheets Sync는 조건부 import
+try:
+    from .google_sheets_sync import GoogleSheetsSync
+    GOOGLE_SHEETS_ENABLED = True
+except ImportError:
+    GOOGLE_SHEETS_ENABLED = False
 
 from .models import (
     Order, Assign, Estimate, AssignMemo,
@@ -39,8 +46,11 @@ class OrderViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
 
+        # Get query parameters (handle both DRF and Django request objects)
+        params = getattr(self.request, 'query_params', self.request.GET)
+
         # 검색 필터
-        search = self.request.query_params.get('search', None)
+        search = params.get('search', None)
         if search:
             queryset = queryset.filter(
                 Q(sName__icontains=search) |
@@ -52,17 +62,17 @@ class OrderViewSet(viewsets.ModelViewSet):
             )
 
         # 상태 필터
-        status_filter = self.request.query_params.get('status', None)
+        status_filter = params.get('status', None)
         if status_filter:
             queryset = queryset.filter(recent_status=status_filter)
 
         # 날짜 필터
-        date_from = self.request.query_params.get('date_from', None)
-        date_to = self.request.query_params.get('date_to', None)
+        date_from = params.get('date_from', None)
+        date_to = params.get('date_to', None)
         if date_from:
-            queryset = queryset.filter(receipt_date__gte=date_from)
+            queryset = queryset.filter(created_at__date__gte=date_from)
         if date_to:
-            queryset = queryset.filter(receipt_date__lte=date_to)
+            queryset = queryset.filter(created_at__date__lte=date_to)
 
         # 관련 데이터 미리 로드 (N+1 쿼리 방지)
         queryset = queryset.prefetch_related(
@@ -72,7 +82,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             'memos'
         )
 
-        return queryset.order_by('-receipt_date')
+        return queryset.order_by('-created_at')
 
     @action(detail=True, methods=['post'])
     def update_field(self, request, pk=None):
@@ -418,10 +428,10 @@ class CompanyViewSet(viewsets.ReadOnlyModelViewSet):
             data.append({
                 'id': company.no,
                 'name': company.sCompanyName,
-                'location': company.sArea,
-                'grade': 1,  # TODO: 등급 시스템 구현
-                'licenses': '',  # TODO: 라이센스 정보
-                'features': '',  # TODO: 특징 정보
+                'location': company.sAddress or '',
+                'grade': company.nGrade or 1,
+                'licenses': company.sBuildLicense or '',
+                'features': company.sStrength or '',
                 'isDesignated': False
             })
 
@@ -439,3 +449,29 @@ class AreaViewSet(viewsets.ReadOnlyModelViewSet):
         areas = self.get_queryset()
         regions = [area.sArea for area in areas]
         return Response(regions)
+
+
+@api_view(['POST'])
+def sync_google_sheets(request):
+    """구글 스프레드시트 데이터 동기화 API"""
+    if not GOOGLE_SHEETS_ENABLED:
+        return Response({
+            'success': False,
+            'message': '구글 스프레드시트 동기화가 비활성화되어 있습니다. gspread 패키지를 설치하세요.'
+        }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    try:
+        sync = GoogleSheetsSync()
+        result = sync.sync_data()
+
+        return Response({
+            'success': True,
+            'message': '동기화 완료',
+            'result': result
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'동기화 실패: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -203,7 +203,19 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20
+    'PAGE_SIZE': 20,
+    # 개발 환경 최적화
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '1000/hour',
+        'user': '2000/hour'
+    },
+    # API 응답 최적화
+    'DATETIME_FORMAT': '%Y-%m-%d %H:%M:%S',
+    'DATE_FORMAT': '%Y-%m-%d',
 }
 
 # CORS 설정
@@ -212,6 +224,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:8000",  # Django 서버
     "http://127.0.0.1:8000",
+    "http://testpark-frontend:3000",  # Docker 컨테이너 간 통신
+    "http://testpark:8000",  # Docker 컨테이너 간 통신
     "https://carpenterhosting.cafe24.com",
     "http://carpenterhosting.cafe24.com",
     "https://210.114.22.100",

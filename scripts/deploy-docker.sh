@@ -77,56 +77,60 @@ curl -X POST "$JANDI_WEBHOOK" \
     \"connectColor\": \"#FF9800\"
   }" > /dev/null 2>&1
 
-# 1단계: 실서버용 .env 파일 생성 및 검증
-echo "⚙️ 실서버용 환경변수 파일을 생성합니다..."
+# 1단계: 실서버용 .env 파일 확인 및 검증
+echo "⚙️ 실서버용 환경변수 파일을 확인합니다..."
 cd /var/www/testpark
 
-# 기존 .env 파일 강제 삭제 (구문 오류 방지)
+# 기존 .env 파일 확인 및 백업 (있을 경우만)
 if [ -f .env ]; then
-    echo "📋 기존 .env 파일 백업 및 삭제 중..."
+    echo "📋 기존 .env 파일 발견 - 백업 생성 중..."
     cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
-    rm -f .env
-    echo "✅ 기존 .env 파일 삭제 완료"
+
+    # 오래된 백업 파일 정리 (최근 5개만 유지)
+    echo "🧹 오래된 백업 파일 정리 중..."
+    BACKUP_COUNT=$(ls -1 .env.backup.* 2>/dev/null | wc -l)
+    if [ $BACKUP_COUNT -gt 5 ]; then
+        ls -t .env.backup.* | tail -n +6 | xargs rm -f
+        echo "✅ 오래된 백업 파일 정리 완료 (최근 5개 유지)"
+    fi
+
+    echo "✅ 기존 .env 파일 백업 완료 (파일 유지)"
+else
+    echo "⚠️ .env 파일이 존재하지 않습니다!"
+    echo "🛠️ 수동으로 .env 파일을 생성해주세요."
+    echo "📋 필요한 환경변수들:"
+    echo "  - DEBUG=False"
+    echo "  - SECRET_KEY"
+    echo "  - NAVER_CLIENT_ID, NAVER_CLIENT_SECRET"
+    echo "  - CSRF_TRUSTED_ORIGINS"
+    echo "  - JANDI_WEBHOOK_URL"
+    echo "  - DOCKER_USERNAME, DOCKER_PASSWORD"
+    exit 1
 fi
 
-# 실서버용 .env 파일 생성
-echo "📝 새로운 .env 파일 생성 중..."
-cat > .env << 'EOF'
-# Django 실서버 환경 설정
-DEBUG=False
-SECRET_KEY="django-insecure-nlk5agkjp1+7+sp168_46gy#h0gdmh%#5ano(r196@c+p7m-ny"
-
-# 네이버 소셜 로그인 설정 (실서버용)
-NAVER_CLIENT_ID=_mw6kojqJVXoWEBqYBKv
-NAVER_CLIENT_SECRET=hHKrIfKoMA
-NAVER_REDIRECT_URI=https://carpenterhosting.cafe24.com/auth/naver/callback/
-
-# CSRF 설정 (실서버용)
-CSRF_TRUSTED_ORIGINS=https://carpenterhosting.cafe24.com,http://210.114.22.100:8000,http://localhost:8000,http://127.0.0.1:8000
-
-# 잔디 웹훅 설정
-JANDI_WEBHOOK_URL=https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784
-
-# Docker Hub 자격증명 (배포용)
-DOCKER_USERNAME=7171man
-DOCKER_PASSWORD=*jeje4211
-EOF
-
-# .env 파일 생성 검증
+# .env 파일 검증 및 환경 설정
 if [ -f .env ]; then
-    echo "✅ .env 파일 생성 완료"
+    echo "✅ .env 파일 확인 완료"
     echo "📊 .env 파일 정보:"
     ls -la .env
-    echo "📝 .env 파일 내용 미리보기:"
-    echo "--- .env 파일 ---"
-    head -10 .env
-    echo "--- 끝 ---"
+
+    # 필수 환경변수 확인
+    echo "🔍 필수 환경변수 검증 중..."
+    if grep -q "DEBUG=" .env && grep -q "SECRET_KEY=" .env && grep -q "DOCKER_USERNAME=" .env; then
+        echo "✅ 필수 환경변수 확인 완료"
+    else
+        echo "⚠️ 일부 필수 환경변수가 누락되었을 수 있습니다."
+        echo "📋 .env 파일 내용 확인:"
+        echo "--- .env 파일 ---"
+        head -10 .env | sed 's/SECRET_KEY=.*/SECRET_KEY=***hidden***/' | sed 's/PASSWORD=.*/PASSWORD=***hidden***/' | sed 's/CLIENT_SECRET=.*/CLIENT_SECRET=***hidden***/'
+        echo "--- 끝 ---"
+    fi
 
     # 파일 권한 설정 (Docker가 읽을 수 있도록)
     chmod 644 .env
     echo "🔒 파일 권한 설정 완료 (644)"
 else
-    echo "❌ .env 파일 생성 실패!"
+    echo "❌ .env 파일이 존재하지 않습니다!"
     exit 1
 fi
 

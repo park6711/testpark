@@ -38,3 +38,4 @@ public/build/db.sqlite3
 # Claude settings
 .claude/
 .env.backup*
+seongdal-a900e25ac63c.json
