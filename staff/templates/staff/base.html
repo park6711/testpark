@@ -612,7 +612,8 @@
                 <a href="#" class="menu-link">계약관리</a>
                 <div class="dropdown">
                     <a href="#" class="dropdown-item">계약보고 리스트</a>
-                    <a href="#" class="dropdown-item">월고정비 관리</a>
+                    <a href="{% url 'fixfee:fixfee_list' %}" class="dropdown-item">월고정비 리스트</a>
+                    <a href="{% url 'fixfee:fixfee_status' %}" class="dropdown-item">월고정비 현황</a>
                 </div>
             </div>
 
@@ -633,9 +634,9 @@
                 </div>
             </div>
 
-            <!-- 5. 스텝/문자 -->
+            <!-- 5. 스텝/설정 -->
             <div class="menu-item">
-                <a href="#" class="menu-link">스텝/문자</a>
+                <a href="#" class="menu-link">스텝/설정</a>
                 <div class="dropdown">
                     {% if current_staff and current_staff.nStaffAuthority > 0 %}
                         <a href="{% url 'staff:staff_list' %}" class="dropdown-item">스텝 관리</a>
@@ -644,6 +645,7 @@
                     {% endif %}
                     <a href="#" class="dropdown-item">템플리트</a>
                     <a href="{% url 'point:point_list' %}" class="dropdown-item">포인트 내역</a>
+                    <a href="{% url 'globalvars:globalvar_list' %}" class="dropdown-item">전역변수 설정</a>
                 </div>
             </div>
         </div>

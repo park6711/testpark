@@ -38,6 +38,8 @@ urlpatterns = [
     path('template/', include('template.urls')),
     path('point/', include('point.urls')),
     path('companycondition/', include('companycondition.urls')),
+    path('globalvars/', include('globalvars.urls')),
+    path('fixfee/', include('fixfee.urls')),
     path('', include('demo.urls')),
 ]
 

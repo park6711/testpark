@@ -1,0 +1,533 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}전역변수 설정 - PMIS 2.0{% endblock %}
+{% block page_title %}전역변수 설정{% endblock %}
+{% block page_subtitle %}시스템 전역변수 관리{% endblock %}
+
+{% block content %}
+<style>
+    .var-container {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .var-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #667eea;
+    }
+
+    .var-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .var-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .var-table thead {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .var-table th,
+    .var-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .var-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .var-table th:first-child {
+        border-radius: 8px 0 0 0;
+    }
+
+    .var-table th:last-child {
+        border-radius: 0 8px 0 0;
+    }
+
+    .var-input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .var-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .var-key {
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        color: #e83e8c;
+    }
+
+    .var-type {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .var-type.int {
+        background: #28a745;
+        color: white;
+    }
+
+    .var-type.float {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .var-type.str {
+        background: #ffc107;
+        color: #333;
+    }
+
+    .current-value {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+
+    .btn-container {
+        text-align: right;
+        margin-top: 20px;
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 10px 30px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-reset {
+        background: #6c757d;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-right: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-reset:hover {
+        background: #5a6268;
+    }
+
+    .info-box {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+        padding: 12px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        font-size: 14px;
+    }
+
+    .info-box i {
+        margin-right: 8px;
+    }
+
+    .edit-mode {
+        background: #fffbf0;
+        border: 2px solid #ffc107;
+    }
+
+    @media (max-width: 768px) {
+        .var-table {
+            font-size: 12px;
+        }
+
+        .var-table th,
+        .var-table td {
+            padding: 8px 4px;
+        }
+
+        .var-input {
+            font-size: 12px;
+            padding: 6px;
+        }
+    }
+
+    /* 커스텀 모달 스타일 */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        position: relative;
+    }
+
+    .modal-icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+
+    .modal-icon.warning {
+        color: #ffc107;
+    }
+
+    .modal-icon.error {
+        color: #dc3545;
+    }
+
+    .modal-icon.success {
+        color: #28a745;
+    }
+
+    .modal-icon.confirm {
+        color: #007bff;
+    }
+
+    .modal-message {
+        font-size: 16px;
+        color: #333;
+        margin-bottom: 20px;
+        line-height: 1.5;
+    }
+
+    .modal-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    .modal-btn {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .modal-btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .modal-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .modal-btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .modal-btn-secondary:hover {
+        background: #5a6268;
+    }
+</style>
+
+<div class="var-container">
+    <div class="var-header">
+        <div class="var-title">전역변수 설정</div>
+        <button type="button" id="editBtn" class="btn-save" onclick="toggleEditMode()">수정</button>
+    </div>
+
+    <div class="info-box">
+        💡 전역변수는 시스템 전체에서 사용되는 중요한 설정값입니다. 신중하게 수정하세요.
+    </div>
+
+    <form method="post" action="{% url 'globalvars:globalvar_update' %}" id="varForm">
+        {% csrf_token %}
+        <table class="var-table">
+            <thead>
+                <tr>
+                    <th width="30%">변수명</th>
+                    <th width="20%">현재값</th>
+                    <th width="10%">타입</th>
+                    <th width="40%">설명</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for var in global_vars %}
+                <tr>
+                    <td>
+                        <span class="var-key">{{ var.key }}</span>
+                    </td>
+                    <td>
+                        <input type="text"
+                               name="value_{{ var.key }}"
+                               value="{{ var.value }}"
+                               class="var-input edit-field"
+                               disabled
+                               data-original="{{ var.value }}"
+                               data-initial="{{ var.current_value }}">
+                        {% if var.current_value %}
+                        <div class="current-value">초기값: {{ var.current_value }}</div>
+                        {% endif %}
+                        <input type="hidden" name="type_{{ var.key }}" value="{{ var.var_type }}">
+                        <input type="hidden" name="desc_{{ var.key }}" value="{{ var.description }}">
+                    </td>
+                    <td>
+                        <span class="var-type {{ var.var_type }}">{{ var.var_type }}</span>
+                    </td>
+                    <td>{{ var.description }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="btn-container" id="saveContainer" style="display: none;">
+            <button type="button" class="btn-reset" onclick="resetForm()">초기화</button>
+            <button type="submit" class="btn-save">저장</button>
+        </div>
+    </form>
+</div>
+
+<!-- 커스텀 모달 -->
+<div id="customModal" class="modal-overlay">
+    <div class="modal-content">
+        <div id="modalIcon" class="modal-icon"></div>
+        <div id="modalMessage" class="modal-message"></div>
+        <div class="modal-buttons">
+            <button type="button" id="modalConfirmBtn" class="modal-btn modal-btn-primary">확인</button>
+            <button type="button" id="modalCancelBtn" class="modal-btn modal-btn-secondary" style="display: none;">취소</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let isEditMode = false;
+    let modalCallback = null;
+
+    // 커스텀 모달 함수들
+    function showModal(message, type = 'info', showCancel = false) {
+        const modal = document.getElementById('customModal');
+        const modalIcon = document.getElementById('modalIcon');
+        const modalMessage = document.getElementById('modalMessage');
+        const cancelBtn = document.getElementById('modalCancelBtn');
+
+        // 아이콘 설정
+        const icons = {
+            'info': '💡',
+            'warning': '⚠️',
+            'error': '❌',
+            'success': '✅',
+            'confirm': '🔄'
+        };
+
+        modalIcon.innerHTML = icons[type] || icons['info'];
+        modalIcon.className = `modal-icon ${type}`;
+        modalMessage.textContent = message;
+
+        // 취소 버튼 표시 여부
+        cancelBtn.style.display = showCancel ? 'block' : 'none';
+
+        // 모달 표시
+        modal.style.display = 'flex';
+
+        return new Promise((resolve) => {
+            modalCallback = resolve;
+        });
+    }
+
+    function hideModal() {
+        const modal = document.getElementById('customModal');
+        modal.style.display = 'none';
+        if (modalCallback) {
+            modalCallback(false);
+            modalCallback = null;
+        }
+    }
+
+    // 모달 버튼 이벤트 리스너
+    document.getElementById('modalConfirmBtn').addEventListener('click', function() {
+        const modal = document.getElementById('customModal');
+        modal.style.display = 'none';
+        if (modalCallback) {
+            modalCallback(true);
+            modalCallback = null;
+        }
+    });
+
+    document.getElementById('modalCancelBtn').addEventListener('click', function() {
+        hideModal();
+    });
+
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideModal();
+        }
+    });
+
+    function toggleEditMode() {
+        isEditMode = !isEditMode;
+        const editFields = document.querySelectorAll('.edit-field');
+        const saveContainer = document.getElementById('saveContainer');
+        const editBtn = document.getElementById('editBtn');
+        const varContainer = document.querySelector('.var-container');
+
+        if (isEditMode) {
+            // 수정 모드 활성화
+            editFields.forEach(field => {
+                field.disabled = false;
+                field.classList.add('edit-mode');
+            });
+            saveContainer.style.display = 'block';
+            editBtn.textContent = '취소';
+            editBtn.style.background = '#dc3545';
+        } else {
+            // 수정 모드 비활성화
+            editFields.forEach(field => {
+                field.disabled = true;
+                field.classList.remove('edit-mode');
+                // 원래 값으로 복원
+                field.value = field.getAttribute('data-original');
+            });
+            saveContainer.style.display = 'none';
+            editBtn.textContent = '수정';
+            editBtn.style.background = '';
+        }
+    }
+
+    function resetForm() {
+        const editFields = document.querySelectorAll('.edit-field');
+        editFields.forEach(field => {
+            // 초기값(settings.py의 값)으로 설정
+            const initialValue = field.getAttribute('data-initial');
+            if (initialValue && initialValue !== 'None') {
+                field.value = initialValue;
+            } else {
+                // 초기값이 없으면 원래 값(DB에 저장된 값)으로 설정
+                field.value = field.getAttribute('data-original');
+            }
+            // 스타일 초기화
+            field.style.background = '';
+            field.style.borderColor = '';
+        });
+    }
+
+    // 폼 제출 전 유효성 검사
+    document.getElementById('varForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const editFields = document.querySelectorAll('.edit-field');
+        let hasError = false;
+        let hasChanges = false;
+
+        // 변경사항 확인
+        for (const field of editFields) {
+            const originalValue = field.getAttribute('data-original');
+            const currentValue = field.value.trim();
+
+            if (originalValue !== currentValue) {
+                hasChanges = true;
+            }
+        }
+
+        // 변경사항이 없는 경우
+        if (!hasChanges) {
+            await showModal('수정된 데이터가 없습니다.', 'info');
+            return false;
+        }
+
+        // 유효성 검사
+        for (const field of editFields) {
+            const varKey = field.name.replace('value_', '');
+            const varType = document.querySelector(`input[name="type_${varKey}"]`).value;
+            const value = field.value.trim();
+
+            if (!value) {
+                await showModal(`${varKey} 값을 입력해주세요.`, 'warning');
+                field.focus();
+                hasError = true;
+                break;
+            }
+
+            // 타입별 유효성 검사
+            if (varType === 'int') {
+                if (!/^-?\d+$/.test(value)) {
+                    await showModal(`${varKey}는 정수여야 합니다.`, 'error');
+                    field.focus();
+                    hasError = true;
+                    break;
+                }
+            } else if (varType === 'float') {
+                if (!/^-?\d*\.?\d+$/.test(value)) {
+                    await showModal(`${varKey}는 숫자여야 합니다.`, 'error');
+                    field.focus();
+                    hasError = true;
+                    break;
+                }
+            }
+        }
+
+        if (hasError) {
+            return false;
+        }
+
+        // 확인 모달 표시
+        const confirmResult = await showModal('전역변수를 수정하시겠습니까?\n\n이 작업은 시스템 전체에 영향을 미칠 수 있습니다.', 'confirm', true);
+
+        if (confirmResult) {
+            this.submit();
+        }
+    });
+
+    // 값 변경 감지
+    document.querySelectorAll('.edit-field').forEach(field => {
+        field.addEventListener('input', function() {
+            const originalValue = this.getAttribute('data-original');
+            if (this.value !== originalValue) {
+                this.style.background = '#fffbf0';
+                this.style.borderColor = '#ffc107';
+            } else {
+                this.style.background = '';
+                this.style.borderColor = '';
+            }
+        });
+    });
+</script>
+{% endblock %}
