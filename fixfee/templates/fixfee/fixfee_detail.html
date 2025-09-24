@@ -1,0 +1,694 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}월고정비 상세정보 - PMIS 2.0{% endblock %}
+{% block page_title %}월고정비 상세정보{% endblock %}
+{% block page_subtitle %}월고정비 납부 내역 상세보기{% endblock %}
+
+{% block content %}
+<style>
+    .detail-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .detail-card {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+
+    .detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #667eea;
+    }
+
+    .detail-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .detail-status {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: bold;
+    }
+
+    .status-paid {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-unpaid {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .detail-row {
+        display: flex;
+        padding: 15px 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .detail-label {
+        flex: 0 0 150px;
+        font-weight: bold;
+        color: #666;
+    }
+
+    .detail-value {
+        flex: 1;
+        color: #333;
+    }
+
+    .detail-value input,
+    .detail-value select,
+    .detail-value textarea {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .detail-value textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .payment-type-badge {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: bold;
+    }
+
+    .payment-type-0 { background: #007bff; color: white; }
+    .payment-type-1 { background: #28a745; color: white; }
+    .payment-type-2 { background: #ffc107; color: #333; }
+    .payment-type-3 { background: #6c757d; color: white; }
+
+    .amount-display {
+        font-size: 20px;
+        font-weight: bold;
+        color: #28a745;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 30px;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-warning {
+        background: #ffc107;
+        color: #333;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .edit-mode {
+        background: #fffbf0;
+        border: 2px solid #ffc107;
+    }
+
+    .info-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+
+    .info-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .timestamp {
+        color: #6c757d;
+        font-size: 12px;
+    }
+
+    .company-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-left: 8px;
+    }
+
+    .type-badge {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .type-0 { background: #6c757d; color: white; } /* 일반 */
+    .type-1 { background: #007bff; color: white; } /* 고정비토탈 */
+
+    .condition-badge {
+        margin-left: 5px;
+    }
+
+    .condition-0 { background: #ffc107; color: #333; } /* 준비중 */
+    .condition-1 { background: #28a745; color: white; } /* 정상 */
+    .condition-2 { background: #17a2b8; color: white; } /* 일시정지 */
+    .condition-3 { background: #dc3545; color: white; } /* 탈퇴 */
+
+    /* 커스텀 모달 스타일 */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .modal-overlay.show {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        max-width: 400px;
+        width: 90%;
+        animation: slideUp 0.3s ease;
+    }
+
+    .modal-header {
+        margin-bottom: 20px;
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-icon {
+        width: 24px;
+        height: 24px;
+        background: #dc3545;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+
+    .modal-body {
+        margin-bottom: 25px;
+        color: #666;
+        line-height: 1.6;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .modal-btn-cancel {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .modal-btn-cancel:hover {
+        background: #dee2e6;
+    }
+
+    .modal-btn-confirm {
+        background: #dc3545;
+        color: white;
+    }
+
+    .modal-btn-confirm:hover {
+        background: #c82333;
+    }
+
+    .success-message {
+        display: none;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        z-index: 1001;
+        animation: slideInRight 0.3s ease;
+    }
+
+    .success-message.show {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+</style>
+
+<div class="detail-container">
+    <div class="detail-card {% if is_edit %}edit-mode{% endif %}">
+        <div class="detail-header">
+            <div class="detail-title">
+                {{ company.sName2 }} - {{ fee_date.date|date:"Y년 n월 j일" }} 기준
+            </div>
+            <div class="detail-status {% if fixfee.dateDeposit %}status-paid{% else %}status-unpaid{% endif %}">
+                {% if fixfee.dateDeposit %}완납{% else %}미납{% endif %}
+            </div>
+        </div>
+
+        <form method="post" action="">
+            {% csrf_token %}
+
+            <!-- 참조 페이지 정보 -->
+            {% if referrer %}
+                <input type="hidden" name="referrer" value="{{ referrer }}">
+                <input type="hidden" name="ref_fee_date" value="{{ ref_fee_date }}">
+                {% for cond in ref_conditions %}
+                <input type="hidden" name="ref_condition" value="{{ cond }}">
+                {% endfor %}
+            {% endif %}
+
+            <div class="info-section">
+                <div class="info-title">기본 정보</div>
+
+                <div class="detail-row">
+                    <div class="detail-label">관리번호</div>
+                    <div class="detail-value">{{ fixfee.no }}</div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">업체명</div>
+                    <div class="detail-value">
+                        {{ company.sName2 }}
+                        <span class="company-badge type-badge type-{{ company.nType }}">
+                            {% if company.nType == 0 %}일반{% elif company.nType == 1 %}고정비토탈{% endif %}
+                        </span>
+                        <span class="company-badge condition-badge condition-{{ company.nCondition }}">
+                            {% if company.nCondition == 0 %}준비중
+                            {% elif company.nCondition == 1 %}정상
+                            {% elif company.nCondition == 2 %}일시정지
+                            {% elif company.nCondition == 3 %}탈퇴
+                            {% endif %}
+                        </span>
+                        {% if company.sName1 %}<br><small style="color: #666;">({{ company.sName1 }})</small>{% endif %}
+                    </div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">납부기준일</div>
+                    <div class="detail-value">{{ fee_date.date|date:"Y-m-d" }}</div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <div class="info-title">납부 정보</div>
+
+                <div class="detail-row">
+                    <div class="detail-label">납부방식</div>
+                    <div class="detail-value">
+                        {% if is_edit %}
+                            <select name="nType" required>
+                                {% for type_val, type_name in payment_types %}
+                                <option value="{{ type_val }}" {% if fixfee.nType == type_val %}selected{% endif %}>
+                                    {{ type_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        {% else %}
+                            <span class="payment-type-badge payment-type-{{ fixfee.nType }}">
+                                {{ fixfee.get_payment_type_display_custom }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">월고정비</div>
+                    <div class="detail-value">
+                        {% if is_edit %}
+                            <input type="text" name="nFixFee_display" id="nFixFee_display" value="{{ fixfee.nFixFee }}"
+                                   pattern="[0-9,]*" inputmode="numeric">
+                            <input type="hidden" name="nFixFee" id="nFixFee" value="{{ fixfee.nFixFee }}">
+                        {% else %}
+                            <span class="amount-display">{{ fixfee.nFixFee|floatformat:0|default:"0" }}원</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">완납일자 *</div>
+                    <div class="detail-value">
+                        {% if is_edit %}
+                            <input type="date" name="dateDeposit" value="{{ fixfee.dateDeposit|date:'Y-m-d' }}" required>
+                        {% else %}
+                            {% if fixfee.dateDeposit %}
+                                {{ fixfee.dateDeposit|date:"Y-m-d" }}
+                            {% else %}
+                                <span style="color: #dc3545;">미납</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="detail-row">
+                    <div class="detail-label">비고</div>
+                    <div class="detail-value">
+                        {% if is_edit %}
+                            <textarea name="sMemo">{{ fixfee.sMemo }}</textarea>
+                        {% else %}
+                            {{ fixfee.sMemo|default:"없음"|linebreaks }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                {% if is_edit %}
+                    <button type="submit" class="btn btn-success">저장</button>
+                    <a href="{% url 'fixfee:fixfee_detail' fixfee.no %}{% if referrer %}?referrer={{ referrer }}&ref_fee_date={{ ref_fee_date }}{% for cond in ref_conditions %}&ref_condition={{ cond }}{% endfor %}{% endif %}" class="btn btn-secondary">취소</a>
+                {% else %}
+                    <a href="{% url 'fixfee:fixfee_detail' fixfee.no %}?edit=true{% if referrer %}&referrer={{ referrer }}&ref_fee_date={{ ref_fee_date }}{% for cond in ref_conditions %}&ref_condition={{ cond }}{% endfor %}{% endif %}" class="btn btn-warning">수정</a>
+                    <button type="button" onclick="deleteFixFee({{ fixfee.no }})" class="btn btn-danger">삭제</button>
+                {% endif %}
+                {% if referrer == 'status' %}
+                    <a href="{% url 'fixfee:fixfee_status' %}?fee_date={{ ref_fee_date }}{% for cond in ref_conditions %}&condition={{ cond }}{% endfor %}" class="btn btn-secondary">목록</a>
+                {% else %}
+                    <a href="{% url 'fixfee:fixfee_list' %}" class="btn btn-secondary">목록</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div id="deleteModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">
+                <span class="modal-icon">!</span>
+                삭제 확인
+            </div>
+        </div>
+        <div class="modal-body">
+            정말로 이 월고정비 데이터를 삭제하시겠습니까?<br>
+            이 작업은 되돌릴 수 없습니다.
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()">취소</button>
+            <button class="modal-btn modal-btn-confirm" onclick="confirmDelete()">삭제</button>
+        </div>
+    </div>
+</div>
+
+<!-- 성공 메시지 -->
+<div id="successMessage" class="success-message">
+    삭제되었습니다.
+</div>
+
+<script>
+// 업체의 기본 월고정비 값 저장
+const companyDefaultFixFee = {{ company.nFixFee|default:"0" }};
+
+let deleteFixFeeId = null;
+
+function deleteFixFee(id) {
+    deleteFixFeeId = id;
+    document.getElementById('deleteModal').classList.add('show');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('show');
+    deleteFixFeeId = null;
+}
+
+function confirmDelete() {
+    if (!deleteFixFeeId) return;
+
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // 참조 페이지 정보 수집
+    const formData = new FormData();
+    const referrer = document.querySelector('input[name="referrer"]');
+    if (referrer) {
+        formData.append('referrer', referrer.value);
+    }
+    const refFeeDate = document.querySelector('input[name="ref_fee_date"]');
+    if (refFeeDate) {
+        formData.append('ref_fee_date', refFeeDate.value);
+    }
+    const refConditions = document.querySelectorAll('input[name="ref_condition"]');
+    refConditions.forEach(cond => {
+        formData.append('ref_condition', cond.value);
+    });
+
+    fetch(`/fixfee/delete/${deleteFixFeeId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeDeleteModal();
+            showSuccessMessage();
+            setTimeout(() => {
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    window.location.href = '{% url "fixfee:fixfee_list" %}';
+                }
+            }, 1500);
+        } else {
+            closeDeleteModal();
+            showErrorMessage('삭제 실패: ' + data.message);
+        }
+    })
+    .catch(error => {
+        closeDeleteModal();
+        showErrorMessage('오류가 발생했습니다.');
+        console.error('Error:', error);
+    });
+}
+
+function showSuccessMessage() {
+    const message = document.getElementById('successMessage');
+    message.classList.add('show');
+    setTimeout(() => {
+        message.classList.remove('show');
+    }, 3000);
+}
+
+function showErrorMessage(text) {
+    // 에러 메시지용 요소 생성
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'success-message show';
+    errorDiv.style.background = '#dc3545';
+    errorDiv.textContent = text;
+    document.body.appendChild(errorDiv);
+
+    setTimeout(() => {
+        errorDiv.remove();
+    }, 3000);
+}
+
+// 모달 외부 클릭시 닫기
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
+    }
+});
+
+// 금액 포맷팅
+document.addEventListener('DOMContentLoaded', function() {
+    const amountDisplay = document.querySelector('.amount-display');
+    if (amountDisplay) {
+        const value = parseInt(amountDisplay.textContent.replace(/[^0-9]/g, ''));
+        if (!isNaN(value)) {
+            amountDisplay.textContent = value.toLocaleString() + '원';
+        }
+    }
+
+    // 수정 모드일 때 금액 입력 필드 포맷팅
+    const nFixFeeDisplay = document.getElementById('nFixFee_display');
+    if (nFixFeeDisplay) {
+        // 초기 값 포맷팅
+        const initialValue = nFixFeeDisplay.value;
+        if (initialValue) {
+            nFixFeeDisplay.value = parseInt(initialValue).toLocaleString('ko-KR');
+        }
+
+        // 실시간 천단위 콤마 표시 함수
+        function formatNumber(input) {
+            // 숫자만 추출
+            let value = input.value.replace(/[^\d]/g, '');
+
+            // 숫자를 천단위 콤마 형식으로 변환
+            if (value) {
+                value = parseInt(value, 10);
+                input.value = value.toLocaleString('ko-KR');
+                // 숨겨진 필드에 실제 값 저장
+                document.getElementById('nFixFee').value = value;
+            } else {
+                input.value = '';
+                document.getElementById('nFixFee').value = '';
+            }
+        }
+
+        // 입력 이벤트 리스너
+        nFixFeeDisplay.addEventListener('input', function() {
+            formatNumber(this);
+        });
+
+        // 포커스 시 콤마 제거
+        nFixFeeDisplay.addEventListener('focus', function() {
+            let value = this.value.replace(/[^\d]/g, '');
+            if (value) {
+                this.value = value;
+            }
+        });
+
+        // 포커스 해제 시 콤마 추가
+        nFixFeeDisplay.addEventListener('blur', function() {
+            formatNumber(this);
+        });
+    }
+
+    // 수정 모드에서 완납일자 기본값 설정 (오늘 날짜)
+    const dateDepositInput = document.querySelector('input[name="dateDeposit"]');
+    if (dateDepositInput && !dateDepositInput.value) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        dateDepositInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    // 납부방식 변경시 월고정비 자동 업데이트
+    const nTypeSelect = document.querySelector('select[name="nType"]');
+    if (nTypeSelect) {
+        nTypeSelect.addEventListener('change', function() {
+            const selectedType = parseInt(this.value);
+            const nFixFeeDisplay = document.getElementById('nFixFee_display');
+            const nFixFeeHidden = document.getElementById('nFixFee');
+
+            if (nFixFeeDisplay && nFixFeeHidden) {
+                if (selectedType === 0) {
+                    // 계좌이체(0) 선택시: 해당 업체의 Company.nFixFee 값으로 설정
+                    const fixFee = parseInt(companyDefaultFixFee);
+                    if (!isNaN(fixFee)) {
+                        nFixFeeDisplay.value = fixFee.toLocaleString('ko-KR');
+                        nFixFeeHidden.value = fixFee;
+                    } else {
+                        nFixFeeDisplay.value = '0';
+                        nFixFeeHidden.value = 0;
+                    }
+                } else if (selectedType >= 1 && selectedType <= 3) {
+                    // 우수업체(1), 최우수업체(2), 기타(3) 선택시: 0으로 설정
+                    nFixFeeDisplay.value = '0';
+                    nFixFeeHidden.value = 0;
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
