@@ -4,10 +4,10 @@ from django.db import models
 class Template(models.Model):
     """템플리트(Template) 모델"""
 
-    # 분류 선택지 (nType) - 5종류
+    # 분류 선택지 (nType) - 6종류
     TYPE_CHOICES = [
         (0, '기타'),
-        (1, '문자'),
+        (1, '댓글'),
         (2, '의뢰할당'),
         (3, '업체관리'),
         (4, '업체평가'),
@@ -61,7 +61,7 @@ class Template(models.Model):
         """분류 아이콘과 함께 표시"""
         type_icons = {
             0: '❓',  # 기타
-            1: '📱',  # 문자
+            1: '💬',  # 댓글
             2: '📋',  # 의뢰할당
             3: '🏢',  # 업체관리
             4: '⭐',  # 업체평가
@@ -74,7 +74,7 @@ class Template(models.Model):
         """분류 색상과 함께 표시"""
         type_colors = {
             0: ('기타', 'gray'),
-            1: ('문자', 'green'),
+            1: ('댓글', 'green'),
             2: ('의뢰할당', 'blue'),
             3: ('업체관리', 'orange'),
             4: ('업체평가', 'purple'),

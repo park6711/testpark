@@ -1,0 +1,372 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}월고정비 현황 - PMIS 2.0{% endblock %}
+{% block page_title %}월고정비 현황{% endblock %}
+{% block page_subtitle %}월별 납부 현황 행렬{% endblock %}
+
+{% block content %}
+<style>
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .filter-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+
+    .filter-row {
+        display: flex;
+        gap: 30px;
+        align-items: center;
+    }
+
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .filter-group label {
+        font-weight: bold;
+        color: #333;
+        margin: 0;
+    }
+
+    .checkbox-filters {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: nowrap;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .checkbox-filters input[type="checkbox"] {
+        margin-right: 5px;
+    }
+
+    .checkbox-filters label {
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+        margin: 0;
+        text-align: left;
+    }
+
+    select {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        min-width: 200px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    /* 행렬 테이블 스타일 */
+    .matrix-section {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow-x: auto;
+    }
+
+    .matrix-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        min-width: 800px;
+    }
+
+    .matrix-table th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border: 1px solid #5a67d8;
+    }
+
+    .matrix-table th:first-child {
+        text-align: left;
+        min-width: 150px;
+    }
+
+    .matrix-table td {
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        text-align: center;
+        font-size: 14px;
+        background: white;
+    }
+
+    .matrix-table td:first-child {
+        text-align: left;
+        font-weight: bold;
+        background: #f7fafc;
+        position: sticky;
+        left: 0;
+        z-index: 5;
+    }
+
+    .matrix-table tbody tr:hover td {
+        background: #f0f4ff !important;
+    }
+
+    .matrix-table tbody tr:hover td:first-child {
+        background: #e6ecff !important;
+    }
+
+    /* 셀 상태 스타일 */
+    .cell-link {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        width: 100%;
+    }
+
+    .cell-paid {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .cell-paid:hover {
+        background: #c3e6cb;
+        transform: scale(1.02);
+    }
+
+    .cell-unpaid {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+        font-weight: bold;
+    }
+
+    .cell-unpaid:hover {
+        background: #f5c6cb;
+        transform: scale(1.02);
+    }
+
+    .company-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+        margin-left: 8px;
+    }
+
+    .condition-0 { background: #ffc107; color: #333; }
+    .condition-1 { background: #28a745; color: white; }
+    .condition-2 { background: #17a2b8; color: white; }
+    .condition-3 { background: #dc3545; color: white; }
+
+    .title-section {
+        margin-bottom: 25px;
+    }
+
+    .title-section h2 {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .title-section p {
+        color: #666;
+        font-size: 14px;
+    }
+</style>
+
+<div class="container">
+    <!-- 필터 섹션 -->
+    <div class="filter-section">
+        <form method="get" action="">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>활동상태</label>
+                    <div class="checkbox-filters">
+                        {% for cond_val, cond_name in condition_choices %}
+                        <div class="checkbox-group">
+                            <input type="checkbox"
+                                   id="condition_{{ cond_val }}"
+                                   name="condition"
+                                   value="{{ cond_val }}"
+                                   {% if cond_val|stringformat:"s" in condition_filters %}checked{% endif %}
+                                   onchange="this.form.submit()">
+                            <label for="condition_{{ cond_val }}">
+                                {{ cond_name }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <label>납부기준일</label>
+                    <select name="fee_date" onchange="this.form.submit()">
+                        {% for date in all_fee_dates %}
+                        <option value="{{ date.no }}" {% if fee_date_filter == date.no|stringformat:"s" %}selected{% endif %}>
+                            {{ date.date|date:"Y년 n월 j일" }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 타이틀 -->
+    <div class="title-section">
+        <h2>월고정비 납부 현황</h2>
+        <p>선택된 납부기준일부터 3개월간의 납부 현황을 표시합니다.</p>
+    </div>
+
+    <!-- 행렬 테이블 -->
+    <div class="matrix-section">
+        <table class="matrix-table">
+            <thead>
+                <tr>
+                    <th>업체명</th>
+                    {% for fee_date in fee_dates_for_matrix %}
+                    <th>{{ fee_date.date|date:"Y년 n월 j일" }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in matrix_data %}
+                <tr>
+                    <td>
+                        {{ row.company.sName2 }}
+                        <span class="company-badge condition-{{ row.company.nCondition }}">
+                            {% if row.company.nCondition == 0 %}준비중
+                            {% elif row.company.nCondition == 1 %}정상
+                            {% elif row.company.nCondition == 2 %}일시정지
+                            {% elif row.company.nCondition == 3 %}탈퇴
+                            {% endif %}
+                        </span>
+                    </td>
+                    {% for cell in row.cells %}
+                    <td>
+                        {% if cell.status == 'unpaid' %}
+                        <a href="{% url 'fixfee:fixfee_add' %}?company={{ cell.company_id }}&fee_date={{ cell.fee_date_id }}&referrer=status&ref_fee_date={{ fee_date_filter }}{% for cond in condition_filters %}&ref_condition={{ cond }}{% endfor %}"
+                           class="cell-link cell-unpaid">
+                            {{ cell.display }}
+                        </a>
+                        {% else %}
+                        <a href="{% url 'fixfee:fixfee_detail' cell.fixfee_id %}?referrer=status&ref_fee_date={{ fee_date_filter }}{% for cond in condition_filters %}&ref_condition={{ cond }}{% endfor %}"
+                           class="cell-link cell-paid">
+                            {{ cell.display }}
+                        </a>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 30px; color: #666;">
+                        선택된 조건에 해당하는 업체가 없습니다.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 범례 -->
+    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+        <p style="font-weight: bold; margin-bottom: 10px;">안내</p>
+        <div style="display: flex; gap: 30px; font-size: 14px;">
+            <div>
+                <span class="cell-link cell-paid" style="padding: 4px 8px;">완납</span>
+                <span style="margin-left: 5px;">클릭시 상세/수정 화면으로 이동</span>
+            </div>
+            <div>
+                <span class="cell-link cell-unpaid" style="padding: 4px 8px;">미납</span>
+                <span style="margin-left: 5px;">클릭시 추가 화면으로 이동</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 페이지 로드시 초기 설정
+document.addEventListener('DOMContentLoaded', function() {
+    // 체크박스가 하나도 선택되지 않으면 정상과 일시정지 체크
+    const checkboxes = document.querySelectorAll('input[name="condition"]');
+    const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+
+    if (!anyChecked) {
+        document.getElementById('condition_1').checked = true;  // 정상
+        document.getElementById('condition_2').checked = true;  // 일시정지
+    }
+
+    // 화살표 키 이벤트 리스너 추가
+    document.addEventListener('keydown', function(event) {
+        const feeDateSelect = document.querySelector('select[name="fee_date"]');
+        if (!feeDateSelect) return;
+
+        // 입력 필드에 포커스가 있으면 화살표 키 동작 무시
+        const activeElement = document.activeElement;
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'SELECT' || activeElement.tagName === 'TEXTAREA')) {
+            return;
+        }
+
+        if (event.key === 'ArrowRight') {
+            // 오른쪽 화살표: 다음 월 (인덱스 증가)
+            event.preventDefault();
+            if (feeDateSelect.selectedIndex < feeDateSelect.options.length - 1) {
+                feeDateSelect.selectedIndex++;
+                feeDateSelect.form.submit();
+            }
+        } else if (event.key === 'ArrowLeft') {
+            // 왼쪽 화살표: 이전 월 (인덱스 감소)
+            event.preventDefault();
+            if (feeDateSelect.selectedIndex > 0) {
+                feeDateSelect.selectedIndex--;
+                feeDateSelect.form.submit();
+            }
+        }
+    });
+});
+</script>
+
+{% endblock %}

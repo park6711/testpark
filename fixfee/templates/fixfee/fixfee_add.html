@@ -1,0 +1,728 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}월고정비 추가 - PMIS 2.0{% endblock %}
+{% block page_title %}월고정비 추가{% endblock %}
+{% block page_subtitle %}새 월고정비 납부 내역 추가{% endblock %}
+
+{% block content %}
+<style>
+    .add-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .add-card {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+
+    .add-header {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #667eea;
+    }
+
+    .add-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .form-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+
+    .section-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 15px;
+    }
+
+    .form-row {
+        display: flex;
+        padding: 15px 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .form-row:last-child {
+        border-bottom: none;
+    }
+
+    .form-label {
+        flex: 0 0 150px;
+        font-weight: bold;
+        color: #666;
+        padding-top: 8px;
+    }
+
+    .form-label.required:after {
+        content: ' *';
+        color: #dc3545;
+    }
+
+    .form-value {
+        flex: 1;
+    }
+
+    .form-value input,
+    .form-value select,
+    .form-value textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .form-value input:focus,
+    .form-value select:focus,
+    .form-value textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-value textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .form-hint {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 30px;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
+
+    .btn-warning {
+        background: #ffc107;
+        color: #333;
+    }
+
+    .btn-warning:hover {
+        background: #e0a800;
+    }
+
+    .alert {
+        padding: 12px 20px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+
+    .alert-info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+    }
+
+    .alert-warning {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    .field-error {
+        border-color: #dc3545 !important;
+    }
+
+    .error-message {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+
+    /* 커스텀 모달 스타일 */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .modal-overlay.show {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        max-width: 400px;
+        width: 90%;
+        animation: slideUp 0.3s ease;
+    }
+
+    .modal-header {
+        margin-bottom: 20px;
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-icon {
+        width: 24px;
+        height: 24px;
+        background: #17a2b8;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+
+    .modal-icon.error {
+        background: #dc3545;
+    }
+
+    .modal-icon.warning {
+        background: #ffc107;
+    }
+
+    .modal-body {
+        margin-bottom: 25px;
+        color: #666;
+        line-height: 1.6;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .modal-btn-cancel {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .modal-btn-cancel:hover {
+        background: #dee2e6;
+    }
+
+    .modal-btn-confirm {
+        background: #667eea;
+        color: white;
+    }
+
+    .modal-btn-confirm:hover {
+        background: #5a67d8;
+    }
+
+    .modal-btn-single {
+        background: #667eea;
+        color: white;
+    }
+
+    .modal-btn-single:hover {
+        background: #5a67d8;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+</style>
+
+<div class="add-container">
+    <div class="add-card">
+        <div class="add-header">
+            <div class="add-title">월고정비 추가</div>
+        </div>
+
+        <form method="post" action="" id="addForm">
+            {% csrf_token %}
+
+            <!-- 참조 페이지 정보 -->
+            {% if referrer %}
+                <input type="hidden" name="referrer" value="{{ referrer }}">
+                <input type="hidden" name="ref_fee_date" value="{{ ref_fee_date }}">
+                {% for cond in ref_conditions %}
+                <input type="hidden" name="ref_condition" value="{{ cond }}">
+                {% endfor %}
+            {% endif %}
+
+            <div class="form-section">
+                <div class="section-title">기본 정보</div>
+
+                <div class="form-row">
+                    <div class="form-label required">업체명</div>
+                    <div class="form-value">
+                        <select name="noCompany" id="companySelect" required>
+                            <option value="">업체를 선택하세요</option>
+                            {% for company in companies %}
+                            <option value="{{ company.no }}" data-fixfee="{{ company.nFixFee }}"
+                                    {% if preselected_company == company.no|stringformat:"s" %}selected{% endif %}>
+                                {{ company.display_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-label required">납부기준일</div>
+                    <div class="form-value">
+                        <select name="noFixFeeDate" required>
+                            <option value="">납부기준일을 선택하세요</option>
+                            {% for date in fee_dates %}
+                            <option value="{{ date.no }}"
+                                    {% if preselected_fee_date == date.no|stringformat:"s" %}selected{% endif %}>
+                                {{ date.date|date:"Y-m-d" }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-hint">월고정비 납부 기준이 되는 날짜입니다.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="section-title">납부 정보</div>
+
+                <div class="form-row">
+                    <div class="form-label required">납부방식</div>
+                    <div class="form-value">
+                        <select name="nType" required>
+                            <option value="">납부방식을 선택하세요</option>
+                            {% for type_val, type_name in payment_types %}
+                            <option value="{{ type_val }}" {% if type_val == 0 %}selected{% endif %}>{{ type_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-label">월고정비</div>
+                    <div class="form-value">
+                        <input type="text" name="nFixFee" id="nFixFee" placeholder="0"
+                               pattern="[0-9,]*" inputmode="numeric">
+                        <input type="hidden" name="nFixFee_value" id="nFixFee_value">
+                        <div class="form-hint">월고정비 금액을 입력하세요. (단위: 원)</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-label required">완납일자</div>
+                    <div class="form-value">
+                        <input type="date" name="dateDeposit" id="dateDeposit" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-label">비고</div>
+                    <div class="form-value">
+                        <textarea name="sMemo" placeholder="추가 메모사항을 입력하세요"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">저장</button>
+                {% if referrer == 'status' %}
+                    <a href="{% url 'fixfee:fixfee_status' %}?fee_date={{ ref_fee_date }}{% for cond in ref_conditions %}&condition={{ cond }}{% endfor %}" class="btn btn-secondary">취소</a>
+                {% else %}
+                    <a href="{% url 'fixfee:fixfee_list' %}" class="btn btn-secondary">취소</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 커스텀 모달 -->
+<div id="customModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">
+                <span class="modal-icon" id="modalIcon">!</span>
+                <span id="modalTitle">알림</span>
+            </div>
+        </div>
+        <div class="modal-body" id="modalBody">
+            메시지
+        </div>
+        <div class="modal-footer" id="modalFooter">
+            <button class="modal-btn modal-btn-single" onclick="closeModal()">확인</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 전역 변수로 업체의 기본 월고정비 저장
+let companyDefaultFixFee = 0;
+
+// 업체 선택시 월고정비 자동 입력
+document.getElementById('companySelect').addEventListener('change', function() {
+    const nFixFeeInput = document.getElementById('nFixFee');
+    const nFixFeeValue = document.getElementById('nFixFee_value');
+    const nTypeSelect = document.querySelector('select[name="nType"]');
+
+    if (this.value) {
+        const selectedOption = this.options[this.selectedIndex];
+        const fixFeeAmount = selectedOption.getAttribute('data-fixfee');
+
+        // 업체의 기본 월고정비 저장
+        companyDefaultFixFee = fixFeeAmount || 0;
+
+        // 납부방식이 계좌이체(0)인 경우에만 Company.nFixFee 값으로 자동 채우기
+        const selectedType = parseInt(nTypeSelect.value);
+        if (selectedType === 0) {
+            const fixFee = parseInt(companyDefaultFixFee);
+            if (!isNaN(fixFee)) {
+                nFixFeeInput.value = fixFee.toLocaleString('ko-KR');
+                nFixFeeValue.value = fixFee;
+            }
+        } else if (selectedType >= 1 && selectedType <= 3) {
+            // 우수업체(1), 최우수업체(2), 기타(3)인 경우 0으로 설정
+            nFixFeeInput.value = '0';
+            nFixFeeValue.value = 0;
+        }
+    } else {
+        companyDefaultFixFee = 0;
+        // 업체 선택 해제시 월고정비 필드 초기화
+        nFixFeeInput.value = '';
+        nFixFeeValue.value = '';
+    }
+});
+
+// 납부방식 변경시 월고정비 자동 업데이트
+document.querySelector('select[name="nType"]').addEventListener('change', function() {
+    const selectedType = parseInt(this.value);
+    const nFixFeeInput = document.getElementById('nFixFee');
+    const nFixFeeValue = document.getElementById('nFixFee_value');
+    const companySelect = document.getElementById('companySelect');
+
+    // 업체가 선택되어 있는 경우에만 처리
+    if (companySelect.value) {
+        if (selectedType === 0) {
+            // 계좌이체(0) 선택시: 해당 업체의 Company.nFixFee 값으로 설정
+            const fixFee = parseInt(companyDefaultFixFee);
+            if (!isNaN(fixFee)) {
+                nFixFeeInput.value = fixFee.toLocaleString('ko-KR');
+                nFixFeeValue.value = fixFee;
+            } else {
+                nFixFeeInput.value = '0';
+                nFixFeeValue.value = 0;
+            }
+        } else if (selectedType >= 1 && selectedType <= 3) {
+            // 우수업체(1), 최우수업체(2), 기타(3) 선택시: 0으로 설정
+            nFixFeeInput.value = '0';
+            nFixFeeValue.value = 0;
+        }
+    }
+});
+
+// 금액 입력시 실시간 천단위 콤마 표시
+function formatNumber(input) {
+    // 숫자만 추출
+    let value = input.value.replace(/[^\d]/g, '');
+
+    // 숫자를 천단위 콤마 형식으로 변환
+    if (value) {
+        value = parseInt(value, 10);
+        input.value = value.toLocaleString('ko-KR');
+        // 숨겨진 필드에 실제 값 저장
+        document.getElementById('nFixFee_value').value = value;
+    } else {
+        input.value = '';
+        document.getElementById('nFixFee_value').value = '';
+    }
+}
+
+// 금액 입력 필드에 이벤트 리스너 추가
+const nFixFeeInput = document.getElementById('nFixFee');
+nFixFeeInput.addEventListener('input', function() {
+    formatNumber(this);
+});
+
+// 포커스 시 콤마 제거
+nFixFeeInput.addEventListener('focus', function() {
+    let value = this.value.replace(/[^\d]/g, '');
+    if (value) {
+        this.value = value;
+    }
+});
+
+// 포커스 해제 시 콤마 추가
+nFixFeeInput.addEventListener('blur', function() {
+    formatNumber(this);
+});
+
+// 커스텀 모달 함수
+function showModal(title, message, type = 'info', callback = null) {
+    const modal = document.getElementById('customModal');
+    const modalIcon = document.getElementById('modalIcon');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const modalFooter = document.getElementById('modalFooter');
+
+    // 아이콘 타입 설정
+    modalIcon.className = 'modal-icon';
+    if (type === 'error') {
+        modalIcon.classList.add('error');
+        modalIcon.textContent = '✕';
+    } else if (type === 'warning') {
+        modalIcon.classList.add('warning');
+        modalIcon.textContent = '!';
+    } else {
+        modalIcon.textContent = '✓';
+    }
+
+    // 내용 설정
+    modalTitle.textContent = title;
+    modalBody.innerHTML = message;
+
+    // 버튼 설정
+    if (callback) {
+        modalFooter.innerHTML = `
+            <button class="modal-btn modal-btn-cancel" onclick="closeModal()">취소</button>
+            <button class="modal-btn modal-btn-confirm" onclick="confirmModal()">확인</button>
+        `;
+        window.modalCallback = callback;
+    } else {
+        modalFooter.innerHTML = `
+            <button class="modal-btn modal-btn-single" onclick="closeModal()">확인</button>
+        `;
+        window.modalCallback = null;
+    }
+
+    modal.classList.add('show');
+}
+
+function closeModal() {
+    document.getElementById('customModal').classList.remove('show');
+    window.modalCallback = null;
+}
+
+function confirmModal() {
+    if (window.modalCallback) {
+        window.modalCallback();
+    }
+    closeModal();
+}
+
+// 모달 외부 클릭시 닫기
+document.getElementById('customModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+
+// 중복 체크 함수
+function checkDuplicate(callback) {
+    const companyId = document.getElementById('companySelect').value;
+    const feeDateSelect = document.querySelector('select[name="noFixFeeDate"]');
+    const feeDateId = feeDateSelect.value;
+
+    if (!companyId || !feeDateId) {
+        callback(false);
+        return;
+    }
+
+    fetch(`/fixfee/api/check-duplicate/?company_id=${companyId}&fee_date_id=${feeDateId}`)
+        .then(response => response.json())
+        .then(data => {
+            callback(data.duplicate);
+        })
+        .catch(error => {
+            console.error('Error checking duplicate:', error);
+            callback(false);
+        });
+}
+
+// 폼 유효성 검사
+document.getElementById('addForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const companySelect = document.getElementById('companySelect');
+    const fixFee = document.getElementById('nFixFee');
+    const fixFeeValue = document.getElementById('nFixFee_value');
+    const form = this;
+
+    let hasError = false;
+
+    // 업체 선택 확인
+    if (!companySelect.value) {
+        companySelect.classList.add('field-error');
+        hasError = true;
+    } else {
+        companySelect.classList.remove('field-error');
+    }
+
+    // 월고정비 확인 (선택사항이므로 값이 있을 때만 검증)
+    if (fixFeeValue.value && parseInt(fixFeeValue.value) < 0) {
+        fixFee.classList.add('field-error');
+        hasError = true;
+    } else {
+        fixFee.classList.remove('field-error');
+        // 실제 숫자 값을 name="nFixFee"로 전송하기 위해 값 교체
+        if (fixFeeValue.value) {
+            fixFee.name = 'nFixFee_display';
+            fixFeeValue.name = 'nFixFee';
+        } else {
+            // 값이 없으면 0으로 설정
+            fixFeeValue.value = '0';
+            fixFee.name = 'nFixFee_display';
+            fixFeeValue.name = 'nFixFee';
+        }
+    }
+
+    if (hasError) {
+        showModal('입력 오류', '필수 입력 항목을 확인해주세요.', 'error');
+        return false;
+    }
+
+    // 중복 체크
+    checkDuplicate(function(isDuplicate) {
+        if (isDuplicate) {
+            showModal('확인', '동일한 업체에서 동일한 납부기준일의 월고정비 납부 데이터가 있습니다.', 'warning');
+        } else {
+            // 중복 제출 방지
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = '저장 중...';
+
+            // 폼 제출
+            form.submit();
+        }
+    });
+});
+
+// 오늘 날짜를 완납일자 기본값으로 설정
+document.getElementById('dateDeposit').valueAsDate = new Date();
+
+// 납부기준일 드롭박스 초기값 설정 (이번달 선택)
+document.addEventListener('DOMContentLoaded', function() {
+    const feeDataSelect = document.querySelector('select[name="noFixFeeDate"]');
+
+    // URL에서 미리 선택된 값이 없는 경우에만 이번달 선택
+    const preselectedFeeDate = "{{ preselected_fee_date }}";
+    if (!preselectedFeeDate && feeDataSelect && feeDataSelect.options.length > 1) {
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = (today.getMonth() + 1).toString().padStart(2, '0');
+
+        // 옵션들을 순회하며 이번달에 해당하는 날짜 찾기
+        for (let i = 1; i < feeDataSelect.options.length; i++) {
+            const optionText = feeDataSelect.options[i].text.trim();
+            // YYYY-MM-DD 형식에서 년월 추출
+            if (optionText.startsWith(`${currentYear}-${currentMonth}`)) {
+                feeDataSelect.selectedIndex = i;
+                break;
+            }
+        }
+
+        // 이번달이 없으면 첫 번째 옵션 선택 (가장 최근 날짜)
+        if (feeDataSelect.selectedIndex === 0 && feeDataSelect.options.length > 1) {
+            feeDataSelect.selectedIndex = 1;
+        }
+    }
+
+    // URL에서 미리 선택된 업체가 있으면 change 이벤트 트리거
+    const preselectedCompany = "{{ preselected_company }}";
+    if (preselectedCompany) {
+        const companySelect = document.getElementById('companySelect');
+        if (companySelect && companySelect.value) {
+            // change 이벤트를 트리거하여 월고정비 자동 입력
+            companySelect.dispatchEvent(new Event('change'));
+        }
+    }
+});
+</script>
+
+{% if messages %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            {% for message in messages %}
+                {% if message.tags == 'success' %}
+                    showModal('성공', '{{ message }}', 'info');
+                {% elif message.tags == 'error' %}
+                    showModal('오류', '{{ message }}', 'error');
+                {% else %}
+                    showModal('알림', '{{ message }}', 'info');
+                {% endif %}
+            {% endfor %}
+        });
+    </script>
+{% endif %}
+{% endblock %}

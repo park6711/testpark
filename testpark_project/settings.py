@@ -87,6 +87,8 @@ INSTALLED_APPS = [
     'template',
     'point',
     'companycondition',
+    'fixfee',
+    'globalvars',
 ]
 
 MIDDLEWARE = [
@@ -188,6 +190,56 @@ NAVER_REDIRECT_URI = os.getenv('NAVER_REDIRECT_URI', 'http://localhost:8000/auth
 
 # 잔디 웹훅 설정
 JANDI_WEBHOOK_URL = os.getenv('JANDI_WEBHOOK_URL', 'https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265')
+
+# ================================================================================
+# 업체평가 전역변수 설정 (Global Variables for Company Evaluation)
+# ================================================================================
+
+# 현재 업체평가 회차
+G_N_EVALUATION_NO = 63  # 현재 업체평가 회차
+
+# A. 실적 관련 점수 계수
+G_F_EVALUATION_A1 = 15.0  # 계약률 점수 계수
+G_F_EVALUATION_A1_MAX = 200.0  # 계약률 점수 최대값
+G_F_EVALUATION_A2 = 20000.0  # 수수료 점수 계수
+G_F_EVALUATION_A3 = 40000.0  # 고정비 점수 계수
+G_F_EVALUATION_A4 = 200000.0  # 자재구매액 점수 계수
+
+# B. 고객후기 점수 계수
+G_F_EVALUATION_B = 30.0  # 후기 점수 계수 = 고객후기 갯수 X 30
+G_F_EVALUATION_B_MAX = 120.0  # 후기 점수 최대값
+
+# C. 고객불만 점수 계수
+G_F_EVALUATION_C = -150.0  # 고객불만점수 계수
+
+# D. 고객만족도 점수 계수
+G_F_EVALUATION_D = 0.5  # 고객만족도 점수 계수
+
+# E. 카페지식활동 점수 계수
+G_F_EVALUATION_E = 0.84  # 카페지식활동 점수
+G_F_EVALUATION_E_MAX = 130.0  # 카페지식활동 점수 최대값
+
+# F. 지식공유활동 점수 계수
+G_F_EVALUATION_F = 2.52  # 지식공유활동 점수 계수
+G_F_EVALUATION_F_MAX = 130.0  # 지식공유활동 점수 최대값
+
+# G. 세미나참석 점수 계수
+G_F_EVALUATION_G = 30.0  # 세미나참석 점수 계수
+G_F_EVALUATION_G_MAX = 30.0  # 세미나참석 점수 최대값
+
+# H. 멘토 점수 계수
+G_F_EVALUATION_H = 20.0  # 멘토 점수 계수
+
+# I. 이행보증참여 점수 계수
+G_F_EVALUATION_I = 30.0  # 이행보증참여 점수 계수
+
+# J. 안전캠페인 점수 계수
+G_F_EVALUATION_J = 10.0  # 안전캠페인 점수 계수
+G_F_EVALUATION_J_MAX = 20.0  # 안전캠페인 점수 최대값
+
+# 할당부족 관련 계수
+G_N_ASSIGN_LACK = 10  # 고정비업체 할당부족 개수 계수(최소일수)
+G_F_ASSIGN_LACK = 165000.0  # 고정비업체 할당부족 개수 계수
 
 # Django REST Framework 설정
 REST_FRAMEWORK = {

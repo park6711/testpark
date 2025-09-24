@@ -1,0 +1,1 @@
+# FixFeeAdmin has been moved to fixfee/admin.py
