@@ -23,6 +23,13 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
+    # Docker Hub Rate Limit 회피를 위한 베이스 이미지 미리 pull
+    - name: Pull base images
+      run: |
+        echo "Docker Hub에 로그인된 상태에서 베이스 이미지 다운로드..."
+        docker pull node:18-alpine || true
+        docker pull python:3.12-slim || true
+
     - name: Build and push Docker image
       id: build
       uses: docker/build-push-action@v4
