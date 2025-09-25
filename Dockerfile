@@ -1,5 +1,5 @@
 # 멀티스테이지 빌드: React 빌드 단계
-FROM node:18-alpine AS frontend-builder
+FROM docker.io/library/node:18-alpine AS frontend-builder
 
 # React 앱 빌드를 위한 작업 디렉토리
 WORKDIR /frontend
@@ -13,7 +13,7 @@ COPY frontend/ ./
 RUN npm run build || echo "React build will be skipped if not configured"
 
 # Python 3.12 최신 버전 기반 Django 애플리케이션
-FROM python:3.12-slim
+FROM docker.io/library/python:3.12-slim
 
 # 환경 변수 설정
 ENV PYTHONDONTWRITEBYTECODE=1
