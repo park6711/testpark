@@ -11,7 +11,7 @@ class EvaluationNoAdmin(admin.ModelAdmin):
     list_display = [
         'no',
         'get_period_display',
-        'get_point_period_display',
+        'dateNotice',
         'get_status_badge',
         'get_progress_bar',
         'get_formatted_average_all',
@@ -24,8 +24,7 @@ class EvaluationNoAdmin(admin.ModelAdmin):
     list_filter = [
         'dateStart',
         'dateEnd',
-        'datePointStart',
-        'datePointEnd',
+        'dateNotice',
         'created_at'
     ]
 
@@ -38,7 +37,6 @@ class EvaluationNoAdmin(admin.ModelAdmin):
         'created_at',
         'updated_at',
         'get_evaluation_period_days',
-        'get_point_period_days',
         'get_period_status',
         'get_progress_percentage',
         'get_average_improvement',
@@ -52,16 +50,13 @@ class EvaluationNoAdmin(admin.ModelAdmin):
             'fields': ('no', 'created_at', 'updated_at')
         }),
         ('평가 기간', {
-            'fields': ('dateStart', 'dateEnd', 'get_evaluation_period_days', 'get_days_until_start', 'get_days_until_end')
-        }),
-        ('포인트 적용 기간', {
-            'fields': ('datePointStart', 'datePointEnd', 'get_point_period_days')
+            'fields': ('dateStart', 'dateEnd', 'dateNotice', 'get_evaluation_period_days', 'get_days_until_start', 'get_days_until_end')
         }),
         ('계약률 정보', {
             'fields': ('fAverageAll', 'fAverageExcel', 'get_average_improvement')
         }),
         ('예약문자 시간', {
-            'fields': ('timeExcel', 'timeWeek')
+            'fields': ('timeExcel', 'timeWeak')
         }),
         ('상태 정보', {
             'fields': ('get_period_status', 'get_progress_percentage', 'get_summary_display'),
@@ -79,10 +74,6 @@ class EvaluationNoAdmin(admin.ModelAdmin):
         return f"{obj.dateStart} ~ {obj.dateEnd}"
     get_period_display.short_description = '평가기간'
 
-    def get_point_period_display(self, obj):
-        """포인트 적용 기간 표시"""
-        return f"{obj.datePointStart} ~ {obj.datePointEnd}"
-    get_point_period_display.short_description = '포인트기간'
 
     def get_status_badge(self, obj):
         """상태 뱃지 표시"""
@@ -153,7 +144,7 @@ class EvaluationNoAdmin(admin.ModelAdmin):
         return format_html(
             '우수: {}<br>미진: {}',
             times['excel'],
-            times['week']
+            times['weak']
         )
     get_notification_times.short_description = '알림시간'
 
@@ -163,7 +154,7 @@ class EvaluationNoAdmin(admin.ModelAdmin):
         return format_html(
             '평가회차: {}<br>'
             '평가기간: {}<br>'
-            '포인트기간: {}<br>'
+            '공지일: {}<br>'
             '상태: {}<br>'
             '진행률: {}<br>'
             '전체평균: {}<br>'
@@ -171,7 +162,7 @@ class EvaluationNoAdmin(admin.ModelAdmin):
             '개선율: {}',
             summary['evaluation_no'],
             summary['period'],
-            summary['point_period'],
+            obj.dateNotice or '-',
             summary['status'],
             summary['progress'],
             summary['average_all'],
@@ -188,7 +179,7 @@ class EvaluationNoAdmin(admin.ModelAdmin):
 
         writer = csv.writer(response)
         writer.writerow([
-            '평가회차ID', '평가시작일', '평가종료일', '포인트시작일', '포인트종료일',
+            '평가회차ID', '평가시작일', '평가종료일', '공지일',
             '전체평균계약률', '우수업체평균계약률', '개선율', '우수업체알림시간', '미진업체알림시간',
             '상태', '진행률', '생성일시'
         ])
@@ -196,9 +187,9 @@ class EvaluationNoAdmin(admin.ModelAdmin):
         for obj in queryset:
             times = obj.get_notification_times_display()
             writer.writerow([
-                obj.no, obj.dateStart, obj.dateEnd, obj.datePointStart, obj.datePointEnd,
+                obj.no, obj.dateStart, obj.dateEnd, obj.dateNotice or '-',
                 f"{obj.fAverageAll:.2f}%", f"{obj.fAverageExcel:.2f}%", f"{obj.get_average_improvement():.2f}%",
-                times['excel'], times['week'], obj.get_period_status(), f"{obj.get_progress_percentage()}%",
+                times['excel'], times['weak'], obj.get_period_status(), f"{obj.get_progress_percentage()}%",
                 obj.created_at
             ])
 

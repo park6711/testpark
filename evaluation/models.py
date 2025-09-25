@@ -13,17 +13,16 @@ class EvaluationNo(models.Model):
     dateStart = models.DateField(verbose_name='평가기간 시작일')
     dateEnd = models.DateField(verbose_name='평가기간 종료일')
 
-    # 포인트 적용 기간
-    datePointStart = models.DateField(verbose_name='적용포인트 시작일')
-    datePointEnd = models.DateField(verbose_name='적용포인트 종료일')
+    # 공지일
+    dateNotice = models.DateField(null=True, blank=True, verbose_name='공지일')
 
     # 계약률 정보
     fAverageAll = models.FloatField(default=0.0, verbose_name='평균계약률')
     fAverageExcel = models.FloatField(default=0.0, verbose_name='우수업체 평균계약률')
 
-    # 예약문자 시간 정보
-    timeExcel = models.TimeField(null=True, blank=True, verbose_name='우수업체 예약문자시간')
-    timeWeek = models.TimeField(null=True, blank=True, verbose_name='미진업체 예약문자시간')
+    # 예약문자 일시 정보
+    timeExcel = models.DateTimeField(null=True, blank=True, verbose_name='우수업체 예약문자일시')
+    timeWeak = models.DateTimeField(null=True, blank=True, verbose_name='미진업체 예약문자일시')
 
     # 자동 생성 필드
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
@@ -44,21 +43,12 @@ class EvaluationNo(models.Model):
             return (self.dateEnd - self.dateStart).days + 1
         return 0
 
-    def get_point_period_days(self):
-        """포인트 적용 기간 일수 계산"""
-        if self.datePointStart and self.datePointEnd:
-            return (self.datePointEnd - self.datePointStart).days + 1
-        return 0
 
     def is_evaluation_period_active(self):
         """현재가 평가 기간 내인지 확인"""
         today = timezone.localtime().date()
         return self.dateStart <= today <= self.dateEnd
 
-    def is_point_period_active(self):
-        """현재가 포인트 적용 기간 내인지 확인"""
-        today = timezone.localtime().date()
-        return self.datePointStart <= today <= self.datePointEnd
 
     def get_period_status(self):
         """기간 상태 반환"""
@@ -68,10 +58,6 @@ class EvaluationNo(models.Model):
             return "대기"
         elif self.dateStart <= today <= self.dateEnd:
             return "평가중"
-        elif self.dateEnd < today < self.datePointStart:
-            return "평가완료"
-        elif self.datePointStart <= today <= self.datePointEnd:
-            return "포인트적용중"
         else:
             return "완료"
 
@@ -119,12 +105,12 @@ class EvaluationNo(models.Model):
             return round((elapsed_days / total_days) * 100, 1) if total_days > 0 else 0
 
     def get_notification_times_display(self):
-        """예약문자 시간 정보 표시"""
-        excel_time = self.timeExcel.strftime('%H:%M') if self.timeExcel else '미설정'
-        week_time = self.timeWeek.strftime('%H:%M') if self.timeWeek else '미설정'
+        """예약문자 일시 정보 표시"""
+        excel_time = self.timeExcel.strftime('%Y-%m-%d %H:%M') if self.timeExcel else '미설정'
+        weak_time = self.timeWeak.strftime('%Y-%m-%d %H:%M') if self.timeWeak else '미설정'
         return {
             'excel': excel_time,
-            'week': week_time
+            'weak': weak_time
         }
 
     def is_overlapping_period(self, other_evaluation):
@@ -137,7 +123,7 @@ class EvaluationNo(models.Model):
         return {
             'evaluation_no': self.no,
             'period': f"{self.dateStart} ~ {self.dateEnd}",
-            'point_period': f"{self.datePointStart} ~ {self.datePointEnd}",
+            'notice_date': self.dateNotice if self.dateNotice else '미정',
             'status': self.get_period_status(),
             'progress': f"{self.get_progress_percentage()}%",
             'average_all': self.get_formatted_average_all(),

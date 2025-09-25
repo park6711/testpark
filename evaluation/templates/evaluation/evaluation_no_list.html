@@ -1,0 +1,242 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}업체평가 회차 관리 - PMIS 2.0{% endblock %}
+{% block page_title %}업체평가 회차 관리{% endblock %}
+{% block page_subtitle %}평가회차별 관리{% endblock %}
+
+{% block content %}
+<style>
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .info-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+        text-align: center;
+    }
+
+    .current-round-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .table-section {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow-x: auto;
+    }
+
+    .evaluation-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .evaluation-table th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border: 1px solid #5a67d8;
+        white-space: nowrap;
+    }
+
+    .evaluation-table th:first-child {
+        text-align: center;
+        min-width: 60px;
+    }
+
+    .evaluation-table td {
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        text-align: center;
+        font-size: 14px;
+        background: white;
+    }
+
+    .evaluation-table tbody tr {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .evaluation-table tbody tr:hover td {
+        background: #f0f4ff !important;
+    }
+
+    .evaluation-table tbody tr.selected td {
+        background: #e6ecff !important;
+    }
+
+    /* 상태별 뱃지 스타일 */
+    .status-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .status-active {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .status-waiting {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    .status-complete {
+        background: #e2e3e5;
+        color: #383d41;
+        border: 1px solid #d6d8db;
+    }
+
+    /* 계약률 스타일 */
+    .rate-cell {
+        font-weight: 600;
+    }
+
+    .rate-high {
+        color: #28a745;
+    }
+
+    .rate-medium {
+        color: #ffc107;
+    }
+
+    .rate-low {
+        color: #dc3545;
+    }
+
+    .title-section {
+        margin-bottom: 25px;
+    }
+
+    .title-section h2 {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .title-section p {
+        color: #666;
+        font-size: 14px;
+    }
+</style>
+
+<div class="container">
+    <!-- 타이틀 섹션 -->
+    <div class="title-section">
+        <h2>업체평가 회차 관리</h2>
+        <p>평가회차별 정보를 관리합니다</p>
+    </div>
+
+    <!-- 현재 회차 정보 -->
+    <div class="info-section">
+        <div class="current-round-badge">
+            현재 업체평가 회차 : {{ current_no }}회
+        </div>
+    </div>
+
+    <!-- 테이블 섹션 -->
+    <div class="table-section">
+        <table class="evaluation-table">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>평가기간 시작일</th>
+                    <th>평가기간 종료일</th>
+                    <th>공지일</th>
+                    <th>평균계약률</th>
+                    <th>우수업체 평균계약률</th>
+                    <th>우수업체 예약문자일시</th>
+                    <th>미진업체 예약문자일시</th>
+                    <th>상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for evaluation in evaluations %}
+                <tr class="clickable-row" data-pk="{{ evaluation.no }}">
+                    <td><strong>{{ evaluation.no }}</strong></td>
+                    <td>{{ evaluation.dateStart|date:"Y-m-d" }}</td>
+                    <td>{{ evaluation.dateEnd|date:"Y-m-d" }}</td>
+                    <td>{{ evaluation.dateNotice|date:"Y-m-d"|default:"-" }}</td>
+                    <td>
+                        <span class="rate-cell {% if evaluation.fAverageAll >= 10 %}rate-high{% elif evaluation.fAverageAll >= 5 %}rate-medium{% else %}rate-low{% endif %}">
+                            {{ evaluation.fAverageAll|floatformat:2 }}%
+                        </span>
+                    </td>
+                    <td>
+                        <span class="rate-cell {% if evaluation.fAverageExcel >= 20 %}rate-high{% elif evaluation.fAverageExcel >= 10 %}rate-medium{% else %}rate-low{% endif %}">
+                            {{ evaluation.fAverageExcel|floatformat:2 }}%
+                        </span>
+                    </td>
+                    <td>{{ evaluation.timeExcel|date:"Y-m-d H:i"|default:"-" }}</td>
+                    <td>{{ evaluation.timeWeak|date:"Y-m-d H:i"|default:"-" }}</td>
+                    <td>
+                        {% with status=evaluation.get_period_status %}
+                        <span class="status-badge {% if status == '평가중' %}status-active{% elif status == '대기' %}status-waiting{% else %}status-complete{% endif %}">
+                            {{ status }}
+                        </span>
+                        {% endwith %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" style="text-align: center; color: #999; padding: 30px;">
+                        등록된 평가회차가 없습니다.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // 행 더블클릭 이벤트
+    document.querySelectorAll('.clickable-row').forEach(row => {
+        row.addEventListener('dblclick', function() {
+            const pk = this.dataset.pk;
+            // 상세보기 페이지로 이동
+            window.location.href = `/evaluation/evaluation-no/${pk}/`;
+        });
+    });
+
+    // 행 클릭 시 선택 표시
+    document.querySelectorAll('.clickable-row').forEach(row => {
+        row.addEventListener('click', function() {
+            // 기존 선택 제거
+            document.querySelectorAll('.clickable-row').forEach(r => {
+                r.classList.remove('selected');
+            });
+            // 현재 행 선택
+            this.classList.add('selected');
+        });
+    });
+</script>
+
+{% endblock %}
