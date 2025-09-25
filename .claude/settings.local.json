@@ -73,7 +73,15 @@
       "Bash(convert:*)",
       "Bash(xargs:*)",
       "Bash(git reset:*)",
-      "Read(//root/.docker/**)"
+      "Read(//root/.docker/**)",
+      "WebFetch(domain:github.com)",
+      "Bash(tar:*)",
+      "Bash(./hub-tool --version)",
+      "Bash(./hub-tool/hub-tool login:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh secret set:*)",
+      "Bash(gh secret list:*)",
+      "Bash(gh run list:*)"
     ],
     "deny": [],
     "ask": []

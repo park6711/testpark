@@ -1,0 +1,88 @@
+# 멀티스테이지 빌드: Stage 1 - React 빌드
+FROM node:18-alpine AS frontend-builder
+
+WORKDIR /frontend
+
+# package.json 파일들 복사 및 의존성 설치
+COPY frontend/package*.json ./
+RUN npm ci || npm install --legacy-peer-deps
+
+# React 소스 코드 복사 및 프로덕션 빌드
+COPY frontend/ ./
+RUN npm run build && echo "✅ React 빌드 완료"
+
+# Stage 2 - Python/Django 애플리케이션
+FROM python:3.12-slim
+
+# 필수 환경 변수 설정
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=testpark_project.settings \
+    NODE_ENV=production
+
+# 작업 디렉토리 설정
+WORKDIR /app
+
+# 시스템 의존성 설치 (프로덕션에 필요한 패키지만)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    libpq-dev \
+    curl \
+    nginx \
+    supervisor \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# pip 업그레이드 및 프로덕션 패키지 설치
+RUN pip install --upgrade pip setuptools wheel
+
+# Python 의존성 설치
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install gunicorn whitenoise
+
+# Django 프로젝트 전체 복사
+COPY . /app/
+
+# React 빌드 파일 복사 (frontend/build -> static/react)
+COPY --from=frontend-builder /frontend/build /app/static/react
+
+# 정적 파일 디렉토리 생성 및 권한 설정
+RUN mkdir -p /app/static /app/media /app/staticfiles && \
+    chmod -R 755 /app/static /app/media /app/staticfiles
+
+# Django 정적 파일 수집
+RUN python manage.py collectstatic --noinput --clear
+
+# 모든 Django 앱의 마이그레이션 파일 생성
+RUN for app in accounts area company companycondition contract demo evaluation \
+               fixfee globalvars gonggu impossibleterm join license member order \
+               point product refund sales staff template; do \
+        python manage.py makemigrations $app --noinput 2>/dev/null || true; \
+    done
+
+# 데이터베이스 마이그레이션 (런타임에 실행될 수도 있음)
+RUN python manage.py migrate --noinput || echo "마이그레이션은 런타임에 실행됩니다"
+
+# 포트 설정 (Nginx용 80, Django용 8000)
+EXPOSE 80 8000
+
+# 프로덕션 서버 실행 스크립트
+RUN echo '#!/bin/bash\n\
+echo "🚀 TestPark 프로덕션 서버 시작..."\n\
+python manage.py migrate --noinput\n\
+python manage.py collectstatic --noinput\n\
+echo "✅ 마이그레이션 및 정적 파일 준비 완료"\n\
+gunicorn testpark_project.wsgi:application \
+  --bind 0.0.0.0:8000 \
+  --workers 4 \
+  --threads 2 \
+  --worker-class sync \
+  --worker-tmp-dir /dev/shm \
+  --access-logfile - \
+  --error-logfile - \
+  --log-level info' > /app/start.sh && chmod +x /app/start.sh
+
+# 프로덕션 서버 시작
+CMD ["/app/start.sh"]

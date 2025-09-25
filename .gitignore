@@ -39,3 +39,4 @@ public/build/db.sqlite3
 .claude/
 .env.backup*
 seongdal-a900e25ac63c.json
+.docker-token
