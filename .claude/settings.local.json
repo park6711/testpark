@@ -72,7 +72,8 @@
       "Bash(echo:*)",
       "Bash(convert:*)",
       "Bash(xargs:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Read(//root/.docker/**)"
     ],
     "deny": [],
     "ask": []

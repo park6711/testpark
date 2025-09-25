@@ -1,4 +1,4 @@
-# Python 3.12 최신 버전 기반 Django 애플리케이션 (React 빌드 통합)
+# Python 3.12 최신 버전 기반 Django 애플리케이션
 FROM python:3.12-slim
 
 # 환경 변수 설정
