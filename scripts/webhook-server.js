@@ -5,51 +5,13 @@ const crypto = require('crypto');
 const { execSync } = require('child_process');
 const app = express();
 
-// 환경 변수 설정 (카페24 환경에서는 프록시 설정 필요)
+// 환경 변수 설정
 const PORT = process.env.WEBHOOK_PORT || 8080;
 const SECRET = process.env.WEBHOOK_SECRET || 'testpark-webhook-secret';
-const DEPLOY_SCRIPT = process.env.DEPLOY_SCRIPT || '/var/www/testpark/scripts/deploy.sh';
+const DEPLOY_SCRIPT = process.env.DEPLOY_SCRIPT || '/app/deploy-docker.sh';
 
-app.use(express.raw({ type: 'application/json' }));
-
-// GitHub Webhook 핸들러 (비활성화 - GitHub Actions가 빌드만 담당)
-// app.post('/webhook/github', (req, res) => {
-//     const signature = req.get('X-Hub-Signature-256');
-//     const body = req.body;
-
-//     // 서명 검증
-//     const expectedSignature = 'sha256=' + crypto
-//         .createHmac('sha256', SECRET)
-//         .update(body)
-//         .digest('hex');
-
-//     if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
-//         console.log('❌ GitHub Webhook 서명 검증 실패');
-//         return res.status(401).send('Unauthorized');
-//     }
-
-//     const payload = JSON.parse(body.toString());
-
-//     // push 이벤트만 처리
-//     if (payload.ref === 'refs/heads/master' || payload.ref === 'refs/heads/main') {
-//         console.log('🚀 GitHub push 이벤트 감지 - 배포를 시작합니다...');
-//         console.log(`📝 커밋: ${payload.head_commit.message}`);
-//         console.log(`👤 작성자: ${payload.head_commit.author.name}`);
-
-//         try {
-//             // 배포 스크립트 실행
-//             const output = execSync(`bash ${DEPLOY_SCRIPT}`, { encoding: 'utf8' });
-//             console.log('✅ 배포 완료:', output);
-//             res.status(200).send('Deployment successful');
-//         } catch (error) {
-//             console.error('❌ 배포 실패:', error.message);
-//             res.status(500).send('Deployment failed');
-//         }
-//     } else {
-//         console.log('ℹ️ 무시된 브랜치:', payload.ref);
-//         res.status(200).send('Ignored branch');
-//     }
-// });
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Docker Hub Webhook 핸들러
 app.post('/webhook/dockerhub', (req, res) => {
@@ -66,10 +28,10 @@ app.post('/webhook/dockerhub', (req, res) => {
 
         try {
             const output = execSync(`bash ${DEPLOY_SCRIPT}`, { encoding: 'utf8' });
-            console.log('✅ 배포 완료:', output);
+            console.log('✅ Docker Compose 배포 완료:', output);
             res.status(200).send('Deployment successful');
         } catch (error) {
-            console.error('❌ 배포 실패:', error.message);
+            console.error('❌ Docker Compose 배포 실패:', error.message);
             res.status(500).send('Deployment failed');
         }
     } else {
@@ -83,6 +45,9 @@ app.post('/deploy-from-github', (req, res) => {
     const body = req.body;
     let payload;
 
+    console.log('🔍 GitHub Actions 원본 요청 데이터:', JSON.stringify(body, null, 2));
+    console.log('🔍 Content-Type:', req.headers['content-type']);
+
     try {
         payload = typeof body === 'string' ? JSON.parse(body) : body;
     } catch (e) {
@@ -94,36 +59,48 @@ app.post('/deploy-from-github', (req, res) => {
     }
 
     console.log('🚀 GitHub Actions 배포 요청을 받았습니다...');
-    console.log(`📦 프로젝트: ${payload.project}`);
-    console.log(`📝 커밋: ${payload.commit}`);
-    console.log(`🌿 브랜치: ${payload.branch}`);
-    console.log(`🐳 이미지: ${payload.image}`);
+    console.log(`📦 프로젝트: ${payload.project || 'undefined'}`);
+    console.log(`📝 커밋: ${payload.commit || 'undefined'}`);
+    console.log(`🌿 브랜치: ${payload.branch || 'undefined'}`);
+    console.log(`🐳 이미지: ${payload.image || 'undefined'}`);
 
     try {
+        // 배포 전에 최신 코드 가져오기 (스크립트 업데이트 포함)
+        console.log('📥 최신 코드를 가져옵니다 (git pull)...');
+        try {
+            const gitPullOutput = execSync('cd /var/www/testpark && git pull origin master', { encoding: 'utf8' });
+            console.log('✅ Git pull 성공:', gitPullOutput);
+        } catch (gitError) {
+            console.error('⚠️ Git pull 실패 (계속 진행):', gitError.message);
+            // Git pull 실패해도 배포는 계속 진행
+        }
+
         const output = execSync(`bash ${DEPLOY_SCRIPT}`, { encoding: 'utf8' });
-        console.log('✅ GitHub Actions 배포 완료:', output);
+        console.log('✅ GitHub Actions Docker Compose 배포 완료:', output);
         res.status(200).json({
             success: true,
-            message: 'GitHub Actions deployment successful',
+            message: 'GitHub Actions Docker Compose deployment successful',
             output: output,
             deployInfo: {
                 project: payload.project,
                 commit: payload.commit,
                 branch: payload.branch,
-                image: payload.image
+                image: payload.image,
+                method: 'docker-compose'
             }
         });
     } catch (error) {
-        console.error('❌ GitHub Actions 배포 실패:', error.message);
+        console.error('❌ GitHub Actions Docker Compose 배포 실패:', error.message);
         res.status(500).json({
             success: false,
-            message: 'GitHub Actions deployment failed',
+            message: 'GitHub Actions Docker Compose deployment failed',
             error: error.message,
             deployInfo: {
                 project: payload.project,
                 commit: payload.commit,
                 branch: payload.branch,
-                image: payload.image
+                image: payload.image,
+                method: 'docker-compose'
             }
         });
     }
@@ -131,22 +108,33 @@ app.post('/deploy-from-github', (req, res) => {
 
 // 수동 배포 엔드포인트
 app.post('/deploy', (req, res) => {
-    console.log('🔄 수동 배포 요청을 받았습니다...');
+    console.log('🔄 수동 Docker Compose 배포 요청을 받았습니다...');
 
     try {
+        // 배포 전에 최신 코드 가져오기 (스크립트 업데이트 포함)
+        console.log('📥 최신 코드를 가져옵니다 (git pull)...');
+        try {
+            const gitPullOutput = execSync('cd /var/www/testpark && git pull origin master', { encoding: 'utf8' });
+            console.log('✅ Git pull 성공:', gitPullOutput);
+        } catch (gitError) {
+            console.error('⚠️ Git pull 실패 (계속 진행):', gitError.message);
+        }
+
         const output = execSync(`bash ${DEPLOY_SCRIPT}`, { encoding: 'utf8' });
-        console.log('✅ 수동 배포 완료:', output);
+        console.log('✅ 수동 Docker Compose 배포 완료:', output);
         res.status(200).json({
             success: true,
-            message: 'Manual deployment successful',
-            output: output
+            message: 'Manual Docker Compose deployment successful',
+            output: output,
+            method: 'docker-compose'
         });
     } catch (error) {
-        console.error('❌ 수동 배포 실패:', error.message);
+        console.error('❌ 수동 Docker Compose 배포 실패:', error.message);
         res.status(500).json({
             success: false,
-            message: 'Manual deployment failed',
-            error: error.message
+            message: 'Manual Docker Compose deployment failed',
+            error: error.message,
+            method: 'docker-compose'
         });
     }
 });
@@ -155,22 +143,24 @@ app.post('/deploy', (req, res) => {
 app.get('/health', (req, res) => {
     res.json({
         status: 'OK',
-        service: 'TestPark Webhook Server',
-        uptime: process.uptime()
+        service: 'TestPark Docker Compose Webhook Server',
+        uptime: process.uptime(),
+        version: '2.0.0'
     });
 });
 
 // 서버 시작
 app.listen(PORT, () => {
-    console.log(`🔗 TestPark Webhook 서버가 포트 ${PORT}에서 실행중입니다`);
+    console.log(`🔗 TestPark Docker Compose Webhook 서버가 포트 ${PORT}에서 실행중입니다`);
     console.log(`🚀 GitHub Actions 배포 URL: https://carpenterhosting.cafe24.com/deploy-from-github`);
     console.log(`🐳 Docker Hub Webhook URL: https://carpenterhosting.cafe24.com/webhook/dockerhub`);
     console.log(`🔄 수동 배포 URL: https://carpenterhosting.cafe24.com/deploy`);
     console.log(`🔍 헬스체크 URL: https://carpenterhosting.cafe24.com/health`);
+    console.log(`📦 배포 방식: Docker Compose`);
 });
 
 // 프로세스 종료 시 정리
 process.on('SIGINT', () => {
-    console.log('\n🛑 Webhook 서버를 종료합니다...');
+    console.log('\n🛑 Docker Compose Webhook 서버를 종료합니다...');
     process.exit(0);
 });
