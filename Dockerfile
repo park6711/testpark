@@ -76,6 +76,9 @@ RUN pip install --no-cache-dir \
 # Django 프로젝트 전체 복사
 COPY . /app/
 
+# 구글 시트 인증 파일 복사 (중요!)
+COPY seongdal-a900e25ac63c.json /app/seongdal-a900e25ac63c.json
+
 # 정적 파일 디렉토리 구조 생성
 RUN mkdir -p \
     /app/static \
