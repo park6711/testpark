@@ -246,6 +246,9 @@ G_F_EVALUATION_J_MAX = 20.0  # 안전캠페인 점수 최대값
 G_N_ASSIGN_LACK = 10  # 고정비업체 할당부족 개수 계수(최소일수)
 G_F_ASSIGN_LACK = 165000.0  # 고정비업체 할당부족 개수 계수
 
+# Google Sheets Webhook 설정
+GOOGLE_SHEETS_WEBHOOK_TOKEN = os.getenv('GOOGLE_SHEETS_WEBHOOK_TOKEN', 'default-token-for-development')
+
 # Django REST Framework 설정
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
