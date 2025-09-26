@@ -414,6 +414,10 @@
                 */
             }
 
+            // 개발 환경에서는 개발자 도구 사용 가능하도록 주석 처리
+            // 프로덕션 환경에서만 활성화하려면 주석을 제거하세요
+
+            /*
             // 브라우저 컨텍스트 메뉴 비활성화
             document.addEventListener('contextmenu', function(e) {
                 e.preventDefault();
@@ -437,6 +441,7 @@
                     return false;
                 }
             });
+            */
 
             // 페이지 로드 시 주소창 숨김
             window.addEventListener('load', function() {
