@@ -93,9 +93,7 @@ RUN python manage.py collectstatic --noinput --clear || true
 
 # React 빌드 파일을 staticfiles로 직접 복사 (collectstatic 이후)
 # 이렇게 하면 React chunk 파일들이 삭제되지 않음
-COPY --from=frontend-builder /frontend/build/static/css /app/staticfiles/css/
-COPY --from=frontend-builder /frontend/build/static/js /app/staticfiles/js/
-COPY --from=frontend-builder /frontend/build/static/media /app/staticfiles/media/
+COPY --from=frontend-builder /frontend/build/static /app/staticfiles/
 COPY --from=frontend-builder /frontend/build /app/staticfiles/react/
 
 # 권한 설정
