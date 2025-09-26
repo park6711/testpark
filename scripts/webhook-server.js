@@ -8,7 +8,7 @@ const app = express();
 // 환경 변수 설정
 const PORT = process.env.WEBHOOK_PORT || 8080;
 const SECRET = process.env.WEBHOOK_SECRET || 'testpark-webhook-secret';
-const DEPLOY_SCRIPT = process.env.DEPLOY_SCRIPT || '/app/deploy-docker.sh';
+const DEPLOY_SCRIPT = process.env.DEPLOY_SCRIPT || '/var/www/testpark/scripts/deploy-docker.sh';
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
