@@ -281,6 +281,7 @@
         display: inline-block;
     }
 
+    /* 모든 툴팁을 아래로 표시 */
     .tooltip {
         visibility: hidden;
         background-color: #333;
@@ -290,9 +291,10 @@
         padding: 8px 12px;
         position: absolute;
         z-index: 1000;
-        bottom: 125%;
+        top: 100%;
         left: 50%;
         transform: translateX(-50%);
+        margin-top: 8px;
         width: max-content;
         max-width: 300px;
         opacity: 0;
@@ -303,32 +305,57 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     }
 
+    /* 툴팁 화살표 - 아래 방향 */
     .tooltip::after {
         content: "";
         position: absolute;
-        top: 100%;
+        bottom: 100%;
         left: 50%;
         margin-left: -5px;
         border-width: 5px;
         border-style: solid;
-        border-color: #333 transparent transparent transparent;
-    }
-
-    /* 첫 번째 행의 툴팁은 아래로 표시 */
-    tbody tr:first-child .tooltip {
-        bottom: auto;
-        top: 125%;
-    }
-
-    tbody tr:first-child .tooltip::after {
-        top: auto;
-        bottom: 100%;
         border-color: transparent transparent #333 transparent;
     }
 
     .tooltip-container:hover .tooltip {
         visibility: visible;
         opacity: 1;
+    }
+
+    /* 날짜 툴팁 스타일 추가 */
+    .date-tooltip {
+        position: relative;
+        cursor: help;
+        text-decoration: underline dotted;
+        color: #0066cc;
+    }
+
+    .date-tooltip:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-top: 8px;
+        background: #333;
+        color: white;
+        padding: 8px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .date-tooltip:hover::before {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%) translateY(-8px);
+        border: 6px solid transparent;
+        border-bottom-color: #333;
+        z-index: 1001;
     }
 
     /* 업체 상태 배지 */
@@ -577,7 +604,26 @@
                 {% for item in complains %}
                 <tr data-id="{{ item.complain.no }}">
                     <td>{{ item.complain.no }}</td>
-                    <td>{{ item.complain.sTimeStamp|format_date_short }}</td>
+                    <td>
+                        {% if item.complain.timeStamp %}
+                            <span class="date-tooltip"
+                                  data-tooltip="{{ item.complain.timeStamp|date:'ymd A g:i:s' }}">
+                                {{ item.complain.timeStamp|date:"ymd" }}
+                            </span>
+                        {% elif item.complain.formatted_date %}
+                            <span class="date-tooltip"
+                                  data-tooltip="{{ item.complain.formatted_tooltip|default:item.complain.sTimeStamp }}">
+                                {{ item.complain.formatted_date }}
+                            </span>
+                        {% elif item.complain.sTimeStamp %}
+                            <span class="date-tooltip"
+                                  data-tooltip="{{ item.complain.sTimeStamp }}">
+                                {{ item.complain.sTimeStamp|slice:":10" }}
+                            </span>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
                     <td>
                         <span class="company-name">{{ item.company_sname2 }}</span>
                         {% if item.company_condition == 0 %}

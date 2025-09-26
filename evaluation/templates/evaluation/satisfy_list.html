@@ -1,0 +1,830 @@
+{% extends "member/base.html" %}
+
+{% block title %}고객만족도 이력 - PMIS 2.0{% endblock %}
+
+{% block page_title %}고객만족도 이력{% endblock %}
+{% block page_subtitle %}고객만족도 평가 데이터 관리{% endblock %}
+
+{% block content %}
+<style>
+    /* 컨테이너 스타일 */
+    .satisfy-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    /* 헤더 영역 */
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .title-area h2 {
+        color: #333;
+        font-size: 24px;
+        font-weight: bold;
+        margin: 0;
+    }
+
+    /* 버튼 영역 */
+    .button-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-external {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 16px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .btn-external:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        color: white;
+    }
+
+    .btn-sheets {
+        background: linear-gradient(135deg, #0f9d58 0%, #0a6f3f 100%);
+    }
+
+    /* 필터 영역 */
+    .filter-section {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+
+    .filter-row {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .filter-label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+    }
+
+    /* 체크박스 스타일 */
+    .checkbox-group {
+        display: flex;
+        gap: 15px;
+    }
+
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .checkbox-item label {
+        margin: 0;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    /* 검색창 */
+    .search-group {
+        display: flex;
+        gap: 10px;
+        flex: 1;
+        max-width: 400px;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .btn-search {
+        padding: 8px 20px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s;
+    }
+
+    .btn-search:hover {
+        background: #0056b3;
+    }
+
+    .btn-reset {
+        padding: 8px 20px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s;
+    }
+
+    .btn-reset:hover {
+        background: #5a6268;
+    }
+
+    /* 테이블 스타일 */
+    .table-wrapper {
+        overflow-x: auto;
+        margin-bottom: 20px;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .data-table thead {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .data-table th {
+        padding: 12px 10px;
+        text-align: left;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .data-table tbody tr {
+        border-bottom: 1px solid #dee2e6;
+        transition: background 0.2s;
+    }
+
+    .data-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .data-table td {
+        padding: 10px;
+        color: #495057;
+    }
+
+    /* 업체 검색 입력 스타일 */
+    .company-search {
+        width: 150px;
+        padding: 5px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 13px;
+        background: white;
+    }
+
+    .company-search:focus {
+        outline: none;
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+
+    /* 툴팁 스타일 */
+    .tooltip-text {
+        position: relative;
+        cursor: help;
+        color: #0066cc;
+        text-decoration: underline dotted;
+    }
+
+    /* 모든 툴팁 - 아래로 표시 */
+    .tooltip-text:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-top: 8px;
+        background: #333;
+        color: white;
+        padding: 8px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: pre-wrap;
+        min-width: 150px;
+        max-width: 200px;
+        width: max-content;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        line-height: 1.4;
+        word-break: break-word;
+    }
+
+    /* 모든 툴팁 화살표 - 아래 방향 */
+    .tooltip-text:hover::before {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%) translateY(-8px);
+        border: 6px solid transparent;
+        border-bottom-color: #333;
+        z-index: 1001;
+    }
+
+    /* 점수 배지 */
+    .score-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .score-high {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .score-medium {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .score-low {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    /* 액션 버튼 */
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+        justify-content: center;
+    }
+
+    .action-btn {
+        padding: 4px 8px;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .action-btn:hover {
+        transform: scale(1.05);
+    }
+
+    .btn-delete {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background: #c82333;
+    }
+
+    /* 커스텀 모달 */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        animation: fadeIn 0.3s;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s;
+    }
+
+    .modal-header {
+        margin-bottom: 20px;
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-title i {
+        color: #dc3545;
+        font-size: 24px;
+    }
+
+    .modal-body {
+        color: #666;
+        font-size: 16px;
+        line-height: 1.5;
+        margin-bottom: 25px;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .modal-btn-cancel {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .modal-btn-cancel:hover {
+        background: #dee2e6;
+    }
+
+    .modal-btn-danger {
+        background: linear-gradient(135deg, #f93b1d 0%, #ea2c62 100%);
+        color: white;
+    }
+
+    .modal-btn-danger:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(234, 44, 98, 0.4);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* 페이징 */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        margin-top: 20px;
+    }
+
+    .pagination a,
+    .pagination span {
+        padding: 8px 12px;
+        border: 1px solid #dee2e6;
+        color: #007bff;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .pagination a:hover {
+        background: #007bff;
+        color: white;
+    }
+
+    .pagination .current {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+
+    /* 통계 정보 */
+    .stats-info {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 10px;
+        background: #e9ecef;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .stat-label {
+        color: #6c757d;
+    }
+
+    .stat-value {
+        font-weight: 600;
+        color: #495057;
+    }
+</style>
+
+<div class="satisfy-container">
+    <!-- 헤더 섹션 -->
+    <div class="header-section">
+        <div class="title-area">
+            <h2>고객만족도 이력</h2>
+        </div>
+        <div class="button-group">
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSfMThFOX3KR0Gxc7tOvxlYClWmLdVvkmKtMmzSTu9sn6nR7ng/viewform"
+               target="_blank"
+               class="btn-external">
+                고객만족도 접수 →
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/18SQzoeoRncn62MkD5mmONuc6ZPr7jl5C0E0oohExsSg/edit?gid=1976708328#gid=1976708328"
+               target="_blank"
+               class="btn-external btn-sheets">
+                구글시트 →
+            </a>
+        </div>
+    </div>
+
+    <!-- 필터 섹션 -->
+    <div class="filter-section">
+        <form method="get" id="filterForm">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <span class="filter-label">활동상태:</span>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox"
+                                   id="condition_0"
+                                   name="condition"
+                                   value="0"
+                                   {% if 0 in condition_filters %}checked{% endif %}>
+                            <label for="condition_0">준비중</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox"
+                                   id="condition_1"
+                                   name="condition"
+                                   value="1"
+                                   {% if 1 in condition_filters %}checked{% endif %}>
+                            <label for="condition_1">정상</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox"
+                                   id="condition_2"
+                                   name="condition"
+                                   value="2"
+                                   {% if 2 in condition_filters %}checked{% endif %}>
+                            <label for="condition_2">일시정지</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox"
+                                   id="condition_3"
+                                   name="condition"
+                                   value="3"
+                                   {% if 3 in condition_filters %}checked{% endif %}>
+                            <label for="condition_3">탈퇴</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="search-group">
+                    <input type="text"
+                           name="search"
+                           class="search-input"
+                           placeholder="업체명, 전화번호, 지역, 추가의견 검색..."
+                           value="{{ search_query }}">
+                    <button type="submit" class="btn-search">검색</button>
+                    <button type="button" class="btn-reset" onclick="resetSearch()">초기화</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 통계 정보 -->
+    <div class="stats-info">
+        <div class="stat-item">
+            <span class="stat-label">전체:</span>
+            <span class="stat-value">{{ total_count }}건</span>
+        </div>
+    </div>
+
+    <!-- 테이블 -->
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>날짜</th>
+                    <th>열린업체</th>
+                    <th>업체명(구글)</th>
+                    <th>고객 핸드폰</th>
+                    <th>공사금액</th>
+                    <th>공사지역</th>
+                    <th>추가의견</th>
+                    <th>점수</th>
+                    <th>작업</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for satisfy in satisfies %}
+                <tr>
+                    <td>{{ satisfy.no }}</td>
+                    <td>
+                        {% if satisfy.timeStamp %}
+                            <span class="tooltip-text"
+                                  data-tooltip="{{ satisfy.timeStamp|date:'ymd A g:i:s'|default:satisfy.sTimeStamp }}">
+                                {{ satisfy.timeStamp|date:"ymd" }}
+                            </span>
+                        {% elif satisfy.sTimeStamp %}
+                            <span class="tooltip-text"
+                                  data-tooltip="{{ satisfy.formatted_tooltip|default:satisfy.sTimeStamp }}">
+                                {{ satisfy.formatted_date|default:satisfy.sTimeStamp|slice:":10" }}
+                            </span>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <input type="text"
+                               class="company-search"
+                               list="company-list-{{ satisfy.no }}"
+                               value="{% if satisfy.company %}{{ satisfy.company.sName2|default:satisfy.company.sName1 }}{% else %}미지정{% endif %}"
+                               onchange="updateCompanyByName({{ satisfy.no }}, this.value)"
+                               data-satisfy-id="{{ satisfy.no }}"
+                               placeholder="업체 검색...">
+                        <datalist id="company-list-{{ satisfy.no }}">
+                            <option value="미지정" data-id="0">미지정</option>
+                            {% for company in all_companies %}
+                            <option value="{{ company.sName2|default:company.sName1 }}" data-id="{{ company.no }}">
+                                {{ company.sName2|default:company.sName1 }}
+                            </option>
+                            {% endfor %}
+                        </datalist>
+                    </td>
+                    <td>{{ satisfy.sCompanyName|default:"-" }}</td>
+                    <td>{{ satisfy.sPhone|default:"-" }}</td>
+                    <td>{{ satisfy.sConMoney|default:"-" }}</td>
+                    <td>
+                        {% if satisfy.sArea %}
+                            <span class="tooltip-text"
+                                  data-tooltip="{{ satisfy.sArea }}">
+                                {{ satisfy.sArea|truncatechars:10 }}
+                            </span>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if satisfy.sS11 %}
+                            <span class="tooltip-text"
+                                  data-tooltip="{{ satisfy.sS11 }}">
+                                {{ satisfy.sS11|truncatechars:10 }}
+                            </span>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if satisfy.fSatisfySum >= 80 %}
+                            <span class="score-badge score-high">{{ satisfy.fSatisfySum|floatformat:0 }}점</span>
+                        {% elif satisfy.fSatisfySum >= 40 %}
+                            <span class="score-badge score-medium">{{ satisfy.fSatisfySum|floatformat:0 }}점</span>
+                        {% else %}
+                            <span class="score-badge score-low">{{ satisfy.fSatisfySum|floatformat:0 }}점</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn btn-delete" onclick="deleteSatisfy({{ satisfy.no }})">삭제</button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" style="text-align: center; padding: 30px; color: #6c757d;">
+                        데이터가 없습니다.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 페이징 -->
+    {% if satisfies.has_other_pages %}
+    <div class="pagination">
+        {% if satisfies.has_previous %}
+            <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% for c in condition_filters %}&condition={{ c }}{% endfor %}">처음</a>
+            <a href="?page={{ satisfies.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% for c in condition_filters %}&condition={{ c }}{% endfor %}">이전</a>
+        {% endif %}
+
+        {% for num in satisfies.paginator.page_range %}
+            {% if satisfies.number == num %}
+                <span class="current">{{ num }}</span>
+            {% elif num > satisfies.number|add:'-3' and num < satisfies.number|add:'3' %}
+                <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% for c in condition_filters %}&condition={{ c }}{% endfor %}">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+
+        {% if satisfies.has_next %}
+            <a href="?page={{ satisfies.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% for c in condition_filters %}&condition={{ c }}{% endfor %}">다음</a>
+            <a href="?page={{ satisfies.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% for c in condition_filters %}&condition={{ c }}{% endfor %}">마지막</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div id="deleteModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="fas fa-exclamation-triangle"></i>
+                삭제 확인
+            </h3>
+        </div>
+        <div class="modal-body">
+            정말로 이 고객만족도 데이터를 삭제하시겠습니까?<br>
+            삭제된 데이터는 복구할 수 없습니다.
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()">취소</button>
+            <button class="modal-btn modal-btn-danger" onclick="confirmDelete()">삭제</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// CSRF 토큰 가져오기
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// 초기화 버튼 기능
+function resetSearch() {
+    window.location.href = '/evaluation/satisfy/';
+}
+
+// 업체명으로 업데이트
+function updateCompanyByName(satisfyId, companyName) {
+    // datalist에서 선택한 회사의 ID 찾기
+    let companyNo = 0;
+    const datalist = document.getElementById('company-list-' + satisfyId);
+    const options = datalist.getElementsByTagName('option');
+
+    for (let option of options) {
+        if (option.value === companyName) {
+            companyNo = parseInt(option.getAttribute('data-id') || 0);
+            break;
+        }
+    }
+
+    // 업체 업데이트 요청
+    fetch('/evaluation/satisfy/update-company/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            satisfy_id: satisfyId,
+            company_no: companyNo
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('업체 업데이트 완료');
+        } else {
+            alert('업데이트 실패: ' + (data.error || '알 수 없는 오류'));
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('업데이트 중 오류가 발생했습니다.');
+        location.reload();
+    });
+}
+
+// 삭제 모달 관련
+let deleteTargetId = null;
+
+function deleteSatisfy(id) {
+    deleteTargetId = id;
+    document.getElementById('deleteModal').classList.add('active');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('active');
+    deleteTargetId = null;
+}
+
+function confirmDelete() {
+    if (!deleteTargetId) return;
+
+    fetch(`/evaluation/satisfy/${deleteTargetId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('삭제 실패: ' + (data.error || '알 수 없는 오류'));
+        }
+    })
+    .catch(error => {
+        alert('삭제 중 오류가 발생했습니다.');
+        console.error(error);
+    })
+    .finally(() => {
+        closeDeleteModal();
+    });
+}
+
+// 모달 외부 클릭시 닫기
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
+    }
+});
+
+// 체크박스 자동 제출
+document.querySelectorAll('input[type="checkbox"][name="condition"]').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        document.getElementById('filterForm').submit();
+    });
+});
+
+// Select2 스타일 드롭다운 (옵션)
+// 자동완성 기능을 위한 간단한 필터링
+document.querySelectorAll('.company-select').forEach(select => {
+    // 기본 HTML select에 검색 기능 추가는 제한적
+    // 필요시 Select2 라이브러리 추가 가능
+});
+</script>
+
+{% endblock %}
