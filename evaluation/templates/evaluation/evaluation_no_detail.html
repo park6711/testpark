@@ -1,0 +1,385 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}업체평가 회차 {% if mode == 'edit' %}수정{% else %}상세보기{% endif %} - PMIS 2.0{% endblock %}
+{% block page_title %}업체평가 회차 {% if mode == 'edit' %}수정{% else %}상세보기{% endif %}{% endblock %}
+{% block page_subtitle %}평가회차 {{ evaluation.no }}번{% endblock %}
+
+{% block content %}
+<style>
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .info-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+        text-align: center;
+    }
+
+    .current-round-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .detail-section {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .section-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px 8px 0 0;
+        margin: -25px -25px 25px -25px;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        outline: none;
+    }
+
+    .form-control[readonly] {
+        background-color: #f8f9fa;
+        cursor: not-allowed;
+        color: #6c757d;
+    }
+
+    .form-control-plaintext {
+        padding: 10px 0;
+        border: none;
+        background: transparent;
+        font-size: 14px;
+        color: #333;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        margin-right: 10px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+    }
+
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+    }
+
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -10px;
+    }
+
+    .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        padding: 0 10px;
+    }
+
+    .status-info {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        margin-top: 20px;
+    }
+
+    .status-info h5 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 16px;
+        font-weight: bold;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        color: #6c757d;
+        font-size: 14px;
+    }
+
+    .info-value {
+        font-weight: bold;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .badge-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    .badge-secondary {
+        background: #e2e3e5;
+        color: #383d41;
+        border: 1px solid #d6d8db;
+    }
+
+    @media (max-width: 768px) {
+        .col-md-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+    }
+</style>
+
+<div class="container">
+    <!-- 현재 회차 정보 -->
+    <div class="info-section">
+        <div class="current-round-badge">
+            현재 업체평가 회차 : {{ current_no }}회
+        </div>
+    </div>
+
+    <!-- 상세 정보 섹션 -->
+    <div class="detail-section">
+        <div class="section-header">
+            평가회차 {{ evaluation.no }}번 정보
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="row">
+                <!-- 왼쪽 열 -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="no">No</label>
+                        <input type="text" class="form-control" id="no" value="{{ evaluation.no }}" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dateStart">평가기간 시작일</label>
+                        <input type="date" class="form-control" id="dateStart" value="{{ evaluation.dateStart|date:'Y-m-d' }}" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dateEnd">평가기간 종료일</label>
+                        <input type="date" class="form-control" id="dateEnd" value="{{ evaluation.dateEnd|date:'Y-m-d' }}" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="dateNotice">공지일</label>
+                        <input type="date" class="form-control" id="dateNotice" name="dateNotice"
+                               value="{{ evaluation.dateNotice|date:'Y-m-d' }}"
+                               {% if mode == 'view' %}readonly{% endif %}>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fAverageAll">평균계약률 (%)</label>
+                        <input type="number" step="0.01" class="form-control" id="fAverageAll" name="fAverageAll"
+                               value="{{ evaluation.fAverageAll|floatformat:2 }}"
+                               {% if mode == 'view' %}readonly{% endif %}>
+                    </div>
+                </div>
+
+                <!-- 오른쪽 열 -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="fAverageExcel">우수업체 평균계약률 (%)</label>
+                        <input type="number" step="0.01" class="form-control" id="fAverageExcel" name="fAverageExcel"
+                               value="{{ evaluation.fAverageExcel|floatformat:2 }}"
+                               {% if mode == 'view' %}readonly{% endif %}>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="timeExcel">우수업체 예약문자일시</label>
+                        <input type="datetime-local" class="form-control" id="timeExcel" name="timeExcel"
+                               value="{{ evaluation.timeExcel|date:'Y-m-d\TH:i' }}"
+                               {% if mode == 'view' %}readonly{% endif %}>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="timeWeak">미진업체 예약문자일시</label>
+                        <input type="datetime-local" class="form-control" id="timeWeak" name="timeWeak"
+                               value="{{ evaluation.timeWeak|date:'Y-m-d\TH:i' }}"
+                               {% if mode == 'view' %}readonly{% endif %}>
+                    </div>
+
+                    <!-- 추가 정보 표시 -->
+                    <div class="status-info">
+                        <h5>평가 정보</h5>
+                        <div class="info-row">
+                            <span class="info-label">평가 기간</span>
+                            <span class="info-value">{{ evaluation.get_evaluation_period_days }}일</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">현재 상태</span>
+                            <span class="info-value">
+                                {% with status=evaluation.get_period_status %}
+                                <span class="badge {% if status == '평가중' %}badge-success{% elif status == '대기' %}badge-warning{% else %}badge-secondary{% endif %}">
+                                    {{ status }}
+                                </span>
+                                {% endwith %}
+                            </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">진행률</span>
+                            <span class="info-value">{{ evaluation.get_progress_percentage }}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px; text-align: center;">
+                {% if mode == 'view' %}
+                    <a href="{% url 'evaluation:evaluation_no_edit' evaluation.no %}" class="btn btn-primary">수정</a>
+                {% else %}
+                    <button type="submit" class="btn btn-success">저장</button>
+                    <a href="{% url 'evaluation:evaluation_no_detail' evaluation.no %}" class="btn btn-secondary">취소</a>
+                {% endif %}
+                <a href="{% url 'evaluation:evaluation_no_list' %}" class="btn btn-secondary">목록</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 커스텀 모달 -->
+<div id="customModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 9999;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; min-width: 300px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);">
+        <h4 id="modalTitle" style="margin-bottom: 20px; color: #333; font-size: 18px; font-weight: bold;">알림</h4>
+        <p id="modalMessage" style="color: #666; font-size: 14px; line-height: 1.5; margin-bottom: 20px;"></p>
+        <div style="text-align: right;">
+            <button onclick="closeModal()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;">확인</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showModal(title, message, isError = false) {
+        const modal = document.getElementById('customModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+
+        modalTitle.textContent = title;
+        modalTitle.style.color = isError ? '#dc3545' : '#28a745';
+        modalMessage.textContent = message;
+        modal.style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('customModal').style.display = 'none';
+    }
+
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeModal();
+        }
+    });
+
+    // 모달 외부 클릭으로 닫기
+    document.getElementById('customModal').addEventListener('click', function(event) {
+        if (event.target === this) {
+            closeModal();
+        }
+    });
+</script>
+
+{% if messages %}
+    <script>
+        {% for message in messages %}
+            {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
+                showModal('성공', '{{ message }}', false);
+            {% elif message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+                showModal('오류', '{{ message }}', true);
+            {% endif %}
+        {% endfor %}
+    </script>
+{% endif %}
+
+{% endblock %}
