@@ -37,8 +37,10 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # 로컬 코드 마운트 (개발용)
-      - .:/app
+      # DB 파일만 마운트 (데이터 유지)
+      - ./db.sqlite3:/app/db.sqlite3
+      - ./media:/app/media  # 업로드 파일 유지
+      - ./seongdal-a900e25ac63c.json:/app/seongdal-a900e25ac63c.json  # 구글 시트 인증 파일
     env_file:
       - .env
     environment:
