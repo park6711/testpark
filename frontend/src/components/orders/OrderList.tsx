@@ -144,7 +144,7 @@ const OrderList: React.FC<OrderListProps> = ({
       title: '접수일시',
       dataIndex: 'time',
       key: 'time',
-      width: 100,
+      width: 120,  // 너비를 약간 늘림
       sorter: (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime(),
       render: (time) => {
         const date = new Date(time);
@@ -162,7 +162,7 @@ const OrderList: React.FC<OrderListProps> = ({
       title: '지정여부',
       dataIndex: 'designation_type',
       key: 'designation_type',
-      width: 100,
+      width: 110,  // 너비를 약간 늘림
       filters: [
         { text: '지정없음', value: '지정없음' },
         { text: '업체지정', value: '업체지정' },
@@ -183,7 +183,7 @@ const OrderList: React.FC<OrderListProps> = ({
     {
       title: '고객정보',
       key: 'customer_info',
-      width: 180,
+      width: 160,  // 너비 최적화
       render: (_, record) => (
         <Space direction="vertical" size={0}>
           <Space size={4}>
@@ -206,7 +206,7 @@ const OrderList: React.FC<OrderListProps> = ({
       title: '의뢰게시글',
       dataIndex: 'post_link',
       key: 'post_link',
-      width: 100,
+      width: 90,  // 너비 최적화
       render: (link, record) => (
         <Space direction="vertical" size={0}>
           {record.sPost && (
@@ -226,7 +226,7 @@ const OrderList: React.FC<OrderListProps> = ({
       title: '공사지역',
       dataIndex: 'sArea',
       key: 'sArea',
-      width: 90,
+      width: 100,  // 너비를 약간 늘림
       filters: Array.from(new Set(orders.map(o => o.sArea))).map(area => ({ text: area, value: area })),
       onFilter: (value, record) => record.sArea === value,
       render: (area) => (
@@ -239,7 +239,7 @@ const OrderList: React.FC<OrderListProps> = ({
       title: '공사예정일',
       dataIndex: 'dateSchedule',
       key: 'dateSchedule',
-      width: 100,
+      width: 110,  // 너비를 약간 늘림
       sorter: (a, b) => {
         if (!a.dateSchedule) return 1;
         if (!b.dateSchedule) return -1;
@@ -269,7 +269,7 @@ const OrderList: React.FC<OrderListProps> = ({
       title: '공사내용',
       dataIndex: 'sConstruction',
       key: 'sConstruction',
-      width: 150,
+      // width 제거 - 남은 공간을 모두 차지하도록 함
       ellipsis: {
         showTitle: false,
       },
@@ -285,7 +285,7 @@ const OrderList: React.FC<OrderListProps> = ({
       title: '업체할당',
       dataIndex: 'assigned_company',
       key: 'assigned_company',
-      width: 110,
+      width: 100,  // 너비 최적화
       filters: Array.from(new Set(orders.map(o => o.assigned_company).filter(Boolean))).map(company => ({ text: company, value: company })),
       onFilter: (value, record) => record.assigned_company === value,
       render: (company) => company ? (
@@ -302,7 +302,7 @@ const OrderList: React.FC<OrderListProps> = ({
       title: '할당상태',
       dataIndex: 'recent_status',
       key: 'recent_status',
-      width: 90,
+      width: 85,  // 너비 최적화
       filters: STATUS_OPTIONS.map(s => ({ text: s.label, value: s.value })),
       onFilter: (value, record) => record.recent_status === value,
       render: (status) => {
@@ -322,7 +322,7 @@ const OrderList: React.FC<OrderListProps> = ({
       title: '재의뢰',
       dataIndex: 're_request_count',
       key: 're_request_count',
-      width: 70,
+      width: 65,  // 너비 최적화
       align: 'center',
       render: (count) => count > 0 ? (
         <Badge count={count} style={{ backgroundColor: '#ff4d4f' }} />
@@ -333,7 +333,7 @@ const OrderList: React.FC<OrderListProps> = ({
     {
       title: '견적서링크',
       key: 'quote_links',
-      width: 100,
+      width: 90,  // 너비 최적화
       render: (_, record) => (
         <Space>
           {record.quote_links && record.quote_links.length > 0 ? (
@@ -353,7 +353,7 @@ const OrderList: React.FC<OrderListProps> = ({
     {
       title: '메모',
       key: 'memo',
-      width: 70,
+      width: 60,  // 너비 최적화
       align: 'center',
       render: (_, record) => (
         <Tooltip title="메모 관리">
@@ -459,7 +459,10 @@ const OrderList: React.FC<OrderListProps> = ({
         dataSource={orders}
         rowKey="no"
         loading={loading}
-        scroll={{ x: 1600 }}
+        scroll={{
+          x: 'max-content',  // 콘텐츠에 맞게 자동 조정
+          y: 'calc(100vh - 400px)'  // 세로 스크롤 높이 설정
+        }}
         size="middle"
         bordered
         pagination={{

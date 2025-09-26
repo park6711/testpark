@@ -76,10 +76,6 @@ RUN pip install --no-cache-dir \
 # Django 프로젝트 전체 복사
 COPY . /app/
 
-# React 빌드 파일 복사 (frontend/build -> static)
-COPY --from=frontend-builder /frontend/build /app/static/react
-COPY --from=frontend-builder /frontend/build/static /app/static/
-
 # 정적 파일 디렉토리 구조 생성
 RUN mkdir -p \
     /app/static \
@@ -92,12 +88,19 @@ RUN mkdir -p \
     /app/static/admin \
     /app/static/react
 
+# Django 정적 파일 먼저 수집 (React 파일 복사 전에)
+RUN python manage.py collectstatic --noinput --clear || true
+
+# React 빌드 파일을 staticfiles로 직접 복사 (collectstatic 이후)
+# 이렇게 하면 React chunk 파일들이 삭제되지 않음
+COPY --from=frontend-builder /frontend/build/static/css /app/staticfiles/css/
+COPY --from=frontend-builder /frontend/build/static/js /app/staticfiles/js/
+COPY --from=frontend-builder /frontend/build/static/media /app/staticfiles/media/
+COPY --from=frontend-builder /frontend/build /app/staticfiles/react/
+
 # 권한 설정
 RUN chmod -R 755 /app && \
     chmod -R 777 /app/media /app/logs
-
-# Django 정적 파일 수집
-RUN python manage.py collectstatic --noinput --clear || true
 
 # 데이터베이스 마이그레이션 파일 생성
 RUN python manage.py makemigrations --noinput || true
@@ -129,9 +132,10 @@ RUN echo '#!/bin/bash' > /app/entrypoint.sh && \
     echo 'echo "🔄 데이터베이스 마이그레이션..."' >> /app/entrypoint.sh && \
     echo 'python manage.py migrate --noinput' >> /app/entrypoint.sh && \
     echo '' >> /app/entrypoint.sh && \
-    echo '# 정적 파일 수집' >> /app/entrypoint.sh && \
-    echo 'echo "📦 정적 파일 수집..."' >> /app/entrypoint.sh && \
-    echo 'python manage.py collectstatic --noinput --clear' >> /app/entrypoint.sh && \
+    echo '# 정적 파일 수집 (이미 빌드 시 완료, 변경사항만 추가)' >> /app/entrypoint.sh && \
+    echo 'echo "📦 정적 파일 확인..."' >> /app/entrypoint.sh && \
+    echo '# collectstatic은 빌드 시 이미 완료, React chunk 파일 보존' >> /app/entrypoint.sh && \
+    echo 'ls -la /app/staticfiles/js/*.chunk.js | head -3' >> /app/entrypoint.sh && \
     echo '' >> /app/entrypoint.sh && \
     echo '# 슈퍼유저 생성 (필요시)' >> /app/entrypoint.sh && \
     echo 'if [ -n "$DJANGO_SUPERUSER_USERNAME" ]; then' >> /app/entrypoint.sh && \

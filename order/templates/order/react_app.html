@@ -50,7 +50,7 @@
 
   <!-- 빌드된 React 앱 로드 -->
   <link href="{% static 'css/main.a874db27.css' %}" rel="stylesheet">
-  <script defer src="{% static 'js/main.f7a94119.js' %}"></script>
+  <script defer src="{% static 'js/main.f25e9727.js' %}"></script>
 {% endif %}
 
 <style>
@@ -69,9 +69,30 @@
     background: transparent !important;
   }
 
+  /* content-wrapper 너비 제한 해제 - React 앱을 위한 전체 너비 사용 */
+  .content-wrapper {
+    max-width: none !important;  /* 1200px 제한 해제 */
+    width: 100% !important;
+    padding: 0 !important;  /* 좌우 패딩 제거 */
+  }
+
+  /* React 앱 전체 너비 사용 */
+  #root {
+    width: 100vw !important;  /* 뷰포트 전체 너비 사용 */
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 20px !important;  /* 적절한 좌우 여백만 추가 */
+    box-sizing: border-box;
+  }
+
   /* Ant Design 스타일과 호환성 */
   .ant-layout {
     background: #f0f2f5;
+  }
+
+  /* 테이블이 충분한 공간을 가지도록 보장 */
+  .ant-table-wrapper {
+    width: 100% !important;
   }
 </style>
 
