@@ -216,17 +216,40 @@ class Complain(models.Model):
 class Satisfy(models.Model):
     """고객만족도(Satisfy) 모델"""
 
+    # 만족도 선택 옵션 (텍스트 기반)
+    SATISFACTION_CHOICES = [
+        ('매우 만족', '매우 만족'),
+        ('만족', '만족'),
+        ('보통', '보통'),
+        ('불만족', '불만족'),
+        ('매우 불만족', '매우 불만족'),
+    ]
+
     # 기본 정보
     no = models.AutoField(primary_key=True, verbose_name='고객만족도ID')
-    noEvaluation = models.IntegerField(verbose_name='업체평가회수ID')
-    noCompany = models.IntegerField(verbose_name='업체ID')
+    sTimeStamp = models.CharField(max_length=50, blank=True, verbose_name='타임스탬프(텍스트)')
+    sCompanyName = models.CharField(max_length=100, blank=True, verbose_name='열린업체명')
+    sPhone = models.CharField(max_length=50, blank=True, verbose_name='고객 핸드폰')
+    sConMoney = models.TextField(blank=True, verbose_name='공사금액')
+    sArea = models.TextField(blank=True, verbose_name='공사주소')
 
-    # 만족도 정보
-    sCompanyName = models.CharField(max_length=100, blank=True, verbose_name='업체명')
-    sTime = models.CharField(max_length=50, blank=True, verbose_name='타임스탬프')
-    sAddress = models.TextField(blank=True, verbose_name='공사 주소')
-    sMemo = models.TextField(blank=True, verbose_name='추가 의견')
-    fSatisfy = models.FloatField(default=0.0, verbose_name='점수합계')
+    # 만족도 평가 항목 (10개) - CharField로 변경
+    sS1 = models.CharField(max_length=20, choices=SATISFACTION_CHOICES, default='보통', verbose_name='견적서')
+    sS2 = models.CharField(max_length=20, choices=SATISFACTION_CHOICES, default='보통', verbose_name='공사금액')
+    sS3 = models.CharField(max_length=20, choices=SATISFACTION_CHOICES, default='보통', verbose_name='약속시간')
+    sS4 = models.CharField(max_length=20, choices=SATISFACTION_CHOICES, default='보통', verbose_name='상담')
+    sS5 = models.CharField(max_length=20, choices=SATISFACTION_CHOICES, default='보통', verbose_name='소통')
+    sS6 = models.CharField(max_length=20, choices=SATISFACTION_CHOICES, default='보통', verbose_name='하자보증')
+    sS7 = models.CharField(max_length=20, choices=SATISFACTION_CHOICES, default='보통', verbose_name='자재실명')
+    sS8 = models.CharField(max_length=20, choices=SATISFACTION_CHOICES, default='보통', verbose_name='계약서')
+    sS9 = models.CharField(max_length=20, choices=SATISFACTION_CHOICES, default='보통', verbose_name='공사일정')
+    sS10 = models.CharField(max_length=20, choices=SATISFACTION_CHOICES, default='보통', verbose_name='하자보수')
+
+    # 추가 정보
+    sS11 = models.TextField(blank=True, verbose_name='추가의견')
+    fSatisfySum = models.FloatField(default=0.0, verbose_name='만족도 합계점수')
+    timeStamp = models.DateTimeField(null=True, blank=True, verbose_name='타임스탬프(time)')
+    noCompany = models.IntegerField(verbose_name='업체ID')
 
     # 자동 생성 필드
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='생성일시')
@@ -241,15 +264,40 @@ class Satisfy(models.Model):
     def __str__(self):
         return f"고객만족도 {self.no} - {self.sCompanyName}"
 
+    def calculate_satisfaction_sum(self):
+        """만족도 합계 계산
+        '매우 만족'=10점, '만족'=5점, '보통'=0점, '불만족'=-5점, '매우 불만족'=-10점
+        """
+        score_map = {
+            '매우 만족': 10,
+            '만족': 5,
+            '보통': 0,
+            '불만족': -5,
+            '매우 불만족': -10
+        }
+
+        total = 0
+        for field in [self.sS1, self.sS2, self.sS3, self.sS4, self.sS5,
+                     self.sS6, self.sS7, self.sS8, self.sS9, self.sS10]:
+            total += score_map.get(field, 0)
+
+        self.fSatisfySum = total
+        return self.fSatisfySum
+
+    def save(self, *args, **kwargs):
+        """저장 시 만족도 합계 자동 계산"""
+        self.calculate_satisfaction_sum()
+        super().save(*args, **kwargs)
+
     def get_satisfaction_level(self):
-        """만족도 레벨"""
-        if self.fSatisfy >= 9.0:
+        """전체 만족도 레벨 (점수 기반)"""
+        if self.fSatisfySum >= 80:
             return "매우만족"
-        elif self.fSatisfy >= 7.0:
+        elif self.fSatisfySum >= 40:
             return "만족"
-        elif self.fSatisfy >= 5.0:
+        elif self.fSatisfySum >= 0:
             return "보통"
-        elif self.fSatisfy >= 3.0:
+        elif self.fSatisfySum >= -40:
             return "불만족"
         else:
             return "매우불만족"
@@ -265,6 +313,21 @@ class Satisfy(models.Model):
             "매우불만족": "red"
         }
         return color_map.get(level, "gray")
+
+    def get_item_scores(self):
+        """각 항목별 만족도 텍스트 딕셔너리 반환"""
+        return {
+            '견적서': self.sS1,
+            '공사금액': self.sS2,
+            '약속시간': self.sS3,
+            '상담': self.sS4,
+            '소통': self.sS5,
+            '하자보증': self.sS6,
+            '자재실명': self.sS7,
+            '계약서': self.sS8,
+            '공사일정': self.sS9,
+            '하자보수': self.sS10,
+        }
 
 
 class Evaluation(models.Model):

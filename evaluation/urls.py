@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from . import webhook_views
+from . import views_webhook
 
 app_name = 'evaluation'
 
@@ -21,5 +21,12 @@ urlpatterns = [
     path('complain/update-check/', views.complain_update_check, name='complain_update_check'),
 
     # Google Sheets Webhook
-    path('webhook/google-sheets/', webhook_views.google_sheets_webhook, name='google_sheets_webhook'),
+    path('webhook/google-sheets/', views_webhook.google_sheets_webhook, name='google_sheets_webhook'),
+    path('webhook/google-sheets-complain/', views_webhook.google_sheets_webhook_complain, name='google_sheets_webhook_complain'),
+    path('webhook/test/', views_webhook.test_webhook, name='test_webhook'),
+
+    # 고객만족도 이력 관리
+    path('satisfy/', views.satisfy_list, name='satisfy_list'),
+    path('satisfy/update-company/', views.satisfy_update_company, name='satisfy_update_company'),
+    path('satisfy/<int:pk>/delete/', views.satisfy_delete, name='satisfy_delete'),
 ]

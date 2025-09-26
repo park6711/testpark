@@ -292,40 +292,51 @@ class ComplainAdmin(admin.ModelAdmin):
 class SatisfyAdmin(admin.ModelAdmin):
     list_display = [
         'no',
-        'noEvaluation',
         'get_company_name',
-        'sTime',
+        'sTimeStamp',
         'get_satisfaction_badge',
-        'fSatisfy',
+        'fSatisfySum',
+        'sPhone',
         'created_at'
     ]
 
     list_filter = [
-        'noEvaluation',
         'noCompany',
+        'sS1', 'sS2', 'sS3', 'sS4', 'sS5',
         'created_at'
     ]
 
     search_fields = [
         'no',
         'sCompanyName',
-        'sAddress',
-        'sMemo'
+        'sPhone',
+        'sArea',
+        'sS11'
     ]
 
     fieldsets = (
         ('기본 정보', {
-            'fields': ('no', 'noEvaluation', 'noCompany')
+            'fields': ('no', 'noCompany', 'sCompanyName', 'sPhone')
         }),
-        ('만족도 정보', {
-            'fields': ('sCompanyName', 'sTime', 'sAddress', 'fSatisfy')
+        ('공사 정보', {
+            'fields': ('sConMoney', 'sArea', 'sTimeStamp', 'timeStamp')
         }),
-        ('추가 정보', {
-            'fields': ('sMemo',)
+        ('만족도 평가 항목', {
+            'fields': (
+                ('sS1', 'sS2'),
+                ('sS3', 'sS4'),
+                ('sS5', 'sS6'),
+                ('sS7', 'sS8'),
+                ('sS9', 'sS10')
+            ),
+            'description': '매우 만족(10점), 만족(5점), 보통(0점), 불만족(-5점), 매우 불만족(-10점)'
+        }),
+        ('평가 결과', {
+            'fields': ('fSatisfySum', 'sS11')
         })
     )
 
-    readonly_fields = ['no']
+    readonly_fields = ['no', 'fSatisfySum', 'created_at', 'updated_at']
 
     def get_company_name(self, obj):
         """업체명 반환"""
@@ -343,7 +354,7 @@ class SatisfyAdmin(admin.ModelAdmin):
         color = obj.get_satisfaction_color()
         return format_html(
             '<span style="color: {}; font-weight: bold;">{} ({:.1f}점)</span>',
-            color, level, obj.fSatisfy
+            color, level, obj.fSatisfySum
         )
     get_satisfaction_badge.short_description = '만족도'
 
