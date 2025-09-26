@@ -8,7 +8,12 @@ class FixFeeDateAdmin(admin.ModelAdmin):
 
     list_display = [
         'no',
-        'date',
+        'get_formatted_date',
+        'get_year',
+        'get_month',
+        'get_fees_count',
+        'get_paid_count',
+        'get_unpaid_count',
     ]
 
     list_filter = [
@@ -19,7 +24,51 @@ class FixFeeDateAdmin(admin.ModelAdmin):
         'date',
     ]
 
-    ordering = ['-date']
+    ordering = ['no']
+
+    list_per_page = 50
+
+    def get_formatted_date(self, obj):
+        """날짜 포맷팅"""
+        return obj.date.strftime('%Y년 %m월 %d일')
+    get_formatted_date.short_description = '납부기준일'
+
+    def get_year(self, obj):
+        """연도 표시"""
+        return f'{obj.date.year}년'
+    get_year.short_description = '연도'
+
+    def get_month(self, obj):
+        """월 표시"""
+        return f'{obj.date.month}월'
+    get_month.short_description = '월'
+
+    def get_fees_count(self, obj):
+        """해당 기준일의 고정비 총 건수"""
+        from .models import FixFee
+        count = FixFee.objects.filter(noFixFeeDate=obj.no).count()
+        return count
+    get_fees_count.short_description = '전체건수'
+
+    def get_paid_count(self, obj):
+        """해당 기준일의 완납 건수"""
+        from .models import FixFee
+        count = FixFee.objects.filter(noFixFeeDate=obj.no, dateDeposit__isnull=False).count()
+        if count > 0:
+            return f'<span style="color:green;font-weight:bold;">{count}</span>'
+        return count
+    get_paid_count.short_description = '완납건수'
+    get_paid_count.allow_tags = True
+
+    def get_unpaid_count(self, obj):
+        """해당 기준일의 미납 건수"""
+        from .models import FixFee
+        count = FixFee.objects.filter(noFixFeeDate=obj.no, dateDeposit__isnull=True).count()
+        if count > 0:
+            return f'<span style="color:red;font-weight:bold;">{count}</span>'
+        return count
+    get_unpaid_count.short_description = '미납건수'
+    get_unpaid_count.allow_tags = True
 
 
 @admin.register(FixFee)

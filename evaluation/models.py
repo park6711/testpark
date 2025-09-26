@@ -140,16 +140,26 @@ class Complain(models.Model):
 
     # 기본 정보
     no = models.AutoField(primary_key=True, verbose_name='고객불만ID')
-    noEvaluation = models.IntegerField(verbose_name='업체평가회수ID')
+
+    # 타임스탬프 정보
+    sTimeStamp = models.CharField(max_length=50, blank=True, verbose_name='타임스탬프')
+    timeStamp = models.DateTimeField(null=True, blank=True, verbose_name='타임스탬프')
+
+    # 업체 정보
+    sCompanyName = models.CharField(max_length=100, blank=True, verbose_name='업체명')
     noCompany = models.IntegerField(verbose_name='업체ID')
 
     # 불만 정보
-    sTime = models.CharField(max_length=50, blank=True, verbose_name='타임스탬프')
-    sComName = models.CharField(max_length=100, blank=True, verbose_name='업체명')
     sPass = models.CharField(max_length=50, blank=True, verbose_name='경로')
     sComplain = models.TextField(blank=True, verbose_name='불만 내용')
     sComplainPost = models.TextField(blank=True, verbose_name='링크')
     sPost = models.CharField(max_length=100, blank=True, verbose_name='의뢰글')
+
+    # SMS 관련
+    sSMSBool = models.CharField(max_length=50, blank=True, verbose_name='SMS 발송여부')
+    sSMSMent = models.TextField(blank=True, verbose_name='SMS 발송내용')
+
+    # 기타 정보
     sFile = models.TextField(blank=True, verbose_name='고객불만 파일')
     sCheck = models.CharField(max_length=50, blank=True, verbose_name='계약 확인 여부')
     sWorker = models.CharField(max_length=50, blank=True, verbose_name='작성자')
@@ -166,24 +176,16 @@ class Complain(models.Model):
         ordering = ['-no']
 
     def __str__(self):
-        return f"고객불만 {self.no} - {self.sComName}"
-
-    def get_evaluation_info(self):
-        """평가회차 정보"""
-        try:
-            evaluation = EvaluationNo.objects.get(no=self.noEvaluation)
-            return evaluation
-        except EvaluationNo.DoesNotExist:
-            return None
+        return f"고객불만 {self.no} - {self.sCompanyName}"
 
     def get_company_name(self):
         """업체명 반환"""
         try:
             from company.models import Company
             company = Company.objects.get(no=self.noCompany)
-            return company.sCompanyName or self.sComName
+            return company.sCompanyName or self.sCompanyName
         except:
-            return self.sComName or f"업체{self.noCompany}"
+            return self.sCompanyName or f"업체{self.noCompany}"
 
     def get_severity_level(self):
         """불만 심각도 레벨"""

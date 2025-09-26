@@ -1,0 +1,850 @@
+{% extends "staff/base.html" %}
+{% load static %}
+{% load evaluation_filters %}
+
+{% block title %}고객불만 이력 - PMIS 2.0{% endblock %}
+{% block page_title %}고객불만 이력{% endblock %}
+{% block page_subtitle %}고객불만 접수 및 관리{% endblock %}
+
+{% block content %}
+<style>
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    /* 필터 섹션 */
+    .filter-section {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+
+    .filter-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .filter-group > label {
+        font-weight: normal;
+        color: #333;
+        margin: 0;
+        min-width: 80px;
+        font-size: 14px;
+    }
+
+    .checkbox-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .checkbox-filters .checkbox-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+    }
+
+    .checkbox-filters input[type="checkbox"] {
+        margin-right: 5px;
+    }
+
+    .checkbox-filters label {
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+        margin: 0;
+        text-align: left;
+    }
+
+
+    .search-group {
+        display: flex;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    /* 버튼 그룹 */
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    /* 버튼 스타일 */
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(240, 147, 251, 0.4);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        color: white;
+    }
+
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(67, 233, 123, 0.4);
+    }
+
+    /* 테이블 컨테이너 */
+    .table-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table thead {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .data-table th {
+        padding: 12px;
+        text-align: left;
+        font-weight: bold;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .data-table tbody tr {
+        border-bottom: 1px solid #eee;
+        transition: background-color 0.2s ease;
+    }
+
+    .data-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .data-table td {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+
+    /* 입력 필드 */
+    .score-input {
+        width: 60px;
+        padding: 4px 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        text-align: center;
+        font-size: 13px;
+    }
+
+    .score-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .check-input {
+        transition: all 0.2s;
+        font-size: 13px;
+    }
+
+    .check-input:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+    }
+
+    /* 링크 스타일 */
+    .link-icon {
+        color: #667eea;
+        text-decoration: none;
+        font-size: 16px;
+    }
+
+    .link-icon:hover {
+        color: #764ba2;
+    }
+
+    /* 배지 스타일 */
+    .sms-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+
+    .sms-sent {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .sms-not-sent {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .sms-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    /* 액션 버튼 */
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+    }
+
+    .action-btn {
+        padding: 4px 8px;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .action-btn:hover {
+        transform: scale(1.05);
+    }
+
+    .btn-view {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .btn-delete {
+        background: #dc3545;
+        color: white;
+    }
+
+    /* 텍스트 스타일 */
+    .truncate {
+        max-width: 150px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: inline-block;
+        position: relative;
+        cursor: pointer;
+    }
+
+    /* 툴팁 스타일 */
+    .tooltip-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .tooltip {
+        visibility: hidden;
+        background-color: #333;
+        color: #fff;
+        text-align: left;
+        border-radius: 6px;
+        padding: 8px 12px;
+        position: absolute;
+        z-index: 1000;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: max-content;
+        max-width: 300px;
+        opacity: 0;
+        transition: opacity 0.3s;
+        white-space: normal;
+        word-wrap: break-word;
+        font-size: 13px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .tooltip::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #333 transparent transparent transparent;
+    }
+
+    /* 첫 번째 행의 툴팁은 아래로 표시 */
+    tbody tr:first-child .tooltip {
+        bottom: auto;
+        top: 125%;
+    }
+
+    tbody tr:first-child .tooltip::after {
+        top: auto;
+        bottom: 100%;
+        border-color: transparent transparent #333 transparent;
+    }
+
+    .tooltip-container:hover .tooltip {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    /* 업체 상태 배지 */
+    .company-name {
+        font-weight: bold;
+        color: #333;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+
+    .status-preparing {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status-active {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-paused {
+        background: #cce5ff;
+        color: #004085;
+    }
+
+    .status-inactive {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    /* 빈 데이터 */
+    .empty-message {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+
+    .empty-message i {
+        font-size: 48px;
+        margin-bottom: 20px;
+        color: #dee2e6;
+    }
+
+    /* 커스텀 모달 */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        animation: fadeIn 0.3s;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s;
+    }
+
+    .modal-header {
+        margin-bottom: 20px;
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-title i {
+        color: #dc3545;
+        font-size: 24px;
+    }
+
+    .modal-body {
+        color: #666;
+        font-size: 16px;
+        line-height: 1.5;
+        margin-bottom: 25px;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .modal-btn-cancel {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .modal-btn-cancel:hover {
+        background: #dee2e6;
+    }
+
+    .modal-btn-danger {
+        background: linear-gradient(135deg, #f93b1d 0%, #ea2c62 100%);
+        color: white;
+    }
+
+    .modal-btn-danger:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(234, 44, 98, 0.4);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .btn-warning {
+        background: #ffc107;
+        color: #333;
+    }
+
+    .btn-warning:hover {
+        background: #e0a800;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+    }
+</style>
+
+<div class="container">
+    <!-- 버튼 그룹 -->
+    <div class="btn-group">
+        <a href="https://forms.gle/Bheg8AuWmuaK9Jkn6" target="_blank" class="btn btn-primary">
+            <i class="fas fa-plus-circle"></i> 고객불만 접수
+        </a>
+        <a href="https://docs.google.com/spreadsheets/d/1wnvAeyUaKOYAkb_Eo6BViRD7YId8mpUAKtCODE2ZqAs/edit?gid=1498232542#gid=1498232542"
+           target="_blank" class="btn btn-success">
+            <i class="fas fa-table"></i> 구글시트 열기
+        </a>
+    </div>
+
+    <!-- 필터 섹션 -->
+    <div class="filter-section">
+        <form id="filterForm" method="get">
+            <div class="filter-group">
+                <label>활동상태:</label>
+                <div class="checkbox-filters">
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="condition[]" value="0" id="cond0"
+                               {% if '0' in selected_conditions %}checked{% endif %}>
+                        <label for="cond0">준비중</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="condition[]" value="1" id="cond1"
+                               {% if '1' in selected_conditions or not selected_conditions %}checked{% endif %}>
+                        <label for="cond1">정상</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="condition[]" value="2" id="cond2"
+                               {% if '2' in selected_conditions or not selected_conditions %}checked{% endif %}>
+                        <label for="cond2">일시정지</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" name="condition[]" value="3" id="cond3"
+                               {% if '3' in selected_conditions %}checked{% endif %}>
+                        <label for="cond3">탈퇴</label>
+                    </div>
+                </div>
+            </div>
+            <div class="filter-group">
+                <label>통합검색:</label>
+                <div class="search-group">
+                    <input type="text" name="search" class="search-input"
+                           placeholder="업체명, 경로, 불만내용, 작성자 등으로 검색..."
+                           value="{{ search }}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> 검색
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="resetSearch()">
+                        <i class="fas fa-redo"></i> 초기화
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 테이블 컨테이너 -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>날짜</th>
+                    <th>열린업체</th>
+                    <th>업체명(구글)</th>
+                    <th>경로</th>
+                    <th>불만 내용</th>
+                    <th>불만글</th>
+                    <th>의뢰글</th>
+                    <th>문자발송</th>
+                    <th>파일</th>
+                    <th>계약확인</th>
+                    <th>작성자</th>
+                    <th>불만점수</th>
+                    <th>작업</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in complains %}
+                <tr data-id="{{ item.complain.no }}">
+                    <td>{{ item.complain.no }}</td>
+                    <td>{{ item.complain.sTimeStamp|format_date_short }}</td>
+                    <td>
+                        <span class="company-name">{{ item.company_sname2 }}</span>
+                        {% if item.company_condition == 0 %}
+                            <span class="status-badge status-preparing">준비중</span>
+                        {% elif item.company_condition == 1 %}
+                            <span class="status-badge status-active">정상</span>
+                        {% elif item.company_condition == 2 %}
+                            <span class="status-badge status-paused">일시정지</span>
+                        {% else %}
+                            <span class="status-badge status-inactive">탈퇴</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.complain.sCompanyName|default:"-" }}</td>
+                    <td>{{ item.complain.sPass|default:"-" }}</td>
+                    <td>
+                        <div class="tooltip-container">
+                            <span class="truncate" data-full-text="{{ item.complain.sComplain }}">
+                                {{ item.complain.sComplain|default:"-" }}
+                            </span>
+                            {% if item.complain.sComplain|length > 15 %}
+                            <div class="tooltip">{{ item.complain.sComplain }}</div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td style="text-align: center;">
+                        {% if item.complain.sComplainPost %}
+                            <a href="{{ item.complain.sComplainPost }}" target="_blank" class="link-icon">📎</a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        {% if item.complain.sPost %}
+                            <a href="{{ item.complain.sPost }}" target="_blank" class="link-icon">📎</a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        {% if item.complain.sSMSBool == '발송' %}
+                            <span class="sms-badge sms-sent">발송</span>
+                        {% elif item.complain.sSMSBool == '미발송' %}
+                            <span class="sms-badge sms-not-sent">미발송</span>
+                        {% else %}
+                            <span class="sms-badge sms-pending">{{ item.complain.sSMSBool|default:"-" }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        {% if item.complain.sFile %}
+                            <a href="{{ item.complain.sFile }}" target="_blank" class="link-icon">📁</a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td onclick="event.stopPropagation()">
+                        <input type="text"
+                               class="check-input"
+                               value="{{ item.complain.sCheck|default:'' }}"
+                               data-id="{{ item.complain.no }}"
+                               onchange="updateCheck({{ item.complain.no }}, this.value)"
+                               onclick="event.stopPropagation()"
+                               style="width: 100%; border: 1px solid transparent; background: transparent; padding: 2px 5px; border-radius: 3px;"
+                               onfocus="this.style.borderColor='#667eea'; this.style.background='white';"
+                               onblur="this.style.borderColor='transparent'; this.style.background='transparent';">
+                    </td>
+                    <td>{{ item.complain.sWorker|default:"-" }}</td>
+                    <td onclick="event.stopPropagation()" style="text-align: center;">
+                        <input type="number"
+                               class="score-input"
+                               value="{{ item.complain.fComplain }}"
+                               step="0.1"
+                               min="0"
+                               max="10"
+                               onchange="updateScore({{ item.complain.no }}, this.value)">
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn btn-delete" onclick="deleteComplain({{ item.complain.no }})">삭제</button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="14">
+                        <div class="empty-message">
+                            <i class="fas fa-inbox"></i>
+                            <p>고객불만 데이터가 없습니다.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div id="deleteModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="fas fa-exclamation-triangle"></i>
+                삭제 확인
+            </h3>
+        </div>
+        <div class="modal-body">
+            정말로 이 고객불만 데이터를 삭제하시겠습니까?<br>
+            삭제된 데이터는 복구할 수 없습니다.
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()">취소</button>
+            <button class="modal-btn modal-btn-danger" onclick="confirmDelete()">삭제</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// CSRF 토큰 가져오기
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// 삭제 모달 관련
+let deleteTargetId = null;
+
+function deleteComplain(id) {
+    deleteTargetId = id;
+    document.getElementById('deleteModal').classList.add('active');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('active');
+    deleteTargetId = null;
+}
+
+function confirmDelete() {
+    if (!deleteTargetId) return;
+
+    fetch(`/evaluation/complain/${deleteTargetId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('삭제 실패: ' + (data.error || '알 수 없는 오류'));
+        }
+    })
+    .catch(error => {
+        alert('삭제 중 오류가 발생했습니다.');
+        console.error(error);
+    })
+    .finally(() => {
+        closeDeleteModal();
+    });
+}
+
+// 모달 외부 클릭시 닫기
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
+    }
+});
+
+// 불만점수 업데이트
+function updateScore(id, score) {
+    fetch('/evaluation/complain/update-score/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            pk: id,
+            score: score
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            alert('점수 업데이트 실패: ' + (data.error || '알 수 없는 오류'));
+        }
+    })
+    .catch(error => {
+        alert('점수 업데이트 중 오류가 발생했습니다.');
+        console.error(error);
+    });
+}
+
+// 계약확인 업데이트
+function updateCheck(id, value) {
+    fetch('/evaluation/complain/update-check/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            pk: id,
+            check: value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            alert('계약확인 업데이트 실패: ' + (data.error || '알 수 없는 오류'));
+        }
+    })
+    .catch(error => {
+        alert('계약확인 업데이트 중 오류가 발생했습니다.');
+        console.error(error);
+    });
+}
+
+// 체크박스 변경 시 자동 제출
+document.querySelectorAll('input[name="condition[]"]').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        document.getElementById('filterForm').submit();
+    });
+});
+
+// 검색 초기화
+function resetSearch() {
+    // 검색어 지우기
+    document.querySelector('input[name="search"]').value = '';
+
+    // 체크박스 기본값으로 설정 (정상, 일시정지만 체크)
+    document.querySelectorAll('input[name="condition[]"]').forEach(checkbox => {
+        checkbox.checked = (checkbox.value === '1' || checkbox.value === '2');
+    });
+
+    // 폼 제출
+    document.getElementById('filterForm').submit();
+}
+
+// 불만 내용 15자 제한 처리
+document.addEventListener('DOMContentLoaded', function() {
+    const truncateElements = document.querySelectorAll('.truncate');
+    truncateElements.forEach(element => {
+        const fullText = element.getAttribute('data-full-text');
+        if (fullText && fullText !== '-') {
+            // 15자로 제한하고 말줄임표 추가
+            if (fullText.length > 15) {
+                element.textContent = fullText.substring(0, 15) + '...';
+            } else {
+                element.textContent = fullText;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

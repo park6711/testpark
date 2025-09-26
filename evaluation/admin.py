@@ -231,27 +231,27 @@ class EvaluationNoAdmin(admin.ModelAdmin):
 class ComplainAdmin(admin.ModelAdmin):
     list_display = [
         'no',
-        'noEvaluation',
         'get_company_name',
-        'sTime',
+        'sTimeStamp',
         'get_severity_badge',
         'fComplain',
         'sCheck',
         'sWorker',
+        'sSMSBool',
         'created_at'
     ]
 
     list_filter = [
-        'noEvaluation',
         'noCompany',
         'sCheck',
         'sWorker',
+        'sSMSBool',
         'created_at'
     ]
 
     search_fields = [
         'no',
-        'sComName',
+        'sCompanyName',
         'sComplain',
         'sPost',
         'sWorker'
@@ -259,10 +259,16 @@ class ComplainAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('기본 정보', {
-            'fields': ('no', 'noEvaluation', 'noCompany', 'get_company_name')
+            'fields': ('no', 'noCompany', 'get_company_name', 'sCompanyName')
+        }),
+        ('타임스탬프', {
+            'fields': ('sTimeStamp', 'timeStamp')
         }),
         ('불만 정보', {
-            'fields': ('sTime', 'sComName', 'sPass', 'sComplain', 'sComplainPost', 'sPost')
+            'fields': ('sPass', 'sComplain', 'sComplainPost', 'sPost')
+        }),
+        ('SMS 관련', {
+            'fields': ('sSMSBool', 'sSMSMent')
         }),
         ('평가 및 처리', {
             'fields': ('fComplain', 'sCheck', 'sWorker', 'sFile')
