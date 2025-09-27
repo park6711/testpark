@@ -1,0 +1,434 @@
+{% extends "staff/base.html" %}
+
+{% block title %}{% if form.instance.pk %}템플리트 수정{% else %}템플리트 추가{% endif %} - PMIS 2.0{% endblock %}
+
+{% block page_title %}{% if form.instance.pk %}템플리트 수정{% else %}템플리트 추가{% endif %}{% endblock %}
+{% block page_subtitle %}템플리트 정보를 {% if form.instance.pk %}수정{% else %}입력{% endif %}해주세요{% endblock %}
+
+{% block content %}
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .form-card {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        {% if form.instance.pk %}
+        background: #fffbf0;
+        border: 2px solid #ffc107;
+        {% endif %}
+    }
+
+    .form-header {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #667eea;
+    }
+
+    .form-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .form-icon {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .info-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+
+    .info-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .form-row {
+        display: flex;
+        padding: 15px 0;
+        border-bottom: 1px solid #eee;
+        align-items: flex-start;
+    }
+
+    .form-row:last-child {
+        border-bottom: none;
+    }
+
+    .form-label {
+        flex: 0 0 150px;
+        font-weight: bold;
+        color: #666;
+        font-size: 14px;
+        padding-top: 8px;
+    }
+
+    .form-label .required {
+        color: #dc3545;
+        margin-left: 3px;
+    }
+
+    .form-input {
+        flex: 1;
+    }
+
+    .form-input input[type="text"],
+    .form-input select,
+    .form-input textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .form-input input[type="text"]:focus,
+    .form-input select:focus,
+    .form-input textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+
+    .form-input textarea {
+        min-height: 200px;
+        resize: vertical;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        line-height: 1.5;
+    }
+
+    .form-input select {
+        cursor: pointer;
+    }
+
+    .help-text {
+        display: block;
+        margin-top: 5px;
+        font-size: 13px;
+        color: #6c757d;
+    }
+
+    .error-message {
+        display: block;
+        margin-top: 5px;
+        font-size: 13px;
+        color: #dc3545;
+    }
+
+    .invalid-feedback {
+        display: block;
+        margin-top: 5px;
+        font-size: 13px;
+        color: #dc3545;
+    }
+
+    /* 라디오 버튼 스타일 */
+    .radio-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .radio-item {
+        flex: 1;
+    }
+
+    .radio-item input[type="radio"] {
+        display: none;
+    }
+
+    .radio-item label {
+        display: block;
+        padding: 10px 15px;
+        text-align: center;
+        background: white;
+        border: 2px solid #ced4da;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    .radio-item input[type="radio"]:checked + label {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: #667eea;
+    }
+
+
+    /* 버튼 그룹 */
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 30px;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        color: white;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+        color: white;
+    }
+
+    /* 변수 정보 박스 */
+    .variable-info {
+        background: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 6px;
+        padding: 15px;
+        margin-top: 10px;
+    }
+
+    .variable-title {
+        font-weight: bold;
+        color: #0066cc;
+        margin-bottom: 8px;
+        font-size: 13px;
+    }
+
+    .variable-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .variable-tag {
+        background: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-family: monospace;
+        color: #333;
+        border: 1px solid #d1e9ff;
+    }
+
+    /* 에러 상태 */
+    .form-input.has-error input,
+    .form-input.has-error select,
+    .form-input.has-error textarea {
+        border-color: #dc3545;
+    }
+
+    .form-input.has-error input:focus,
+    .form-input.has-error select:focus,
+    .form-input.has-error textarea:focus {
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    }
+
+    /* 알림 메시지 */
+    .alert {
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+
+    .alert-danger {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+</style>
+
+<div class="form-container">
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="form-card">
+            <div class="form-header">
+                <div class="form-title">
+                    <span class="form-icon">
+                        {% if form.instance.pk %}
+                        <i class="fas fa-edit"></i>
+                        {% else %}
+                        <i class="fas fa-plus"></i>
+                        {% endif %}
+                    </span>
+                    {% if form.instance.pk %}템플리트 수정{% else %}템플리트 추가{% endif %}
+                </div>
+            </div>
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <!-- 기본 정보 섹션 -->
+            <div class="info-section">
+
+                <div class="form-row">
+                    <div class="form-label">
+                        수신대상 <span class="required">*</span>
+                    </div>
+                    <div class="form-input {% if form.nReceiver.errors %}has-error{% endif %}">
+                        <div class="radio-group">
+                            {% for value, label in form.nReceiver.field.choices %}
+                            <div class="radio-item">
+                                <input type="radio" name="{{ form.nReceiver.name }}"
+                                       id="{{ form.nReceiver.id_for_label }}_{{ value }}"
+                                       value="{{ value }}"
+                                       {% if form.instance.pk %}
+                                           {% if form.instance.nReceiver == value %}checked{% endif %}
+                                       {% else %}
+                                           {% if value == 2 %}checked{% endif %}
+                                       {% endif %}>
+                                <label for="{{ form.nReceiver.id_for_label }}_{{ value }}">{{ label }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if form.nReceiver.errors %}
+                        <div class="error-message">{{ form.nReceiver.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-label">
+                        구분 <span class="required">*</span>
+                    </div>
+                    <div class="form-input {% if form.nType.errors %}has-error{% endif %}">
+                        <div class="radio-group">
+                            {% for value, label in form.nType.field.choices %}
+                            <div class="radio-item">
+                                <input type="radio" name="{{ form.nType.name }}"
+                                       id="{{ form.nType.id_for_label }}_{{ value }}"
+                                       value="{{ value }}"
+                                       {% if form.instance.pk %}
+                                           {% if form.instance.nType == value %}checked{% endif %}
+                                       {% else %}
+                                           {% if value == 0 %}checked{% endif %}
+                                       {% endif %}>
+                                <label for="{{ form.nType.id_for_label }}_{{ value }}">{{ label }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if form.nType.errors %}
+                        <div class="error-message">{{ form.nType.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-label">
+                        제목 <span class="required">*</span>
+                    </div>
+                    <div class="form-input {% if form.sTitle.errors %}has-error{% endif %}">
+                        <input type="text" name="{{ form.sTitle.name }}"
+                               id="{{ form.sTitle.id_for_label }}"
+                               value="{{ form.sTitle.value|default:'' }}"
+                               placeholder="템플리트 제목을 입력하세요"
+                               required>
+                        {% if form.sTitle.errors %}
+                        <div class="error-message">{{ form.sTitle.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 내용 섹션 -->
+            <div class="info-section">
+
+                <div class="form-row">
+                    <div class="form-label">
+                        내용 <span class="required">*</span>
+                    </div>
+                    <div class="form-input {% if form.sContent.errors %}has-error{% endif %}">
+                        <textarea name="{{ form.sContent.name }}"
+                                  id="{{ form.sContent.id_for_label }}"
+                                  placeholder="템플리트 내용을 입력하세요"
+                                  required>{{ form.sContent.value|default:'' }}</textarea>
+                        {% if form.sContent.errors %}
+                        <div class="error-message">{{ form.sContent.errors }}</div>
+                        {% endif %}
+
+                        <div class="variable-info">
+                            <div class="variable-title">사용 가능한 변수:</div>
+                            <div class="variable-list">
+                                <span class="variable-tag">{업체명}</span>
+                                <span class="variable-tag">{고객명}</span>
+                                <span class="variable-tag">{날짜}</span>
+                                <span class="variable-tag">{시간}</span>
+                                <span class="variable-tag">{전화번호}</span>
+                                <span class="variable-tag">{주소}</span>
+                                <span class="variable-tag">{금액}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- 버튼 그룹 -->
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-check"></i>
+                    {% if form.instance.pk %}수정 완료{% else %}저장{% endif %}
+                </button>
+                <a href="{% url 'template:template_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> 취소
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+
+{% endblock %}

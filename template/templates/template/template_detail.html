@@ -1,0 +1,480 @@
+{% extends "staff/base.html" %}
+
+{% block title %}템플리트 상세 - PMIS 2.0{% endblock %}
+
+{% block page_title %}템플리트 상세{% endblock %}
+{% block page_subtitle %}템플리트 상세 정보{% endblock %}
+
+{% block content %}
+<style>
+    .detail-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .detail-card {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+
+    .detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #667eea;
+    }
+
+    .detail-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .detail-badges {
+        display: flex;
+        gap: 10px;
+    }
+
+    .badge-custom {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .badge-receiver {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .badge-type-sms {
+        background: #cce5ff;
+        color: #004085;
+    }
+
+    .badge-type-comment {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .badge-use {
+        background: #e2e3e5;
+        color: #383d41;
+    }
+
+    .info-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+
+    .info-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .detail-row {
+        display: flex;
+        padding: 15px 0;
+        border-bottom: 1px solid #eee;
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        flex: 0 0 150px;
+        font-weight: bold;
+        color: #666;
+        font-size: 14px;
+    }
+
+    .detail-value {
+        flex: 1;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .content-display {
+        background: white;
+        padding: 20px;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        white-space: pre-wrap;
+        line-height: 1.6;
+        min-height: 150px;
+    }
+
+
+    /* 버튼 그룹 */
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 30px;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 15px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        color: white;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        color: white;
+    }
+
+    .btn-warning {
+        background: #ffc107;
+        color: #333;
+    }
+
+    .btn-warning:hover {
+        background: #e0a800;
+        color: #333;
+    }
+
+    .btn-danger {
+        background: #dc3545;
+    }
+
+    .btn-danger:hover {
+        background: #c82333;
+        color: white;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+        color: white;
+    }
+
+    /* 타임스탬프 */
+    .timestamp {
+        color: #6c757d;
+        font-size: 13px;
+    }
+
+    /* 커스텀 모달 스타일 */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .modal-overlay.show {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        max-width: 400px;
+        width: 90%;
+        animation: slideUp 0.3s ease;
+    }
+
+    .modal-header {
+        margin-bottom: 20px;
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-icon {
+        width: 24px;
+        height: 24px;
+        background: #dc3545;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+
+    .modal-body {
+        margin-bottom: 25px;
+        color: #666;
+        line-height: 1.6;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .modal-btn-cancel {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .modal-btn-cancel:hover {
+        background: #dee2e6;
+    }
+
+    .modal-btn-confirm {
+        background: #dc3545;
+        color: white;
+    }
+
+    .modal-btn-confirm:hover {
+        background: #c82333;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+</style>
+
+<div class="detail-container">
+    <div class="detail-card">
+        <div class="detail-header">
+            <div class="detail-title">
+                {{ template.sTitle }}
+            </div>
+            <div class="detail-badges">
+                <span class="badge-custom badge-use">사용 {{ template.nUse }}회</span>
+            </div>
+        </div>
+
+        <!-- 기본 정보 섹션 -->
+        <div class="info-section">
+
+            <div class="detail-row">
+                <div class="detail-label">템플리트 번호</div>
+                <div class="detail-value">{{ template.no }}</div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">수신대상</div>
+                <div class="detail-value">
+                    <span class="badge-custom badge-receiver">{{ template.get_nReceiver_display }}</span>
+                </div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">구분</div>
+                <div class="detail-value">
+                    {% if template.nType == 0 %}
+                    <span class="badge-custom badge-type-sms">{{ template.get_nType_display }}</span>
+                    {% else %}
+                    <span class="badge-custom badge-type-comment">{{ template.get_nType_display }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="detail-row">
+                <div class="detail-label">제목</div>
+                <div class="detail-value">{{ template.sTitle }}</div>
+            </div>
+
+        </div>
+
+        <!-- 내용 섹션 -->
+        <div class="info-section">
+            <div class="content-display">{{ template.sContent }}</div>
+        </div>
+
+
+        <!-- 버튼 그룹 -->
+        <div class="btn-group">
+            <button type="button" class="btn btn-success" onclick="copyToClipboard()">
+                <i class="fas fa-clipboard"></i> 내용 복사
+            </button>
+            <a href="{% url 'template:template_update' template.pk %}" class="btn btn-warning">
+                <i class="fas fa-edit"></i> 수정
+            </a>
+            <button type="button" class="btn btn-danger" onclick="deleteTemplate({{ template.pk }})">
+                <i class="fas fa-trash"></i> 삭제
+            </button>
+            <a href="{% url 'template:template_list' %}" class="btn btn-secondary">
+                <i class="fas fa-list"></i> 목록
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div id="deleteModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title">
+                <span class="modal-icon">!</span>
+                삭제 확인
+            </div>
+        </div>
+        <div class="modal-body">
+            정말로 이 템플리트를 삭제하시겠습니까?<br>
+            이 작업은 되돌릴 수 없습니다.
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()">취소</button>
+            <button class="modal-btn modal-btn-confirm" onclick="confirmDelete()">삭제</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// CSRF 토큰 가져오기
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+let deleteTemplateId = null;
+
+function deleteTemplate(id) {
+    deleteTemplateId = id;
+    document.getElementById('deleteModal').classList.add('show');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('show');
+    deleteTemplateId = null;
+}
+
+function confirmDelete() {
+    if (!deleteTemplateId) return;
+
+    // 폼 생성 및 제출
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/template/${deleteTemplateId}/delete/`;
+
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = getCookie('csrftoken');
+
+    form.appendChild(csrfInput);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// 모달 외부 클릭시 닫기
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
+    }
+});
+
+// 내용 복사 기능
+function copyToClipboard() {
+    const content = `{{ template.sContent|escapejs }}`;
+    navigator.clipboard.writeText(content).then(function() {
+        // 성공 메시지 표시
+        const successMsg = document.createElement('div');
+        successMsg.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+            z-index: 1001;
+            animation: slideInRight 0.3s ease;
+        `;
+        successMsg.textContent = '내용이 클립보드에 복사되었습니다.';
+        document.body.appendChild(successMsg);
+
+        setTimeout(() => {
+            successMsg.remove();
+        }, 3000);
+    }, function(err) {
+        console.error('복사 실패:', err);
+        alert('복사에 실패했습니다.');
+    });
+}
+</script>
+
+{% endblock %}

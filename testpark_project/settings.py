@@ -188,6 +188,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
+# 로그인 URL 설정
+LOGIN_URL = '/auth/login/'
+LOGIN_REDIRECT_URL = '/'
+
 # 네이버 소셜 로그인 설정
 NAVER_CLIENT_ID = os.getenv('NAVER_CLIENT_ID', '_mw6kojqJVXoWEBqYBKv')
 NAVER_CLIENT_SECRET = os.getenv('NAVER_CLIENT_SECRET', 'hHKrIfKoMA')
