@@ -1,0 +1,754 @@
+{% extends "staff/base.html" %}
+
+{% block title %}템플리트 - PMIS 2.0{% endblock %}
+
+{% block page_title %}템플리트{% endblock %}
+{% block page_subtitle %}문자 및 댓글 템플리트 관리{% endblock %}
+
+{% block content %}
+<style>
+    /* 컨테이너 스타일 */
+    .template-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    /* 헤더 영역 */
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .title-area h2 {
+        color: #333;
+        font-size: 24px;
+        font-weight: bold;
+        margin: 0;
+    }
+
+    /* 버튼 영역 */
+    .button-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-add {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 16px;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .btn-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        color: white;
+    }
+
+    /* 필터 영역 */
+    .filter-section {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+
+    .filter-row {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 200px;
+    }
+
+    .filter-label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+    }
+
+    /* 라디오 버튼 그룹 */
+    .radio-group {
+        display: flex;
+        gap: 5px;
+    }
+
+    .radio-item {
+        flex: 1;
+    }
+
+    .radio-item input[type="radio"] {
+        display: none;
+    }
+
+    .radio-item label {
+        display: block;
+        padding: 6px 12px;
+        text-align: center;
+        background: white;
+        border: 1px solid #ced4da;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+
+    .radio-item:first-child label {
+        border-radius: 4px 0 0 4px;
+    }
+
+    .radio-item:last-child label {
+        border-radius: 0 4px 4px 0;
+    }
+
+    .radio-item input[type="radio"]:checked + label {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-color: #667eea;
+    }
+
+    /* 검색창 */
+    .search-group {
+        display: flex;
+        gap: 10px;
+        flex: 1;
+        max-width: 400px;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .btn-search {
+        padding: 8px 20px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s;
+    }
+
+    .btn-search:hover {
+        background: #0056b3;
+    }
+
+    .btn-reset {
+        padding: 8px 20px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .btn-reset:hover {
+        background: #5a6268;
+        color: white;
+    }
+
+    /* 통계 정보 */
+    .stats-info {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 10px;
+        background: #e9ecef;
+        border-radius: 4px;
+        font-size: 14px;
+        margin-bottom: 15px;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .stat-label {
+        color: #6c757d;
+    }
+
+    .stat-value {
+        font-weight: 600;
+        color: #495057;
+    }
+
+    /* 테이블 스타일 */
+    .table-wrapper {
+        overflow-x: auto;
+        margin-bottom: 20px;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .data-table thead {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .data-table th {
+        padding: 12px 10px;
+        text-align: left;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .data-table tbody tr {
+        border-bottom: 1px solid #dee2e6;
+        transition: background 0.2s;
+    }
+
+    .data-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .data-table td {
+        padding: 10px;
+        color: #495057;
+        vertical-align: middle;
+    }
+
+    /* 배지 스타일 */
+    .badge-custom {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .badge-receiver {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .badge-type-sms {
+        background: #cce5ff;
+        color: #004085;
+    }
+
+    .badge-type-comment {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .badge-use {
+        background: #e2e3e5;
+        color: #383d41;
+    }
+
+    /* 제목 링크 */
+    .title-link {
+        color: #495057;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .title-link:hover {
+        color: #007bff;
+        text-decoration: underline;
+    }
+
+    /* 내용 미리보기 */
+    .content-preview {
+        color: #6c757d;
+        font-size: 13px;
+        line-height: 1.4;
+        max-width: 400px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+
+    /* 액션 버튼 */
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+        justify-content: center;
+    }
+
+    .action-btn {
+        padding: 4px 8px;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .action-btn:hover {
+        transform: scale(1.05);
+    }
+
+    .btn-view {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .btn-view:hover {
+        background: #138496;
+        color: white;
+    }
+
+    .btn-edit {
+        background: #007bff;
+        color: white;
+    }
+
+    .btn-edit:hover {
+        background: #0056b3;
+        color: white;
+    }
+
+    .btn-delete {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background: #c82333;
+        color: white;
+    }
+
+    /* 빈 상태 */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+
+    .empty-icon {
+        font-size: 48px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+
+    /* 커스텀 모달 */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        animation: fadeIn 0.3s;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s;
+    }
+
+    .modal-header {
+        margin-bottom: 20px;
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-title i {
+        color: #dc3545;
+        font-size: 24px;
+    }
+
+    .modal-body {
+        color: #666;
+        font-size: 16px;
+        line-height: 1.5;
+        margin-bottom: 25px;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .modal-btn-cancel {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .modal-btn-cancel:hover {
+        background: #dee2e6;
+    }
+
+    .modal-btn-danger {
+        background: linear-gradient(135deg, #f93b1d 0%, #ea2c62 100%);
+        color: white;
+    }
+
+    .modal-btn-danger:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(234, 44, 98, 0.4);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* 페이징 */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        margin-top: 20px;
+    }
+
+    .pagination a,
+    .pagination span {
+        padding: 8px 12px;
+        border: 1px solid #dee2e6;
+        color: #007bff;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .pagination a:hover {
+        background: #007bff;
+        color: white;
+    }
+
+    .pagination .current {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+</style>
+
+<div class="template-container">
+    <!-- 헤더 섹션 -->
+    <div class="header-section">
+        <div class="title-area">
+            <h2>템플리트 목록</h2>
+        </div>
+        <div class="button-group">
+            <a href="{% url 'template:template_create' %}" class="btn-add">
+                <i class="fas fa-plus"></i>&nbsp; 템플리트 추가
+            </a>
+        </div>
+    </div>
+
+    <!-- 필터 섹션 -->
+    <div class="filter-section">
+        <form method="get" id="filterForm">
+            <div class="filter-row">
+                <!-- 수신대상 필터 -->
+                <div class="filter-group">
+                    <span class="filter-label">수신대상:</span>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" name="nReceiver" id="receiver_all" value="all"
+                                   {% if nReceiver == 'all' %}checked{% endif %}>
+                            <label for="receiver_all">전체</label>
+                        </div>
+                        {% for value, label in receiver_choices %}
+                        <div class="radio-item">
+                            <input type="radio" name="nReceiver" id="receiver_{{ value }}" value="{{ value }}"
+                                   {% if nReceiver == value|stringformat:"s" %}checked{% endif %}>
+                            <label for="receiver_{{ value }}">{{ label }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- 구분 필터 -->
+                <div class="filter-group">
+                    <span class="filter-label">구분:</span>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" name="nType" id="type_all" value="all"
+                                   {% if nType == 'all' %}checked{% endif %}>
+                            <label for="type_all">전체</label>
+                        </div>
+                        {% for value, label in type_choices %}
+                        <div class="radio-item">
+                            <input type="radio" name="nType" id="type_{{ value }}" value="{{ value }}"
+                                   {% if nType == value|stringformat:"s" %}checked{% endif %}>
+                            <label for="type_{{ value }}">{{ label }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- 검색 영역 -->
+                <div class="search-group">
+                    <input type="text" name="search" class="search-input"
+                           placeholder="제목, 내용 검색..." value="{{ search }}">
+                    <button type="submit" class="btn-search">검색</button>
+                    {% if search or nReceiver != 'all' or nType != 'all' %}
+                    <a href="{% url 'template:template_list' %}" class="btn-reset">초기화</a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- 통계 정보 -->
+    <div class="stats-info">
+        <div class="stat-item">
+            <span class="stat-label">전체:</span>
+            <span class="stat-value">{{ total_count }}건</span>
+        </div>
+        {% if nReceiver != 'all' or nType != 'all' or search %}
+        <div class="stat-item">
+            <span class="stat-label">필터된 결과:</span>
+            <span class="stat-value">{{ filtered_count }}건</span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 테이블 -->
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th width="5%">No</th>
+                    <th width="10%">수신대상</th>
+                    <th width="8%">구분</th>
+                    <th width="25%">제목</th>
+                    <th width="35%">내용</th>
+                    <th width="7%">사용</th>
+                    <th width="10%">작업</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for template in templates %}
+                <tr>
+                    <td>{{ template.no }}</td>
+                    <td>
+                        <span class="badge-custom badge-receiver">{{ template.get_nReceiver_display }}</span>
+                    </td>
+                    <td>
+                        {% if template.nType == 0 %}
+                        <span class="badge-custom badge-type-sms">{{ template.get_nType_display }}</span>
+                        {% else %}
+                        <span class="badge-custom badge-type-comment">{{ template.get_nType_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'template:template_detail' template.pk %}" class="title-link">
+                            {{ template.sTitle }}
+                        </a>
+                    </td>
+                    <td>
+                        <div class="content-preview">{{ template.sContent }}</div>
+                    </td>
+                    <td>
+                        <span class="badge-custom badge-use">{{ template.nUse }}회</span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'template:template_detail' template.pk %}"
+                               class="action-btn btn-view" title="보기">보기</a>
+                            <a href="{% url 'template:template_update' template.pk %}"
+                               class="action-btn btn-edit" title="수정">수정</a>
+                            <button class="action-btn btn-delete"
+                                    onclick="deleteTemplate({{ template.pk }}, '{{ template.sTitle|escapejs }}')"
+                                    title="삭제">삭제</button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <div class="empty-icon">📝</div>
+                            <p>등록된 템플리트가 없습니다.</p>
+                            <p>새로운 템플리트를 추가해보세요.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 페이징 -->
+    {% if is_paginated %}
+    <div class="pagination">
+        {% if page_obj.has_previous %}
+            <a href="?page=1{% if search %}&search={{ search }}{% endif %}{% if nReceiver != 'all' %}&nReceiver={{ nReceiver }}{% endif %}{% if nType != 'all' %}&nType={{ nType }}{% endif %}">처음</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if nReceiver != 'all' %}&nReceiver={{ nReceiver }}{% endif %}{% if nType != 'all' %}&nType={{ nType }}{% endif %}">이전</a>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <span class="current">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if nReceiver != 'all' %}&nReceiver={{ nReceiver }}{% endif %}{% if nType != 'all' %}&nType={{ nType }}{% endif %}">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if nReceiver != 'all' %}&nReceiver={{ nReceiver }}{% endif %}{% if nType != 'all' %}&nType={{ nType }}{% endif %}">다음</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if nReceiver != 'all' %}&nReceiver={{ nReceiver }}{% endif %}{% if nType != 'all' %}&nType={{ nType }}{% endif %}">마지막</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div id="deleteModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="fas fa-exclamation-triangle"></i>
+                삭제 확인
+            </h3>
+        </div>
+        <div class="modal-body">
+            "<span id="deleteTitle"></span>" 템플리트를 삭제하시겠습니까?<br>
+            삭제된 데이터는 복구할 수 없습니다.
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()">취소</button>
+            <button class="modal-btn modal-btn-danger" onclick="confirmDelete()">삭제</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// CSRF 토큰 가져오기
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// 삭제 모달 관련
+let deleteTargetId = null;
+
+function deleteTemplate(id, title) {
+    deleteTargetId = id;
+    document.getElementById('deleteTitle').textContent = title;
+    document.getElementById('deleteModal').classList.add('active');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('active');
+    deleteTargetId = null;
+}
+
+function confirmDelete() {
+    if (!deleteTargetId) return;
+
+    // 폼 생성 및 제출
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/template/${deleteTargetId}/delete/`;
+
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = getCookie('csrftoken');
+
+    form.appendChild(csrfInput);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+// 모달 외부 클릭시 닫기
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
+    }
+});
+
+// 라디오 버튼 자동 제출
+document.querySelectorAll('input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        document.getElementById('filterForm').submit();
+    });
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "staff/base.html" %}
+
+{% block title %}템플리트 삭제{% endblock %}
+
+{% block page_title %}템플리트 삭제{% endblock %}
+{% block page_subtitle %}템플리트를 삭제하시겠습니까?{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i> 템플리트 삭제 확인
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger" role="alert">
+                        <h6 class="alert-heading">
+                            <i class="bi bi-exclamation-circle"></i> 주의!
+                        </h6>
+                        <p>다음 템플리트를 정말로 삭제하시겠습니까?</p>
+                        <hr>
+                        <p class="mb-0">이 작업은 되돌릴 수 없습니다.</p>
+                    </div>
+
+                    <div class="card bg-light mb-3">
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">템플리트 번호</dt>
+                                <dd class="col-sm-8">{{ template.no }}</dd>
+
+                                <dt class="col-sm-4">수신대상</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-info">{{ template.get_nReceiver_display }}</span>
+                                </dd>
+
+                                <dt class="col-sm-4">구분</dt>
+                                <dd class="col-sm-8">
+                                    {% if template.nType == 0 %}
+                                    <span class="badge bg-primary">{{ template.get_nType_display }}</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">{{ template.get_nType_display }}</span>
+                                    {% endif %}
+                                </dd>
+
+                                <dt class="col-sm-4">제목</dt>
+                                <dd class="col-sm-8">{{ template.sTitle }}</dd>
+
+                                <dt class="col-sm-4">사용횟수</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-secondary">{{ template.nUse }}회</span>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash"></i> 삭제
+                            </button>
+                            <a href="{% url 'template:template_detail' template.pk %}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> 취소
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
