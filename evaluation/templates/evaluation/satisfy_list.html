@@ -1,4 +1,4 @@
-{% extends "member/base.html" %}
+{% extends "staff/base.html" %}
 
 {% block title %}고객만족도 이력 - PMIS 2.0{% endblock %}
 
@@ -445,6 +445,36 @@
         border-color: #007bff;
     }
 
+    /* 정렬 가능한 헤더 스타일 */
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        padding-right: 20px;
+    }
+
+    .sortable:hover {
+        background: #e9ecef;
+    }
+
+    .sortable::after {
+        content: "↕";
+        position: absolute;
+        right: 8px;
+        color: #adb5bd;
+        font-size: 12px;
+    }
+
+    .sortable.asc::after {
+        content: "↑";
+        color: #667eea;
+    }
+
+    .sortable.desc::after {
+        content: "↓";
+        color: #667eea;
+    }
+
     /* 통계 정보 */
     .stats-info {
         display: flex;
@@ -560,8 +590,10 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>No</th>
-                    <th>날짜</th>
+                    <th class="sortable {% if sort_by == 'no' %}asc{% elif sort_by == '-no' %}desc{% endif %}"
+                        onclick="sortTable('no')">No</th>
+                    <th class="sortable {% if sort_by == 'timeStamp' %}asc{% elif sort_by == '-timeStamp' %}desc{% endif %}"
+                        onclick="sortTable('timeStamp')">날짜</th>
                     <th>열린업체</th>
                     <th>업체명(구글)</th>
                     <th>고객 핸드폰</th>
@@ -702,6 +734,27 @@
 </div>
 
 <script>
+// 테이블 정렬 함수
+function sortTable(field) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentSort = urlParams.get('sort') || '-timeStamp';
+
+    let newSort;
+    if (currentSort === field) {
+        // 현재 오름차순이면 내림차순으로
+        newSort = '-' + field;
+    } else if (currentSort === '-' + field) {
+        // 현재 내림차순이면 오름차순으로
+        newSort = field;
+    } else {
+        // 다른 필드면 내림차순부터 시작
+        newSort = '-' + field;
+    }
+
+    urlParams.set('sort', newSort);
+    window.location.search = urlParams.toString();
+}
+
 // CSRF 토큰 가져오기
 function getCookie(name) {
     let cookieValue = null;

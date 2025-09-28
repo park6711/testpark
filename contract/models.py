@@ -221,17 +221,49 @@ class CompanyReport(models.Model):
 class ClientReport(models.Model):
     """고객계약보고(ClientReport) 모델"""
 
-    # 기본 정보
+    # 확인 상태 선택지
+    CHECK_CHOICES = [
+        (0, '미확인'),
+        (1, '불필요'),
+        (2, '계약O'),
+        (3, '계약X'),
+    ]
+
+    # 기본 정보 - ID
     no = models.AutoField(primary_key=True, verbose_name='고객계약보고ID')
-    time = models.DateTimeField(auto_now_add=True, verbose_name='타임스탬프')
-    noCompany = models.IntegerField(verbose_name='업체 ID')
 
-    # 업체 및 고객 정보
-    sCompanyName = models.CharField(max_length=200, blank=True, verbose_name='업체명')
-    sName = models.CharField(max_length=50, blank=True, verbose_name='고객 성함')
-    sPhone = models.CharField(max_length=20, blank=True, verbose_name='고객 핸드폰 번호')
+    # 구글 시트 원본 텍스트 필드들
+    sTimeStamp = models.CharField(max_length=50, blank=True, verbose_name='타임스탬프(구글)')
+    sCompanyName = models.CharField(max_length=200, blank=True, verbose_name='업체명(구글)')
+    sName = models.CharField(max_length=50, blank=True, verbose_name='고객')
+    sArea = models.CharField(max_length=200, blank=True, verbose_name='공사지역')
+    sPhone = models.CharField(max_length=50, blank=True, verbose_name='고객핸드폰')
+    sConMoney = models.CharField(max_length=50, blank=True, verbose_name='공사금액(원)')
+    sDateContract = models.CharField(max_length=50, blank=True, verbose_name='공사계약일(구글)')
+    sFile = models.TextField(blank=True, verbose_name='계약서 링크')
+    sClientMemo = models.TextField(blank=True, verbose_name='남긴 말씀')
 
-    # 보고 내용
+    # 변환된 필드들
+    timeStamp = models.DateTimeField(null=True, blank=True, verbose_name='타임스탬프')
+    noCompany = models.IntegerField(default=0, verbose_name='업체ID')
+    dateContract = models.DateField(null=True, blank=True, verbose_name='공사계약일')
+
+    # 추가 링크 및 관련 ID
+    sPost = models.CharField(max_length=200, blank=True, verbose_name='게시글 링크')
+    noAssign = models.IntegerField(null=True, blank=True, verbose_name='할당ID')
+    noCompanyReport = models.IntegerField(null=True, blank=True, verbose_name='업체계약보고ID')
+
+    # 확인 및 처리
+    nCheck = models.IntegerField(
+        choices=CHECK_CHOICES,
+        default=0,
+        verbose_name='확인'
+    )
+    sMemo = models.TextField(blank=True, verbose_name='메모')
+
+    # 소명 관련
+    dateExplain0 = models.DateField(null=True, blank=True, verbose_name='소명요청 예정일')
+    dateExplain1 = models.DateField(null=True, blank=True, verbose_name='소명요청 실제일')
     sExplain = models.TextField(blank=True, verbose_name='소명 내용')
     sPunish = models.TextField(blank=True, verbose_name='징계 내용')
 
@@ -257,6 +289,17 @@ class ClientReport(models.Model):
         except:
             return self.sCompanyName or f"업체{self.noCompany}"
 
+    def get_check_status_color(self):
+        """확인 상태에 따른 색상 반환"""
+        status_colors = {
+            0: ('미확인', 'warning'),     # 노란색
+            1: ('불필요', 'secondary'),   # 회색
+            2: ('계약O', 'success'),     # 초록색
+            3: ('계약X', 'danger'),      # 빨간색
+        }
+        status, color = status_colors.get(self.nCheck, ('미확인', 'warning'))
+        return {'status': status, 'color': color}
+
     def has_punishment(self):
         """징계 여부 확인"""
         return bool(self.sPunish.strip()) if self.sPunish else False
@@ -265,14 +308,25 @@ class ClientReport(models.Model):
         """소명 여부 확인"""
         return bool(self.sExplain.strip()) if self.sExplain else False
 
+    def is_confirmed_contract(self):
+        """계약 확정 여부 확인 (계약O 상태)"""
+        return self.nCheck == 2
+
+    def needs_review(self):
+        """검토 필요 여부 (미확인 상태)"""
+        return self.nCheck == 0
+
     def get_report_summary(self):
         """보고서 요약 정보"""
         return {
             'company_name': self.get_company_name(),
             'client_name': self.sName,
+            'area': self.sArea,
+            'contract_money': self.sConMoney,
+            'check_status': self.get_nCheck_display(),
             'has_explanation': self.has_explanation(),
             'has_punishment': self.has_punishment(),
-            'report_date': self.time.date() if self.time else None
+            'report_date': self.timeStamp.date() if self.timeStamp else None
         }
 
     def get_status_display(self):
@@ -281,8 +335,14 @@ class ClientReport(models.Model):
             return "징계"
         elif self.has_explanation():
             return "소명"
+        elif self.is_confirmed_contract():
+            return "계약확정"
+        elif self.nCheck == 3:
+            return "계약취소"
+        elif self.nCheck == 1:
+            return "불필요"
         else:
-            return "접수"
+            return "미확인"
 
     def get_phone_masked(self):
         """전화번호 마스킹 처리"""
@@ -293,3 +353,101 @@ class ClientReport(models.Model):
         if len(phone) >= 8:
             return f"{phone[:3]}-****-{phone[-4:]}"
         return self.sPhone
+
+    def get_formatted_timestamp(self):
+        """타임스탬프를 250925 형식으로 반환"""
+        if self.timeStamp:
+            return self.timeStamp.strftime('%y%m%d')
+        elif self.sTimeStamp:
+            # sTimeStamp 문자열 파싱 시도
+            try:
+                from datetime import datetime
+                import re
+
+                # 한국어 날짜 형식 처리 (예: "2025. 9. 28 오후 6:50:46")
+                if '. ' in self.sTimeStamp:
+                    # 날짜 부분만 추출
+                    date_match = re.match(r'(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})', self.sTimeStamp)
+                    if date_match:
+                        year = int(date_match.group(1))
+                        month = int(date_match.group(2))
+                        day = int(date_match.group(3))
+                        return f"{year%100:02d}{month:02d}{day:02d}"
+
+                # 다른 형식들 시도
+                for fmt in ['%Y-%m-%d %H:%M:%S', '%Y/%m/%d %H:%M:%S', '%m/%d/%Y %H:%M:%S',
+                           '%Y년 %m월 %d일 %H시 %M분 %S초', '%Y년 %m월 %d일']:
+                    try:
+                        dt = datetime.strptime(self.sTimeStamp.split()[0] if ' ' in self.sTimeStamp else self.sTimeStamp, fmt.split()[0])
+                        return dt.strftime('%y%m%d')
+                    except:
+                        continue
+            except:
+                pass
+        return "-"
+
+    def get_formatted_contract_date(self):
+        """계약일을 250925 형식으로 반환"""
+        if self.dateContract:
+            return self.dateContract.strftime('%y%m%d')
+        elif self.sDateContract:
+            # sDateContract 문자열 파싱 시도
+            try:
+                from datetime import datetime
+                import re
+
+                # 한국어 날짜 형식 처리 (예: "2025. 9. 28")
+                if '. ' in self.sDateContract:
+                    date_match = re.match(r'(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})', self.sDateContract)
+                    if date_match:
+                        year = int(date_match.group(1))
+                        month = int(date_match.group(2))
+                        day = int(date_match.group(3))
+                        return f"{year%100:02d}{month:02d}{day:02d}"
+
+                # 다른 형식들 시도
+                for fmt in ['%Y-%m-%d', '%Y/%m/%d', '%m/%d/%Y', '%Y년 %m월 %d일']:
+                    try:
+                        dt = datetime.strptime(self.sDateContract, fmt)
+                        return dt.strftime('%y%m%d')
+                    except:
+                        continue
+            except:
+                pass
+        return "-"
+
+    def get_company_report(self):
+        """연결된 업체계약보고 반환"""
+        if not self.noCompanyReport:
+            return None
+        try:
+            return CompanyReport.objects.get(no=self.noCompanyReport)
+        except CompanyReport.DoesNotExist:
+            return None
+
+    def get_assign(self):
+        """연결된 할당 정보 반환"""
+        if not self.noAssign:
+            return None
+        try:
+            from order.models import Assign
+            return Assign.objects.get(no=self.noAssign)
+        except:
+            return None
+
+    def get_explain_days_remaining(self):
+        """소명요청 예정일까지 남은 일수"""
+        if not self.dateExplain0:
+            return None
+        today = timezone.localtime().date()
+        diff_days = (self.dateExplain0 - today).days
+        return diff_days
+
+    def is_explain_overdue(self):
+        """소명요청 기한 초과 여부"""
+        if not self.dateExplain0:
+            return False
+        if self.dateExplain1:  # 이미 소명요청 완료
+            return False
+        today = timezone.localtime().date()
+        return self.dateExplain0 < today

@@ -223,8 +223,27 @@ def complain_list(request):
             Q(sWorker__icontains=search)
         )
 
-    # 정렬
-    queryset = queryset.order_by('-no')
+    # 정렬 처리
+    sort_by = request.GET.get('sort', '-timeStamp')  # 기본값: timeStamp 내림차순
+    sort_field = sort_by.lstrip('-')
+
+    # timeStamp가 없는 경우 sTimeStamp로 정렬
+    if sort_field == 'timeStamp':
+        from django.db.models import Case, When, Value, CharField
+        queryset = queryset.annotate(
+            sort_timestamp=Case(
+                When(timeStamp__isnull=False, then='timeStamp'),
+                When(sTimeStamp__isnull=False, then='sTimeStamp'),
+                default=Value(''),
+                output_field=CharField()
+            )
+        )
+        if sort_by.startswith('-'):
+            queryset = queryset.order_by('-sort_timestamp', '-no')
+        else:
+            queryset = queryset.order_by('sort_timestamp', 'no')
+    else:
+        queryset = queryset.order_by(sort_by)
 
     # Company 정보 추가 및 날짜 포맷팅
     complains = []
@@ -314,6 +333,7 @@ def complain_list(request):
         'current_staff': current_staff,
         'search': search,
         'selected_conditions': conditions,
+        'sort_by': sort_by,  # 정렬 정보 추가
     }
 
     return render(request, 'evaluation/complain_list.html', context)
@@ -430,8 +450,27 @@ def satisfy_list(request):
             Q(noCompany__in=company_search)
         )
 
-    # 정렬 (no 기준 내림차순 - 최신 ID 먼저)
-    queryset = queryset.order_by('-no')
+    # 정렬 처리
+    sort_by = request.GET.get('sort', '-timeStamp')  # 기본값: timeStamp 내림차순
+    sort_field = sort_by.lstrip('-')
+
+    # timeStamp가 없는 경우 sTimeStamp로 정렬
+    if sort_field == 'timeStamp':
+        from django.db.models import Case, When, Value, CharField
+        queryset = queryset.annotate(
+            sort_timestamp=Case(
+                When(timeStamp__isnull=False, then='timeStamp'),
+                When(sTimeStamp__isnull=False, then='sTimeStamp'),
+                default=Value(''),
+                output_field=CharField()
+            )
+        )
+        if sort_by.startswith('-'):
+            queryset = queryset.order_by('-sort_timestamp', '-no')
+        else:
+            queryset = queryset.order_by('sort_timestamp', 'no')
+    else:
+        queryset = queryset.order_by(sort_by)
 
     # 페이징 처리
     from django.core.paginator import Paginator
@@ -521,6 +560,7 @@ def satisfy_list(request):
         'search_query': search_query,
         'condition_filters': filtered_conditions,
         'total_count': queryset.count(),
+        'sort_by': sort_by,  # 정렬 정보 추가
     }
 
     return render(request, 'evaluation/satisfy_list.html', context)

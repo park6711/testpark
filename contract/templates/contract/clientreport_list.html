@@ -1,0 +1,1223 @@
+{% extends "staff/base.html" %}
+
+{% block title %}고객계약보고 리스트 - PMIS 2.0{% endblock %}
+
+{% block page_title %}고객계약보고 리스트{% endblock %}
+{% block page_subtitle %}고객 계약 보고 데이터 관리{% endblock %}
+
+{% block content %}
+<style>
+    /* 컨테이너 스타일 */
+    .clientreport-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    /* 헤더 영역 */
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .title-area h2 {
+        color: #333;
+        font-size: 24px;
+        font-weight: bold;
+        margin: 0;
+    }
+
+    /* 버튼 영역 */
+    .button-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-external {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 16px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .btn-external:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        color: white;
+    }
+
+    .btn-sheets {
+        background: linear-gradient(135deg, #0f9d58 0%, #0a6f3f 100%);
+    }
+
+    /* 필터 영역 */
+    .filter-section {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+
+    .filter-row {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .filter-label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+    }
+
+    /* 화면 모드 라디오 */
+    .mode-group {
+        display: flex;
+        gap: 15px;
+    }
+
+    .mode-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .mode-item input[type="radio"] {
+        margin-right: 5px;
+    }
+
+    .mode-item label {
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+    }
+
+    /* 체크박스 스타일 */
+    .checkbox-group {
+        display: flex;
+        gap: 15px;
+    }
+
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+        margin-right: 5px;
+    }
+
+    .checkbox-item label {
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+    }
+
+    /* 검색 영역 */
+    .search-group {
+        display: flex;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .btn-search {
+        padding: 8px 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-search:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    }
+
+    /* 테이블 스타일 */
+    .table-wrapper {
+        overflow-x: auto;
+        margin: 20px 0;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table th {
+        background: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .data-table td {
+        padding: 12px;
+        border-bottom: 1px solid #dee2e6;
+        font-size: 14px;
+        vertical-align: middle;
+    }
+
+    .data-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    /* 더블클릭 가능한 행 스타일 */
+    .data-table tbody tr.clickable {
+        cursor: pointer;
+    }
+
+    .data-table tbody tr.clickable:hover {
+        background: #e8f4f8;
+    }
+
+    /* 텍스트 자르기 및 툴팁 */
+    .text-truncate {
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    .tooltip-container {
+        position: relative;
+    }
+
+    .tooltip-text {
+        visibility: hidden;
+        background-color: #333;
+        color: #fff;
+        text-align: left;
+        border-radius: 6px;
+        padding: 8px 12px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: normal;
+        width: 250px;
+        max-width: 300px;
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .tooltip-container:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    /* 링크 스타일 */
+    .link-btn {
+        color: #007bff;
+        text-decoration: none;
+        font-size: 18px;
+    }
+
+    .link-btn:hover {
+        color: #0056b3;
+    }
+
+    /* 액션 버튼 */
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+    }
+
+    .action-btn {
+        padding: 4px 8px;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-view {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .btn-edit {
+        background: #ffc107;
+        color: #333;
+    }
+
+    .btn-delete {
+        background: #dc3545;
+        color: white;
+    }
+
+    .action-btn:hover {
+        transform: scale(1.05);
+    }
+
+    /* 업체 드롭다운 */
+    .company-select {
+        padding: 4px 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 13px;
+        width: 110px;
+        max-width: 110px;
+    }
+
+    /* 커스텀 모달 */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        animation: fadeIn 0.3s;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s;
+    }
+
+    .modal-header {
+        margin-bottom: 20px;
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-body {
+        color: #666;
+        font-size: 16px;
+        line-height: 1.5;
+        margin-bottom: 25px;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .modal-btn-cancel {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .modal-btn-cancel:hover {
+        background: #dee2e6;
+    }
+
+    .modal-btn-danger {
+        background: linear-gradient(135deg, #f93b1d 0%, #ea2c62 100%);
+        color: white;
+    }
+
+    .modal-btn-danger:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(234, 44, 98, 0.4);
+    }
+
+    .modal-btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .modal-btn-primary:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* 상태 배지 */
+    .check-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .check-0 {
+        background: #e3e6ea;
+        color: #495057;
+    }
+
+    .check-1 {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .check-2 {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .check-3 {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    /* 페이징 */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        margin-top: 20px;
+    }
+
+    .pagination a,
+    .pagination span {
+        padding: 8px 12px;
+        border: 1px solid #dee2e6;
+        color: #007bff;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .pagination a:hover {
+        background: #007bff;
+        color: white;
+    }
+
+    .pagination .current {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+
+    /* 통계 정보 */
+    .stats-info {
+        text-align: center;
+        padding: 10px;
+        color: #6c757d;
+        font-size: 14px;
+    }
+
+    /* 정렬 가능한 헤더 스타일 */
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        padding-right: 20px;
+    }
+
+    .sortable:hover {
+        background: #e9ecef;
+    }
+
+    .sortable::after {
+        content: "↕";
+        position: absolute;
+        right: 8px;
+        color: #adb5bd;
+        font-size: 12px;
+    }
+
+    .sortable.asc::after {
+        content: "↑";
+        color: #667eea;
+    }
+
+    .sortable.desc::after {
+        content: "↓";
+        color: #667eea;
+    }
+</style>
+
+<!-- 고객계약보고 컨테이너 -->
+<div class="clientreport-container">
+    <!-- 헤더 영역 -->
+    <div class="header-section">
+        <div class="title-area">
+            <h2>고객계약보고 리스트</h2>
+        </div>
+        <div class="button-group">
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSfIEw9ayDvdQLKDiWgBvPI8cUKWm0cx4GR9beXgK9eIyHLbdA/viewform"
+               target="_blank"
+               class="btn-external">
+                고객계약보고 접수 →
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/1D2sQQ1nmsu9U5RcgVn9OzDgie862Zc2C5xS2cMrwO_0/edit?gid=81731484#gid=81731484"
+               target="_blank"
+               class="btn-external btn-sheets">
+                구글시트 →
+            </a>
+        </div>
+    </div>
+
+    <!-- 필터 영역 -->
+    <div class="filter-section">
+        <!-- 화면 모드 선택 -->
+        <div class="filter-row">
+            <div class="filter-group">
+                <span class="filter-label">화면 모드:</span>
+                <div class="mode-group">
+                    <div class="mode-item">
+                        <input type="radio" id="mode-customer" name="view-mode" value="customer" checked>
+                        <label for="mode-customer">고객 계약보고</label>
+                    </div>
+                    <div class="mode-item">
+                        <input type="radio" id="mode-company" name="view-mode" value="company">
+                        <label for="mode-company">업체 계약보고 확인</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 활동상태 및 검색 -->
+        <div class="filter-row">
+            <div class="filter-group">
+                <span class="filter-label">활동상태:</span>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="condition-0" name="condition" value="0"
+                               {% if 0 in condition_filters %}checked{% endif %}>
+                        <label for="condition-0">준비중</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="condition-1" name="condition" value="1"
+                               {% if 1 in condition_filters %}checked{% endif %}>
+                        <label for="condition-1">정상</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="condition-2" name="condition" value="2"
+                               {% if 2 in condition_filters %}checked{% endif %}>
+                        <label for="condition-2">일시정지</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="condition-3" name="condition" value="3"
+                               {% if 3 in condition_filters %}checked{% endif %}>
+                        <label for="condition-3">탈퇴</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <span class="filter-label">확인 모드:</span>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="check-0" name="check" value="0"
+                               {% if 0 in check_filters %}checked{% endif %}>
+                        <label for="check-0">미확인</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="check-1" name="check" value="1"
+                               {% if 1 in check_filters %}checked{% endif %}>
+                        <label for="check-1">불필요</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="check-2" name="check" value="2"
+                               {% if 2 in check_filters %}checked{% endif %}>
+                        <label for="check-2">계약O</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="check-3" name="check" value="3"
+                               {% if 3 in check_filters %}checked{% endif %}>
+                        <label for="check-3">계약X</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-group search-group">
+                <input type="text"
+                       id="search-input"
+                       class="search-input"
+                       placeholder="통합 검색 (업체명, 고객명, 지역, 메모 등)"
+                       value="{{ search_query }}">
+                <button class="btn-search" onclick="applyFilters()">검색</button>
+                <button class="btn-search" onclick="resetFilters()" style="background: #6c757d;">초기화</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 고객 계약보고 테이블 (기본) -->
+    <div id="customer-table" class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th class="sortable {% if sort_by == 'no' %}asc{% elif sort_by == '-no' %}desc{% endif %}"
+                        onclick="sortTable('no')">No</th>
+                    <th class="sortable {% if sort_by == 'timeStamp' %}asc{% elif sort_by == '-timeStamp' %}desc{% endif %}"
+                        onclick="sortTable('timeStamp')">날짜</th>
+                    <th>업체명</th>
+                    <th>업체명(구글)</th>
+                    <th>고객</th>
+                    <th>공사지역</th>
+                    <th>고객핸드폰</th>
+                    <th>공사금액</th>
+                    <th>계약일</th>
+                    <th>계약서</th>
+                    <th>남긴말씀</th>
+                    <th>게시글</th>
+                    <th>확인</th>
+                    <th>작업</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in clientreports %}
+                <tr ondblclick="handleDoubleClick({{ report.no }})" class="{% if current_staff and current_staff.nContractAuthority > 0 %}clickable{% endif %}">
+                    <td>{{ report.no }}</td>
+                    <td>{{ report.get_formatted_timestamp }}</td>
+                    <td>
+                        <input list="companies-{{ report.no }}"
+                               class="company-select"
+                               data-id="{{ report.no }}"
+                               value="{% if report.company %}{{ report.company.sName2|default:report.company.sName1 }}{% endif %}"
+                               placeholder="업체 선택">
+                        <datalist id="companies-{{ report.no }}">
+                            <option value="">선택 안함</option>
+                            {% for company in all_companies %}
+                            <option value="{{ company.sName2|default:company.sName1 }}" data-no="{{ company.no }}">
+                                {{ company.sName2|default:company.sName1 }}
+                            </option>
+                            {% endfor %}
+                        </datalist>
+                    </td>
+                    <td>{{ report.sCompanyName|default:"-" }}</td>
+                    <td>{{ report.sName|default:"-" }}</td>
+                    <td>
+                        <div class="tooltip-container">
+                            <span class="text-truncate">{{ report.sArea|default:"-" }}</span>
+                            {% if report.sArea|length > 10 %}
+                            <span class="tooltip-text">{{ report.sArea }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>{{ report.sPhone|default:"-" }}</td>
+                    <td>{{ report.sConMoney|default:"-" }}</td>
+                    <td>{{ report.get_formatted_contract_date }}</td>
+                    <td>
+                        {% if report.sFile %}
+                            <a href="{{ report.sFile }}" target="_blank" class="link-btn">📎</a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="tooltip-container">
+                            <span class="text-truncate">{{ report.sClientMemo|default:"-"|truncatechars:12 }}</span>
+                            {% if report.sClientMemo|length > 10 %}
+                            <span class="tooltip-text">{{ report.sClientMemo }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if report.sPost %}
+                            <a href="{{ report.sPost }}" target="_blank" class="link-btn" style="text-decoration: none;">
+                                ...{{ report.sPost|slice:"-7:" }}
+                            </a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="check-badge check-{{ report.nCheck }}">
+                            {{ report.get_nCheck_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'contract:clientreport_detail' report.no %}" class="action-btn btn-view">보기</a>
+                            <a href="{% url 'contract:clientreport_edit' report.no %}" class="action-btn btn-edit">수정</a>
+                            <button class="action-btn btn-delete" onclick="deleteReport({{ report.no }})">삭제</button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="14" style="text-align: center; padding: 40px;">
+                        데이터가 없습니다.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 업체 계약보고 확인 테이블 (숨김) -->
+    <div id="company-table" class="table-wrapper" style="display: none;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th class="sortable {% if sort_by == 'no' %}asc{% elif sort_by == '-no' %}desc{% endif %}"
+                        onclick="sortTable('no')">No</th>
+                    <th>업체명</th>
+                    <th>게시글 링크</th>
+                    <th>할당ID</th>
+                    <th>계약ID</th>
+                    <th>확인</th>
+                    <th>메모</th>
+                    <th>소명요청 예정일</th>
+                    <th>소명요청 실제일</th>
+                    <th>소명 내용</th>
+                    <th>징계 내용</th>
+                    <th>작업</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in clientreports %}
+                <tr ondblclick="handleDoubleClick({{ report.no }})" class="{% if current_staff and current_staff.nContractAuthority > 0 %}clickable{% endif %}">
+                    <td>{{ report.no }}</td>
+                    <td>
+                        <input list="companies2-{{ report.no }}"
+                               class="company-select"
+                               data-id="{{ report.no }}"
+                               value="{% if report.company %}{{ report.company.sName2|default:report.company.sName1 }}{% endif %}"
+                               placeholder="업체 선택">
+                        <datalist id="companies2-{{ report.no }}">
+                            <option value="">선택 안함</option>
+                            {% for company in all_companies %}
+                            <option value="{{ company.sName2|default:company.sName1 }}" data-no="{{ company.no }}">
+                                {{ company.sName2|default:company.sName1 }}
+                            </option>
+                            {% endfor %}
+                        </datalist>
+                    </td>
+                    <td>
+                        {% if report.sPost %}
+                            <a href="{{ report.sPost }}" target="_blank" class="link-btn" style="text-decoration: none;">
+                                ...{{ report.sPost|slice:"-7:" }}
+                            </a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ report.noAssign|default:"-" }}</td>
+                    <td>{{ report.noCompanyReport|default:"-" }}</td>
+                    <td>
+                        <span class="check-badge check-{{ report.nCheck }}">
+                            {{ report.get_nCheck_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="tooltip-container">
+                            <span class="text-truncate">{{ report.sMemo|default:"-"|truncatechars:12 }}</span>
+                            {% if report.sMemo|length > 10 %}
+                            <span class="tooltip-text">{{ report.sMemo }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>{{ report.dateExplain0|date:"Y-m-d"|default:"-" }}</td>
+                    <td>{{ report.dateExplain1|date:"Y-m-d"|default:"-" }}</td>
+                    <td>
+                        <div class="tooltip-container">
+                            <span class="text-truncate">{{ report.sExplain|default:"-"|truncatechars:12 }}</span>
+                            {% if report.sExplain|length > 10 %}
+                            <span class="tooltip-text">{{ report.sExplain }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="tooltip-container">
+                            <span class="text-truncate">{{ report.sPunish|default:"-"|truncatechars:12 }}</span>
+                            {% if report.sPunish|length > 10 %}
+                            <span class="tooltip-text">{{ report.sPunish }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="{% url 'contract:clientreport_detail' report.no %}" class="action-btn btn-view">보기</a>
+                            <a href="{% url 'contract:clientreport_edit' report.no %}" class="action-btn btn-edit">수정</a>
+                            <button class="action-btn btn-delete" onclick="deleteReport({{ report.no }})">삭제</button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="12" style="text-align: center; padding: 40px;">
+                        데이터가 없습니다.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 페이징 -->
+    {% if clientreports.has_other_pages %}
+    <div class="pagination">
+        {% if clientreports.has_previous %}
+            <a href="?page=1{{ request.GET|urlencode }}">처음</a>
+            <a href="?page={{ clientreports.previous_page_number }}{{ request.GET|urlencode }}">이전</a>
+        {% endif %}
+
+        <span class="current">
+            {{ clientreports.number }} / {{ clientreports.paginator.num_pages }}
+        </span>
+
+        {% if clientreports.has_next %}
+            <a href="?page={{ clientreports.next_page_number }}{{ request.GET|urlencode }}">다음</a>
+            <a href="?page={{ clientreports.paginator.num_pages }}{{ request.GET|urlencode }}">마지막</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- 통계 정보 -->
+    <div class="stats-info">
+        총 {{ total_count }}건
+    </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div id="deleteModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                ⚠️ 삭제 확인
+            </h3>
+        </div>
+        <div class="modal-body">
+            정말로 이 고객계약보고를 삭제하시겠습니까?<br>
+            삭제된 데이터는 복구할 수 없습니다.
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()">취소</button>
+            <button class="modal-btn modal-btn-danger" onclick="confirmDelete()">삭제</button>
+        </div>
+    </div>
+</div>
+
+<!-- 결과 메시지 모달 -->
+<div id="messageModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="messageTitle">
+                ✅ 성공
+            </h3>
+        </div>
+        <div class="modal-body" id="messageBody">
+            작업이 완료되었습니다.
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-primary" onclick="closeMessageModal()">확인</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 현재 Staff의 권한 정보
+const contractAuthority = {% if current_staff %}{{ current_staff.nContractAuthority }}{% else %}0{% endif %};
+
+// 더블클릭 핸들러
+function handleDoubleClick(reportNo) {
+    // 권한에 따라 다른 페이지로 이동
+    // 0: 권한없음 - 아무 동작 없음
+    // 1: 읽기권한 - 보기 페이지로
+    // 2: 쓰기권한 - 수정 페이지로
+
+    if (contractAuthority === 0) {
+        // 권한이 없으면 아무것도 하지 않음
+        return;
+    } else if (contractAuthority === 1) {
+        // 읽기 권한 - 보기 페이지로 이동
+        window.location.href = `/contract/clientreport/${reportNo}/`;
+    } else if (contractAuthority === 2) {
+        // 쓰기 권한 - 수정 페이지로 이동
+        window.location.href = `/contract/clientreport/${reportNo}/edit/`;
+    }
+}
+
+// 테이블 정렬 함수
+function sortTable(field) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentSort = urlParams.get('sort') || '-timeStamp';
+
+    let newSort;
+    if (currentSort === field) {
+        // 현재 오름차순이면 내림차순으로
+        newSort = '-' + field;
+    } else if (currentSort === '-' + field) {
+        // 현재 내림차순이면 오름차순으로
+        newSort = field;
+    } else {
+        // 다른 필드면 내림차순부터 시작
+        newSort = '-' + field;
+    }
+
+    // 기존 파라미터 유지하면서 sort 파라미터만 변경
+    urlParams.set('sort', newSort);
+
+    // 페이지를 1로 리셋
+    urlParams.delete('page');
+
+    window.location.search = urlParams.toString();
+}
+
+// CSRF 토큰 가져오기
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// 화면 모드 전환
+document.querySelectorAll('input[name="view-mode"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const customerTable = document.getElementById('customer-table');
+        const companyTable = document.getElementById('company-table');
+
+        if (this.value === 'customer') {
+            customerTable.style.display = 'block';
+            companyTable.style.display = 'none';
+        } else {
+            customerTable.style.display = 'none';
+            companyTable.style.display = 'block';
+        }
+    });
+});
+
+// 필터 적용
+function applyFilters() {
+    const urlParams = new URLSearchParams();
+
+    // 활동상태 체크박스 값 수집
+    document.querySelectorAll('input[name="condition"]:checked').forEach(checkbox => {
+        urlParams.append('condition', checkbox.value);
+    });
+
+    // 확인 모드 체크박스 값 수집
+    document.querySelectorAll('input[name="check"]:checked').forEach(checkbox => {
+        urlParams.append('check', checkbox.value);
+    });
+
+    // 검색어
+    const searchValue = document.getElementById('search-input').value;
+    if (searchValue) {
+        urlParams.set('search', searchValue);
+    }
+
+    // 페이지 리로드
+    window.location.href = window.location.pathname + '?' + urlParams.toString();
+}
+
+// 필터 초기화
+function resetFilters() {
+    // 모든 체크박스 해제
+    document.querySelectorAll('input[name="condition"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.querySelectorAll('input[name="check"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+
+    // 검색 입력 초기화
+    document.getElementById('search-input').value = '';
+
+    // 기본 활동상태(정상, 일시정지)로 설정
+    document.getElementById('condition-1').checked = true;
+    document.getElementById('condition-2').checked = true;
+
+    // 필터 적용
+    applyFilters();
+}
+
+// 삭제할 리포트 ID를 저장하는 변수
+let deleteTargetId = null;
+
+// 삭제 모달 열기
+function deleteReport(id) {
+    deleteTargetId = id;
+    const modal = document.getElementById('deleteModal');
+    modal.style.display = 'flex';
+    // 애니메이션을 위한 지연
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+}
+
+// 삭제 모달 닫기
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    modal.classList.remove('show');
+    // 애니메이션 완료 후 숨기기
+    setTimeout(() => {
+        modal.style.display = 'none';
+        deleteTargetId = null;
+    }, 300);
+}
+
+// 삭제 확인
+function confirmDelete() {
+    if (!deleteTargetId) return;
+
+    fetch(`/contract/clientreport/${deleteTargetId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 모달 닫기
+            closeDeleteModal();
+            // 성공 메시지 모달 표시
+            setTimeout(() => {
+                showMessage('✅ 성공', '고객계약보고가 삭제되었습니다.', true);
+            }, 300);
+        } else {
+            showMessage('❌ 오류', '삭제 중 오류가 발생했습니다: ' + (data.error || ''), false);
+        }
+    })
+    .catch(error => {
+        showMessage('❌ 오류', '삭제 요청 중 오류가 발생했습니다.', false);
+        console.error('Delete error:', error);
+    });
+}
+
+// 메시지 모달 표시
+function showMessage(title, message, shouldReload) {
+    const modal = document.getElementById('messageModal');
+    const titleElement = document.getElementById('messageTitle');
+    const bodyElement = document.getElementById('messageBody');
+
+    titleElement.innerHTML = title;
+    bodyElement.innerHTML = message;
+
+    modal.style.display = 'flex';
+    setTimeout(() => {
+        modal.classList.add('show');
+    }, 10);
+
+    // 성공 시 자동으로 모달 닫고 리로드
+    if (shouldReload) {
+        setTimeout(() => {
+            closeMessageModal();
+            setTimeout(() => {
+                location.reload();
+            }, 300);
+        }, 1500); // 1.5초 후 자동 닫기
+    }
+}
+
+// 메시지 모달 닫기
+function closeMessageModal() {
+    const modal = document.getElementById('messageModal');
+    modal.classList.remove('show');
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 300);
+}
+
+// 모달 외부 클릭 시 닫기
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeDeleteModal();
+    }
+});
+
+document.getElementById('messageModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeMessageModal();
+    }
+});
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        if (document.getElementById('deleteModal').style.display === 'flex') {
+            closeDeleteModal();
+        }
+        if (document.getElementById('messageModal').style.display === 'flex') {
+            closeMessageModal();
+        }
+    }
+});
+
+// 업체 선택 드롭다운 이벤트 처리
+document.addEventListener('DOMContentLoaded', function() {
+    // 입력 필드, 버튼, 링크 등에서 더블클릭 이벤트 전파 방지
+    document.querySelectorAll('input, button, a, select, textarea').forEach(element => {
+        element.addEventListener('dblclick', function(e) {
+            e.stopPropagation();
+        });
+    });
+    // 체크박스 변경 시 자동 필터 적용
+    document.querySelectorAll('input[name="condition"], input[name="check"]').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            applyFilters();
+        });
+    });
+
+    // 검색 입력창에서 엔터키 처리
+    document.getElementById('search-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            applyFilters();
+        }
+    });
+
+    // 모든 업체 선택 input에 이벤트 리스너 추가
+    document.querySelectorAll('.company-select').forEach(input => {
+        // 입력 변경 시 처리
+        input.addEventListener('change', function() {
+            handleCompanySelection(this);
+        });
+
+        // 포커스 아웃 시에도 처리
+        input.addEventListener('blur', function() {
+            handleCompanySelection(this);
+        });
+
+        // 엔터 키 입력 시 처리
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleCompanySelection(this);
+                this.blur();
+            }
+        });
+    });
+});
+
+// 업체 선택 처리 함수
+function handleCompanySelection(input) {
+    const reportId = input.dataset.id;
+    const selectedValue = input.value;
+    const datalistId = input.getAttribute('list');
+    const datalist = document.getElementById(datalistId);
+
+    if (!datalist) return;
+
+    // 선택된 값과 일치하는 option 찾기
+    let selectedCompanyNo = null;
+    const options = datalist.querySelectorAll('option');
+
+    for (let option of options) {
+        if (option.value === selectedValue) {
+            selectedCompanyNo = option.dataset.no || null;
+            break;
+        }
+    }
+
+    // 선택된 업체 정보를 hidden input이나 data attribute에 저장
+    // 실제 서버 전송이 필요한 경우 여기에 AJAX 요청 추가
+    if (selectedCompanyNo !== null) {
+        input.dataset.companyNo = selectedCompanyNo;
+        console.log(`Report ${reportId}: 업체 ${selectedValue} (No: ${selectedCompanyNo}) 선택됨`);
+
+        // 여기에 필요시 서버로 업데이트 요청을 보낼 수 있습니다
+        // updateCompanyAssignment(reportId, selectedCompanyNo);
+    }
+}
+
+// 업체 할당 업데이트 함수 (필요시 사용)
+function updateCompanyAssignment(reportId, companyNo) {
+    // 서버로 업체 할당 정보 전송
+    fetch(`/contract/clientreport/${reportId}/update-company/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            noCompany: companyNo
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('업체 할당이 업데이트되었습니다.');
+        } else {
+            console.error('업체 할당 업데이트 실패:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('업체 할당 업데이트 중 오류:', error);
+    });
+}
+</script>
+
+{% endblock %}

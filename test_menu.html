@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>메뉴 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .test-links {
+            margin: 20px 0;
+        }
+        .test-links a {
+            display: block;
+            padding: 10px;
+            margin: 10px 0;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .test-links a:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>메뉴 링크 테스트</h1>
+
+    <div class="test-links">
+        <h2>evaluation 앱 링크들:</h2>
+        <a href="http://localhost:8000/evaluation/complain/">고객불만 이력 (작동 확인됨)</a>
+        <a href="http://localhost:8000/evaluation/satisfy/">고객만족도 이력 (테스트 필요)</a>
+        <a href="http://localhost:8000/evaluation/evaluation-no/">업체평가 회차 관리</a>
+    </div>
+
+    <div class="test-links">
+        <h2>직접 접속:</h2>
+        <button onclick="window.location.href='http://localhost:8000/evaluation/satisfy/'">
+            고객만족도 이력 버튼으로 이동
+        </button>
+        <button onclick="window.open('http://localhost:8000/evaluation/satisfy/', '_blank')">
+            새 창에서 열기
+        </button>
+    </div>
+
+    <script>
+        // 페이지 로드 시 satisfy URL 접근 가능 여부 체크
+        fetch('http://localhost:8000/evaluation/satisfy/')
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (response.status === 200) {
+                    alert('satisfy 페이지 접근 가능! (상태: ' + response.status + ')');
+                } else {
+                    alert('satisfy 페이지 접근 오류! (상태: ' + response.status + ')');
+                }
+            })
+            .catch(error => {
+                alert('네트워크 오류: ' + error);
+            });
+    </script>
+</body>
+</html>
