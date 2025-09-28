@@ -1,0 +1,691 @@
+{% extends "staff/base.html" %}
+
+{% block title %}
+{% if mode == 'edit' %}
+고객계약보고 수정
+{% else %}
+고객계약보고 상세보기
+{% endif %}
+- PMIS 2.0
+{% endblock %}
+
+{% block page_title %}
+{% if mode == 'edit' %}
+고객계약보고 수정
+{% else %}
+고객계약보고 상세보기
+{% endif %}
+{% endblock %}
+
+{% block page_subtitle %}
+고객계약보고 #{{ report.no }}
+{% endblock %}
+
+{% block content %}
+<style>
+    .detail-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 30px;
+        margin-top: 20px;
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-col {
+        flex: 1;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: border-color 0.15s ease-in-out;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+
+    .form-control[readonly] {
+        background-color: #e9ecef;
+        cursor: not-allowed;
+    }
+
+    .form-control-plaintext {
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        font-size: 14px;
+        color: #495057;
+    }
+
+    select.form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right .75rem center;
+        background-size: 16px 12px;
+        padding-right: 2.25rem;
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #0f9d58 0%, #0a6f3f 100%);
+        color: white;
+    }
+
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(15, 157, 88, 0.4);
+    }
+
+    .btn-warning {
+        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+        color: #333;
+    }
+
+    .btn-warning:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+    }
+
+    .link-display {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .link-display:hover {
+        text-decoration: underline;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .badge-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .badge-warning {
+        background: #ffc107;
+        color: #333;
+    }
+
+    .badge-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    /* 반응형 디자인 */
+    @media (max-width: 768px) {
+        .form-row {
+            flex-direction: column;
+        }
+
+        .btn-group {
+            flex-wrap: wrap;
+        }
+    }
+
+    /* 커스텀 모달 스타일 */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        animation: fadeIn 0.3s;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s;
+    }
+
+    .modal-header {
+        margin-bottom: 20px;
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-body {
+        color: #666;
+        font-size: 16px;
+        line-height: 1.5;
+        margin-bottom: 25px;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .modal-btn-cancel {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .modal-btn-cancel:hover {
+        background: #dee2e6;
+    }
+
+    .modal-btn-danger {
+        background: linear-gradient(135deg, #f93b1d 0%, #ea2c62 100%);
+        color: white;
+    }
+
+    .modal-btn-danger:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(234, 44, 98, 0.4);
+    }
+
+    .modal-btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .modal-btn-primary:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+</style>
+
+<div class="detail-container">
+    <form method="post" action="">
+        {% csrf_token %}
+
+        <!-- 기본 정보 (읽기 전용) -->
+        <div class="section-title">기본 정보</div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">No</label>
+                <div class="form-control-plaintext">#{{ report.no }}</div>
+            </div>
+            <div class="form-col">
+                <label class="form-label">등록일시</label>
+                <div class="form-control-plaintext">
+                    {% if report.timeStamp %}
+                        {{ report.timeStamp|date:"Y-m-d H:i:s" }}
+                    {% elif report.sTimeStamp %}
+                        {{ report.sTimeStamp }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">업체명(구글)</label>
+                <div class="form-control-plaintext">{{ report.sCompanyName|default:"-" }}</div>
+            </div>
+            <div class="form-col">
+                <label class="form-label">고객명</label>
+                <div class="form-control-plaintext">{{ report.sName|default:"-" }}</div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">공사지역</label>
+                <div class="form-control-plaintext">{{ report.sArea|default:"-" }}</div>
+            </div>
+            <div class="form-col">
+                <label class="form-label">고객 핸드폰</label>
+                <div class="form-control-plaintext">{{ report.sPhone|default:"-" }}</div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">공사금액</label>
+                <div class="form-control-plaintext">{{ report.sConMoney|default:"-" }}</div>
+            </div>
+            <div class="form-col">
+                <label class="form-label">공사계약일</label>
+                <div class="form-control-plaintext">
+                    {% if report.dateContract %}
+                        {{ report.dateContract|date:"Y-m-d" }}
+                    {% elif report.sDateContract %}
+                        {{ report.sDateContract }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">계약서 파일</label>
+                <div class="form-control-plaintext">
+                    {% if report.sFile %}
+                        <a href="{{ report.sFile }}" target="_blank" class="link-display">
+                            📎 계약서 보기
+                        </a>
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+            </div>
+            <div class="form-col">
+                <label class="form-label">고객 메모</label>
+                <div class="form-control-plaintext">{{ report.sClientMemo|default:"-" }}</div>
+            </div>
+        </div>
+
+        <!-- 수정 가능한 정보 -->
+        <div class="section-title">관리 정보</div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label for="noCompany" class="form-label">업체 선택</label>
+                {% if mode == 'edit' %}
+                    <select id="noCompany" name="noCompany" class="form-control">
+                        <option value="0">선택하세요</option>
+                        {% for company in all_companies %}
+                            <option value="{{ company.no }}" {% if company.no == report.noCompany %}selected{% endif %}>
+                                {{ company.sName2|default:company.sName1 }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                {% else %}
+                    <div class="form-control-plaintext">
+                        {% if report.company %}
+                            {{ report.company.sName2|default:report.company.sName1 }}
+                        {% else %}
+                            미지정
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="form-col">
+                <label for="sPost" class="form-label">게시글 링크</label>
+                {% if mode == 'edit' %}
+                    <input type="url" id="sPost" name="sPost" class="form-control"
+                           value="{% if report.sPost %}{{ report.sPost }}{% else %}https://cafe.naver.com/pcarpenter/{% endif %}" placeholder="https://...">
+                {% else %}
+                    <div class="form-control-plaintext">
+                        {% if report.sPost %}
+                            <a href="{{ report.sPost }}" target="_blank" class="link-display" style="word-break: break-all;">
+                                {{ report.sPost }}
+                            </a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label for="noAssign" class="form-label">할당 ID</label>
+                {% if mode == 'edit' %}
+                    <input type="number" id="noAssign" name="noAssign" class="form-control"
+                           value="{{ report.noAssign|default:'' }}">
+                {% else %}
+                    <div class="form-control-plaintext">{{ report.noAssign|default:"-" }}</div>
+                {% endif %}
+            </div>
+            <div class="form-col">
+                <label for="noCompanyReport" class="form-label">계약보고 ID</label>
+                {% if mode == 'edit' %}
+                    <input type="number" id="noCompanyReport" name="noCompanyReport" class="form-control"
+                           value="{{ report.noCompanyReport|default:'' }}">
+                {% else %}
+                    <div class="form-control-plaintext">{{ report.noCompanyReport|default:"-" }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label for="nCheck" class="form-label">확인 상태</label>
+                {% if mode == 'edit' %}
+                    <select id="nCheck" name="nCheck" class="form-control">
+                        <option value="0" {% if report.nCheck == 0 %}selected{% endif %}>미확인</option>
+                        <option value="1" {% if report.nCheck == 1 %}selected{% endif %}>불필요</option>
+                        <option value="2" {% if report.nCheck == 2 %}selected{% endif %}>계약O</option>
+                        <option value="3" {% if report.nCheck == 3 %}selected{% endif %}>계약X</option>
+                    </select>
+                {% else %}
+                    <div class="form-control-plaintext">
+                        {% if report.nCheck == 0 %}
+                            <span class="badge badge-secondary">미확인</span>
+                        {% elif report.nCheck == 1 %}
+                            <span class="badge badge-warning">불필요</span>
+                        {% elif report.nCheck == 2 %}
+                            <span class="badge badge-success">계약O</span>
+                        {% else %}
+                            <span class="badge badge-danger">계약X</span>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="form-col">
+                <label for="sMemo" class="form-label">메모</label>
+                {% if mode == 'edit' %}
+                    <input type="text" id="sMemo" name="sMemo" class="form-control"
+                           value="{{ report.sMemo|default:'' }}" placeholder="메모를 입력하세요">
+                {% else %}
+                    <div class="form-control-plaintext">{{ report.sMemo|default:"-" }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 소명 관련 정보 -->
+        <div class="section-title">소명 관련</div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label for="dateExplain0" class="form-label">소명요청 예정일</label>
+                {% if mode == 'edit' %}
+                    <input type="date" id="dateExplain0" name="dateExplain0" class="form-control"
+                           value="{{ report.dateExplain0|date:'Y-m-d'|default:'' }}">
+                {% else %}
+                    <div class="form-control-plaintext">
+                        {% if report.dateExplain0 %}
+                            {{ report.dateExplain0|date:"Y-m-d" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="form-col">
+                <label for="dateExplain1" class="form-label">소명요청 실제일</label>
+                {% if mode == 'edit' %}
+                    <input type="date" id="dateExplain1" name="dateExplain1" class="form-control"
+                           value="{{ report.dateExplain1|date:'Y-m-d'|default:'' }}">
+                {% else %}
+                    <div class="form-control-plaintext">
+                        {% if report.dateExplain1 %}
+                            {{ report.dateExplain1|date:"Y-m-d" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="sExplain" class="form-label">소명 내용</label>
+            {% if mode == 'edit' %}
+                <textarea id="sExplain" name="sExplain" class="form-control"
+                          rows="3" placeholder="소명 내용을 입력하세요">{{ report.sExplain|default:'' }}</textarea>
+            {% else %}
+                <div class="form-control-plaintext">{{ report.sExplain|default:"-"|linebreaks }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="sPunish" class="form-label">징계 내용</label>
+            {% if mode == 'edit' %}
+                <textarea id="sPunish" name="sPunish" class="form-control"
+                          rows="3" placeholder="징계 내용을 입력하세요">{{ report.sPunish|default:'' }}</textarea>
+            {% else %}
+                <div class="form-control-plaintext">{{ report.sPunish|default:"-"|linebreaks }}</div>
+            {% endif %}
+        </div>
+
+        <!-- 버튼 영역 -->
+        <div class="btn-group">
+            {% if mode == 'edit' %}
+                <button type="submit" class="btn btn-success">
+                    💾 저장
+                </button>
+                <a href="{% url 'contract:clientreport_detail' report.no %}" class="btn btn-secondary">
+                    ❌ 취소
+                </a>
+            {% else %}
+                <a href="{% url 'contract:clientreport_edit' report.no %}" class="btn btn-warning">
+                    ✏️ 수정
+                </a>
+                <button type="button" onclick="deleteReport()" class="btn btn-danger">
+                    🗑️ 삭제
+                </button>
+            {% endif %}
+            <a href="{% url 'contract:clientreport_list' %}" class="btn btn-primary">
+                📋 목록으로
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div id="deleteModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                ⚠️ 삭제 확인
+            </h3>
+        </div>
+        <div class="modal-body">
+            정말로 이 고객계약보고를 삭제하시겠습니까?<br>
+            삭제된 데이터는 복구할 수 없습니다.
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()">취소</button>
+            <button class="modal-btn modal-btn-danger" onclick="confirmDelete()">삭제</button>
+        </div>
+    </div>
+</div>
+
+<!-- 결과 메시지 모달 -->
+<div id="messageModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="messageTitle">
+                ✅ 성공
+            </h3>
+        </div>
+        <div class="modal-body" id="messageBody">
+            작업이 완료되었습니다.
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-primary" onclick="closeMessageModal()">확인</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function deleteReport() {
+    if (!confirm('정말로 이 고객계약보고를 삭제하시겠습니까?')) {
+        return;
+    }
+
+    fetch("{% url 'contract:clientreport_delete' report.no %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('삭제되었습니다.');
+            window.location.href = "{% url 'contract:clientreport_list' %}";
+        } else {
+            alert('삭제 중 오류가 발생했습니다: ' + (data.error || ''));
+        }
+    })
+    .catch(error => {
+        alert('요청 중 오류가 발생했습니다.');
+        console.error(error);
+    });
+}
+</script>
+
+{% endblock %}

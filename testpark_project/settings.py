@@ -251,7 +251,7 @@ G_N_ASSIGN_LACK = 10  # 고정비업체 할당부족 개수 계수(최소일수)
 G_F_ASSIGN_LACK = 165000.0  # 고정비업체 할당부족 개수 계수
 
 # Google Sheets Webhook 설정
-GOOGLE_SHEETS_WEBHOOK_TOKEN = os.getenv('GOOGLE_SHEETS_WEBHOOK_TOKEN', 'default-token-for-development')
+GOOGLE_SHEETS_WEBHOOK_TOKEN = os.getenv('GOOGLE_SHEETS_WEBHOOK_TOKEN', 'testpark-google-sheets-webhook-2024')
 
 # Django REST Framework 설정
 REST_FRAMEWORK = {

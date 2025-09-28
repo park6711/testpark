@@ -241,9 +241,13 @@ class CompanyReportAdmin(admin.ModelAdmin):
 class ClientReportAdmin(admin.ModelAdmin):
     list_display = [
         'no',
-        'time',
+        'timeStamp',
+        'get_check_status_badge',
         'get_company_name',
         'sName',
+        'sArea',
+        'sConMoney',
+        'dateContract',
         'get_phone_masked',
         'get_status_badge',
         'has_explanation',
@@ -252,7 +256,11 @@ class ClientReportAdmin(admin.ModelAdmin):
     ]
 
     list_filter = [
-        'time',
+        'nCheck',
+        'timeStamp',
+        'dateContract',
+        'dateExplain0',
+        'dateExplain1',
         'noCompany',
         'created_at'
     ]
@@ -262,30 +270,50 @@ class ClientReportAdmin(admin.ModelAdmin):
         'sCompanyName',
         'sName',
         'sPhone',
+        'sArea',
         'sExplain',
-        'sPunish'
+        'sPunish',
+        'sMemo',
+        'sClientMemo'
     ]
 
     readonly_fields = [
         'no',
-        'time',
+        'timeStamp',
         'created_at',
         'updated_at',
         'get_company_name',
         'get_status_display',
         'get_phone_masked',
-        'get_report_summary_display'
+        'get_report_summary_display',
+        'get_check_status_badge',
+        'get_company_report',
+        'get_assign',
+        'get_explain_days_remaining',
+        'is_explain_overdue'
     ]
 
     fieldsets = (
         ('기본 정보', {
-            'fields': ('no', 'time', 'noCompany', 'get_company_name')
+            'fields': ('no', 'timeStamp', 'nCheck', 'get_check_status_badge')
         }),
-        ('업체 및 고객 정보', {
-            'fields': ('sCompanyName', 'sName', 'sPhone', 'get_phone_masked')
+        ('업체 정보', {
+            'fields': ('noCompany', 'sCompanyName', 'get_company_name')
         }),
-        ('보고 내용', {
-            'fields': ('sExplain', 'sPunish')
+        ('고객 정보', {
+            'fields': ('sName', 'sPhone', 'get_phone_masked', 'sArea')
+        }),
+        ('계약 정보', {
+            'fields': ('sConMoney', 'dateContract', 'sFile')
+        }),
+        ('메모 및 링크', {
+            'fields': ('sClientMemo', 'sMemo', 'sPost')
+        }),
+        ('관련 정보', {
+            'fields': ('noAssign', 'get_assign', 'noCompanyReport', 'get_company_report')
+        }),
+        ('소명 관련', {
+            'fields': ('dateExplain0', 'dateExplain1', 'get_explain_days_remaining', 'is_explain_overdue', 'sExplain', 'sPunish')
         }),
         ('보고서 상태', {
             'fields': ('get_status_display', 'get_report_summary_display'),
@@ -302,6 +330,22 @@ class ClientReportAdmin(admin.ModelAdmin):
 
     actions = ['export_to_csv', 'mark_as_resolved']
 
+    def get_check_status_badge(self, obj):
+        """확인 상태 뱃지 표시"""
+        status_info = obj.get_check_status_color()
+        color_map = {
+            'warning': '#FFC107',
+            'secondary': '#6C757D',
+            'success': '#28A745',
+            'danger': '#DC3545'
+        }
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 2px 8px; border-radius: 4px;">{}</span>',
+            color_map.get(status_info['color'], '#6C757D'),
+            status_info['status']
+        )
+    get_check_status_badge.short_description = '확인상태'
+
     def get_status_badge(self, obj):
         """상태 뱃지 표시"""
         status = obj.get_status_display()
@@ -309,6 +353,12 @@ class ClientReportAdmin(admin.ModelAdmin):
             color = 'red'
         elif status == "소명":
             color = 'orange'
+        elif status == "계약확정":
+            color = 'green'
+        elif status == "계약취소":
+            color = 'darkred'
+        elif status == "불필요":
+            color = 'gray'
         else:
             color = 'blue'
 
@@ -340,15 +390,17 @@ class ClientReportAdmin(admin.ModelAdmin):
 
         writer = csv.writer(response)
         writer.writerow([
-            '보고ID', '보고일시', '업체ID', '업체명', '고객명', '고객전화',
+            '보고ID', '타임스탬프', '업체ID', '업체명', '고객명', '고객전화',
+            '공사지역', '공사금액', '계약일', '확인상태', '메모', '소명예정일', '소명실제일',
             '소명내용', '징계내용', '상태', '생성일시'
         ])
 
         for obj in queryset:
             writer.writerow([
-                obj.no, obj.time, obj.noCompany, obj.get_company_name(),
-                obj.sName, obj.sPhone, obj.sExplain, obj.sPunish,
-                obj.get_status_display(), obj.created_at
+                obj.no, obj.timeStamp, obj.noCompany, obj.get_company_name(),
+                obj.sName, obj.sPhone, obj.sArea, obj.sConMoney, obj.dateContract,
+                obj.get_nCheck_display(), obj.sMemo, obj.dateExplain0, obj.dateExplain1,
+                obj.sExplain, obj.sPunish, obj.get_status_display(), obj.created_at
             ])
 
         return response

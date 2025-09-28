@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import views_webhook
+from . import webhook_views
 
 app_name = 'evaluation'
 
@@ -29,4 +30,12 @@ urlpatterns = [
     path('satisfy/', views.satisfy_list, name='satisfy_list'),
     path('satisfy/update-company/', views.satisfy_update_company, name='satisfy_update_company'),
     path('satisfy/<int:pk>/delete/', views.satisfy_delete, name='satisfy_delete'),
+
+    # Satisfy Webhook
+    path('webhook/satisfy/', webhook_views.satisfy_webhook, name='satisfy_webhook'),
+    path('webhook/test-satisfy/', webhook_views.test_satisfy_webhook, name='test_satisfy_webhook'),
+
+    # Complain Webhook (새로운 버전)
+    path('webhook/complain/', webhook_views.complain_webhook, name='complain_webhook'),
+    path('webhook/test-complain/', webhook_views.test_complain_webhook, name='test_complain_webhook'),
 ]
