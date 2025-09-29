@@ -1,24 +1,22 @@
-# TestPark
+# 🏗️ TestPark - (주)박목수의 열린 견적서
 
-TestPark 프로젝트 - Django 웹 애플리케이션으로 완전 자동화된 CI/CD 파이프라인과 단계별 배포 알림 시스템을 갖춘 프로젝트입니다.
+> 인테리어 업체와 고객을 연결하는 스마트 플랫폼
 
-<!-- 자동 배포 테스트: 2025-09-26 15:36 - 경로 수정 후 재테스트 -->
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![Django](https://img.shields.io/badge/Django-3.2+-green.svg)](https://www.djangoproject.com/)
+[![MariaDB](https://img.shields.io/badge/MariaDB-11.2-orange.svg)](https://mariadb.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
 
 ## ⚡ Quick Start (로컬 개발자용)
 
 ```bash
-# 1. 로컬 개발 환경 구축
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+# 🚀 자동 설정 (권장)
+./setup-local-dev.sh
 
-# 2. 로컬 서버 실행
-python manage.py runserver
+# 또는 Docker Compose 직접 실행
+docker-compose up -d
 
-# 3. 코드 변경 후 자동 배포
-git add .
-git commit -m "feature: 새 기능 추가"
-git push origin master  # → 자동으로 실서버 배포됨
+# 접속: http://localhost:8000
 ```
 
 **🔗 실서버 관련 작업은 [DEPLOYMENT.md](DEPLOYMENT.md) 참조**
