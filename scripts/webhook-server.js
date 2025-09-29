@@ -64,19 +64,111 @@ app.post('/deploy-from-github', (req, res) => {
     console.log(`🌿 브랜치: ${payload.branch || 'undefined'}`);
     console.log(`🐳 이미지: ${payload.image || 'undefined'}`);
 
+    // 커밋 정보 가져오기
+    let commitInfo = {
+        message: '',
+        author: '',
+        date: ''
+    };
+
+    try {
+        const gitShow = execSync(`cd /var/www/testpark && git show --format="%s|%an|%ai" -s ${payload.commit || 'HEAD'}`, { encoding: 'utf8' });
+        const [message, author, date] = gitShow.trim().split('|');
+        commitInfo = { message, author, date };
+        console.log(`📋 커밋 메시지: ${commitInfo.message}`);
+        console.log(`👤 작성자: ${commitInfo.author}`);
+    } catch (e) {
+        console.log('⚠️ 커밋 정보 가져오기 실패');
+    }
+
+    // 잔디 배포 시작 알림
+    if (process.env.JANDI_WEBHOOK) {
+        try {
+            execSync(`curl -X POST "${process.env.JANDI_WEBHOOK}" -H "Content-Type: application/json" -d '{
+                "title": "🚀 배포 시작",
+                "body": "프로젝트: ${payload.project || 'testpark'}\\n브랜치: ${payload.branch || 'master'}\\n커밋: ${commitInfo.message || payload.commit}\\n작성자: ${commitInfo.author || 'Unknown'}",
+                "color": "FAC11B"
+            }'`, { encoding: 'utf8' });
+        } catch (e) {
+            console.log('⚠️ 잔디 시작 알림 실패');
+        }
+    }
+
     try {
         // 배포 전에 최신 코드 가져오기 (스크립트 업데이트 포함)
         console.log('📥 최신 코드를 가져옵니다 (git pull)...');
         try {
+            // 먼저 로컬 변경사항 임시 저장
+            console.log('💾 로컬 변경사항 임시 저장 (git stash)...');
+            execSync('cd /var/www/testpark && git stash push -m "Auto-stash before deployment $(date +%Y%m%d_%H%M%S)"', { encoding: 'utf8' });
+
+            // git pull 실행
             const gitPullOutput = execSync('cd /var/www/testpark && git pull origin master', { encoding: 'utf8' });
             console.log('✅ Git pull 성공:', gitPullOutput);
+
+            // stash 복구 시도 (충돌 무시)
+            try {
+                execSync('cd /var/www/testpark && git stash pop', { encoding: 'utf8' });
+                console.log('✅ 로컬 변경사항 복구 완료');
+            } catch (stashError) {
+                console.log('⚠️ 로컬 변경사항 복구 중 충돌 (무시하고 진행)');
+            }
         } catch (gitError) {
-            console.error('⚠️ Git pull 실패 (계속 진행):', gitError.message);
-            // Git pull 실패해도 배포는 계속 진행
+            console.error('❌ Git pull 실패:', gitError.message);
+
+            // 잔디에 Git pull 오류 알림
+            if (process.env.JANDI_WEBHOOK) {
+                try {
+                    execSync(`curl -X POST "${process.env.JANDI_WEBHOOK}" -H "Content-Type: application/json" -d '{
+                        "title": "⚠️ Git Pull 실패",
+                        "body": "위치: git pull 단계\\n오류: ${gitError.message.replace(/'/g, "'")}\\n조치: 강제 업데이트 시도 중...",
+                        "color": "FF8C00"
+                    }'`, { encoding: 'utf8' });
+                } catch (e) {
+                    console.log('⚠️ 잔디 오류 알림 실패');
+                }
+            }
+
+            // git pull 실패 시 강제 업데이트 시도
+            console.log('🔄 강제 업데이트 시도 (git reset --hard)...');
+            try {
+                execSync('cd /var/www/testpark && git fetch origin master && git reset --hard origin/master', { encoding: 'utf8' });
+                console.log('✅ 강제 업데이트 성공');
+            } catch (resetError) {
+                console.error('❌ 강제 업데이트도 실패:', resetError.message);
+
+                // 잔디에 완전 실패 알림
+                if (process.env.JANDI_WEBHOOK) {
+                    try {
+                        execSync(`curl -X POST "${process.env.JANDI_WEBHOOK}" -H "Content-Type: application/json" -d '{
+                            "title": "❌ 배포 실패",
+                            "body": "위치: git reset --hard 단계\\n오류: 코드 업데이트 완전 실패\\n조치: 수동 개입 필요\\n\\n로컬 파일 충돌로 인한 문제일 가능성이 높습니다.",
+                            "color": "FF0000"
+                        }'`, { encoding: 'utf8' });
+                    } catch (e) {
+                        console.log('⚠️ 잔디 실패 알림 전송 실패');
+                    }
+                }
+
+                throw new Error('코드 업데이트 실패 - 수동 개입 필요');
+            }
         }
 
         const output = execSync(`bash ${DEPLOY_SCRIPT}`, { encoding: 'utf8' });
         console.log('✅ GitHub Actions Docker Compose 배포 완료:', output);
+
+        // 잔디에 성공 알림
+        if (process.env.JANDI_WEBHOOK) {
+            try {
+                execSync(`curl -X POST "${process.env.JANDI_WEBHOOK}" -H "Content-Type: application/json" -d '{
+                    "title": "✅ 배포 성공",
+                    "body": "프로젝트: ${payload.project || 'testpark'}\\n커밋: ${commitInfo.message || payload.commit}\\n작성자: ${commitInfo.author || 'Unknown'}\\n\\n배포가 성공적으로 완료되었습니다!",
+                    "color": "00C851"
+                }'`, { encoding: 'utf8' });
+            } catch (e) {
+                console.log('⚠️ 잔디 성공 알림 실패');
+            }
+        }
         res.status(200).json({
             success: true,
             message: 'GitHub Actions Docker Compose deployment successful',

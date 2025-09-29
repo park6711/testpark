@@ -1,12 +1,28 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.utils import timezone
+from django.conf import settings
 import platform
+import os
 
 def home(request):
     """
-    데모 홈페이지 뷰
+    React 앱 또는 데모 홈페이지 뷰
     """
+    # React 빌드 파일이 있으면 React 앱 서빙
+    react_index = os.path.join(settings.STATIC_ROOT, 'react', 'index.html')
+    if os.path.exists(react_index):
+        with open(react_index, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+            # 경로를 Django static URL에 맞게 조정
+            # JS/CSS 파일은 이미 /static/ 경로에 있으므로 그대로 유지
+            # 기타 asset 파일들만 수정
+            html_content = html_content.replace('href="/favicon.ico"', f'href="{settings.STATIC_URL}react/favicon.ico"')
+            html_content = html_content.replace('href="/logo192.png"', f'href="{settings.STATIC_URL}react/logo192.png"')
+            html_content = html_content.replace('href="/manifest.json"', f'href="{settings.STATIC_URL}react/manifest.json"')
+            return HttpResponse(html_content)
+
+    # React 빌드가 없으면 데모 페이지 표시
     context = {
         'title': '🚀 TestPark Django 테스트 환경',
         'message': '안녕하세요! 카페24 실서버에서 실행되는 Django 5.1.1 애플리케이션입니다.',

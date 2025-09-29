@@ -94,6 +94,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Static 파일 서빙
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -195,6 +196,10 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',  # React 빌드 파일 등
 ]
+
+# WhiteNoise 설정 (Production에서 static 파일 서빙)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+WHITENOISE_AUTOREFRESH = True  # 개발 환경에서 파일 변경 감지
 
 # Media files (User uploads)
 MEDIA_URL = '/media/'

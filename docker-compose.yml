@@ -1,3 +1,11 @@
+# TestPark Docker Compose 구성
+#
+# 서비스 구성:
+# - MariaDB: 데이터베이스 서버
+# - TestPark: Django + React 통합 앱
+# - Frontend: React 개발 서버 (개발 시 선택적)
+#
+# Webhook 서버는 로컬에서 실행 (scripts/webhook-server.js)
 services:
   # MariaDB 데이터베이스
   mariadb:
@@ -77,7 +85,7 @@ services:
       - DB_HOST=mariadb  # Docker 네트워크 내부 호스트명
       - DB_NAME=testpark
       - DB_USER=testpark
-      - DB_PASSWORD=testpark123
+      - DB_PASSWORD=**jeje4211
       - DB_PORT=3306
       # 네이버 로그인 및 프록시 설정
       - ALLOWED_HOSTS=carpenterhosting.cafe24.com,210.114.22.100,localhost,127.0.0.1
@@ -113,7 +121,6 @@ services:
         reservations:
           memory: 1G
           cpus: '0.5'
-
 
 networks:
   testpark-network:

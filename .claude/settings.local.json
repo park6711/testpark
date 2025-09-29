@@ -82,7 +82,10 @@
       "Bash(gh secret set:*)",
       "Bash(gh secret list:*)",
       "Bash(gh run list:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(git fetch:*)",
+      "Bash(grep:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
