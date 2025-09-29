@@ -41,11 +41,12 @@ class NaverAuthManager:
             return True
         return False
 
-    def get_login_url(self, login_type='company') -> Tuple[str, str]:
+    def get_login_url(self, login_type='company', prompt=None) -> Tuple[str, str]:
         """
         네이버 로그인 URL 생성
         Args:
-            login_type: 'company' 또는 'staff' - 로그인 타입을 state에 포함하여 구분
+            login_type: 'company', 'staff', 'unified' - 로그인 타입을 state에 포함하여 구분
+            prompt: 'select_account' - 계정 선택 강제
         Returns:
             (login_url, state): 로그인 URL과 state 값
         """
@@ -54,7 +55,8 @@ class NaverAuthManager:
         # 로그인 타입을 state에 포함 (콜백에서 구분용)
         state_with_type = f"{state}:{login_type}"
 
-        # 기존 등록된 콜백 URL 사용 (업체용)
+        # 네이버 앱에 등록된 콜백 URL 사용 (기존 URL 유지)
+        # 네이버 API에는 하나의 콜백 URL만 등록되어 있으므로
         redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/company/naver/callback/"
 
         params = {
@@ -63,6 +65,10 @@ class NaverAuthManager:
             'redirect_uri': redirect_uri,
             'state': state_with_type
         }
+
+        # 프롬프트 파라미터 추가 (계정 선택 화면 강제 표시)
+        if prompt == 'select_account':
+            params['auth_type'] = 'reprompt'  # 네이버는 auth_type=reprompt 사용
 
         base_url = 'https://nid.naver.com/oauth2.0/authorize'
         login_url = f"{base_url}?{urllib.parse.urlencode(params)}"
@@ -88,7 +94,7 @@ class NaverAuthManager:
         if not self.verify_state(original_state):
             return None
 
-        # 기존 등록된 콜백 URL 사용 (업체용)
+        # 네이버 앱에 등록된 콜백 URL 사용
         redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/company/naver/callback/"
 
         token_url = 'https://nid.naver.com/oauth2.0/token'

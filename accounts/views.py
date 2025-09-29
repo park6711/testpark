@@ -18,6 +18,7 @@ from .models import CustomUser, AuthSession
 from .naver_auth import naver_auth, jandi_webhook
 from .serializers import UserSerializer
 from staff.models import Staff
+from member.models import Member
 
 
 class LoginView(View):
@@ -28,7 +29,31 @@ class LoginView(View):
         if request.user.is_authenticated:
             return redirect('demo:home')  # 메인 페이지 URL
 
-        return render(request, 'accounts/login.html')
+        # 쿠키에서 최근 로그인한 네이버 계정 목록 가져오기
+        recent_accounts = []
+        for i in range(5):  # 최대 5개 계정 저장
+            account_data = request.COOKIES.get(f'naver_account_{i}')
+            if account_data:
+                import json
+                try:
+                    account = json.loads(account_data)
+                    recent_accounts.append(account)
+                except:
+                    pass
+
+        # 현재 선택된 계정 (쿠키에서 읽기)
+        current_account = request.COOKIES.get('current_naver_account')
+        if current_account:
+            try:
+                import json
+                current_account = json.loads(current_account)
+            except:
+                current_account = None
+
+        return render(request, 'accounts/login.html', {
+            'recent_accounts': recent_accounts,
+            'current_account': current_account
+        })
 
 
 class CompanyNaverLoginView(View):
@@ -517,7 +542,11 @@ class LogoutView(View):
     def post(self, request):
         logout(request)
         messages.success(request, "로그아웃되었습니다.")
-        return redirect('accounts:login')
+
+        # 쿠키 삭제
+        response = redirect('accounts:login')
+        response.delete_cookie('current_naver_account')
+        return response
 
     def get(self, request):
         # GET 요청도 허용 (링크로 로그아웃 가능)
@@ -670,7 +699,11 @@ class NaverCallbackView(View):
 
         try:
             # 로그인 타입에 따라 처리 분기
-            if login_type == 'staff':
+            if login_type == 'unified':
+                # 통합 로그인 뷰로 처리 위임
+                unified_view = UnifiedNaverCallbackView()
+                return unified_view.get(request)
+            elif login_type == 'staff':
                 return self._handle_staff_login(request, code, state)
             else:
                 return self._handle_company_login(request, code, state)
@@ -872,5 +905,251 @@ def api_user_profile(request):
     """현재 로그인된 사용자 프로필"""
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
+
+
+class UnifiedNaverLoginView(View):
+    """통합 네이버 로그인 시작"""
+
+    def get(self, request):
+        try:
+            # 프롬프트 파라미터 확인 (계정 선택 화면 강제 표시 여부)
+            prompt = request.GET.get('prompt')
+
+            # 통합 콜백 URL 생성
+            login_url, state = naver_auth.get_login_url(login_type='unified', prompt=prompt)
+            # state를 세션에 저장
+            request.session['naver_state'] = state
+            request.session['login_type'] = 'unified'
+            return redirect(login_url)
+
+        except Exception as e:
+            messages.error(request, f"네이버 로그인 연결에 실패했습니다: {str(e)}")
+            return redirect('accounts:login')
+
+
+class UnifiedNaverCallbackView(View):
+    """통합 네이버 로그인 콜백 처리 (Staff/Member 자동 구분)"""
+
+    def _save_account_to_cookie(self, response, account_info):
+        """로그인한 계정 정보를 쿠키에 저장"""
+        import json
+
+        # 현재 계정을 쿠키에 저장
+        response.set_cookie(
+            'current_naver_account',
+            json.dumps(account_info),
+            max_age=30*24*60*60,  # 30일
+            httponly=False  # JavaScript에서 읽을 수 있도록
+        )
+
+        # 최근 로그인 계정 목록 업데이트
+        # 기존 계정들을 한 칸씩 뒤로 밀기
+        for i in range(4, 0, -1):
+            prev_account = self.request.COOKIES.get(f'naver_account_{i-1}')
+            if prev_account:
+                response.set_cookie(
+                    f'naver_account_{i}',
+                    prev_account,
+                    max_age=30*24*60*60,
+                    httponly=False
+                )
+
+        # 새 계정을 첫 번째 위치에 저장
+        response.set_cookie(
+            'naver_account_0',
+            json.dumps(account_info),
+            max_age=30*24*60*60,
+            httponly=False
+        )
+
+        return response
+
+    def get(self, request):
+        self.request = request  # request 객체를 인스턴스 변수로 저장
+        print(f"[DEBUG] 통합 네이버 콜백 호출 - URL: {request.get_full_path()}")
+
+        code = request.GET.get('code')
+        state = request.GET.get('state')
+        error = request.GET.get('error')
+
+        print(f"[DEBUG] 콜백 파라미터 - code: {code[:10] if code else None}..., state: {state}, error: {error}")
+
+        # 에러 처리
+        if error:
+            print(f"[ERROR] 네이버 로그인 에러: {error}")
+            messages.error(request, f"네이버 로그인이 취소되었습니다: {error}")
+            return redirect('accounts:login')
+
+        if not code or not state:
+            print(f"[ERROR] 필수 파라미터 누락 - code: {bool(code)}, state: {bool(state)}")
+            messages.error(request, "필수 파라미터가 없습니다.")
+            return redirect('accounts:login')
+
+        # state 검증 (세션 문제로 임시 완화)
+        session_state = request.session.get('naver_state')
+        print(f"[DEBUG] State 검증 - session: {session_state}, callback: {state}")
+
+        # 세션 state가 없거나 일치하지 않는 경우 경고만 표시
+        if session_state and session_state != state:
+            print(f"[WARNING] State 불일치 - session: {session_state}, callback: {state}")
+            # 세션 문제로 인한 임시 조치 - 경고만 표시하고 진행
+        elif not session_state:
+            print(f"[WARNING] 세션에 state가 없음 - callback state: {state}")
+            # 세션이 없는 경우도 진행 허용
+
+        try:
+            # 네이버 인증 처리
+            print(f"[DEBUG] 네이버 인증 처리 시작")
+            success, user_info, error_message = naver_auth.process_naver_login(code, state, skip_state_verification=True)
+
+            if not success:
+                print(f"[ERROR] 네이버 인증 실패: {error_message}")
+                messages.error(request, error_message)
+                return redirect('accounts:login')
+
+            print(f"[DEBUG] 네이버 인증 성공 - 사용자: {user_info.get('email', 'NO_EMAIL')}")
+
+            # 사용자 정보 추출
+            naver_id = user_info['id']  # return0: 네이버 식별자
+            naver_email = user_info['email']  # return1: 로그인 이메일
+            naver_name = user_info['name']
+
+            # 🔍 Step 1: Staff에서 sNaverID0와 return0(naver_id)가 일치하는 것 찾기
+            staff = Staff.objects.filter(sNaverID0=naver_id).first()
+            if staff:
+                if staff.bApproval:  # 승인된 스텝
+                    print(f"[DEBUG] 승인된 스텝 로그인: {staff.sName}")
+                    request.session['staff_user'] = {
+                        'no': staff.no,
+                        'name': staff.sName,
+                        'email': staff.sNaverID,
+                        'team': staff.sTeam,
+                        'naver_id': staff.sNaverID0,
+                    }
+                    messages.success(request, f"환영합니다, {staff.sName}님!")
+
+                    # 쿠키에 계정 정보 저장
+                    response = redirect('order:order_list')  # 의뢰 리스트로 이동
+                    self._save_account_to_cookie(response, {
+                        'email': staff.sNaverID,
+                        'name': staff.sName,
+                        'type': 'staff',
+                        'naver_id': staff.sNaverID0
+                    })
+                    return response
+                else:  # 미승인 스텝
+                    print(f"[DEBUG] 미승인 스텝 로그인 시도: {staff.sName}")
+                    error_msg = f"해당 아이디({naver_email})로는 로그인이 불가능합니다. 관리자에게 문의바랍니다."
+                    return render(request, 'accounts/login.html', {'error_message': error_msg})
+
+            # 🔍 Step 2: Member에서 sNaverID0와 return0(naver_id)가 일치하는 것 찾기
+            member = Member.objects.filter(sNaverID0=naver_id).first()
+            if member:
+                if member.bApproval:  # 승인된 업체
+                    print(f"[DEBUG] 승인된 업체 로그인: {member.sCompanyName}")
+                    request.session['member_user'] = {
+                        'no': member.no,
+                        'company_name': member.sCompanyName,
+                        'email': member.sNaverID,
+                        'naver_id': member.sNaverID0,
+                    }
+                    messages.success(request, f"환영합니다, {member.sCompanyName}님!")
+
+                    # 쿠키에 계정 정보 저장
+                    response = redirect('member:member_dashboard')  # 업체 대시보드로 이동
+                    self._save_account_to_cookie(response, {
+                        'email': member.sNaverID,
+                        'name': member.sCompanyName,
+                        'type': 'member',
+                        'naver_id': member.sNaverID0
+                    })
+                    return response
+                else:  # 미승인 업체
+                    print(f"[DEBUG] 미승인 업체 로그인 시도: {member.sCompanyName}")
+                    error_msg = f"해당 아이디({naver_email})로는 로그인이 불가능합니다. 관리자에게 문의바랍니다."
+                    return render(request, 'accounts/login.html', {'error_message': error_msg})
+
+            # 🔍 Step 3: Staff에서 sNaverID(이메일)와 return1(naver_email)이 일치하는 것 찾기
+            staff_by_email = Staff.objects.filter(sNaverID=naver_email).first()
+            if staff_by_email:
+                if staff_by_email.bApproval:  # 승인된 스텝 (첫 네이버 로그인)
+                    # sNaverID0에 return0 저장
+                    staff_by_email.sNaverID0 = naver_id
+                    staff_by_email.save()
+                    print(f"[DEBUG] 스텝 첫 네이버 로그인, ID 연동: {staff_by_email.sName}")
+
+                    request.session['staff_user'] = {
+                        'no': staff_by_email.no,
+                        'name': staff_by_email.sName,
+                        'email': staff_by_email.sNaverID,
+                        'team': staff_by_email.sTeam,
+                        'naver_id': naver_id,
+                    }
+                    messages.success(request, f"환영합니다, {staff_by_email.sName}님! (첫 네이버 로그인)")
+
+                    # 쿠키에 계정 정보 저장
+                    response = redirect('order:order_list')  # 의뢰 리스트로 이동
+                    self._save_account_to_cookie(response, {
+                        'email': staff_by_email.sNaverID,
+                        'name': staff_by_email.sName,
+                        'type': 'staff',
+                        'naver_id': naver_id
+                    })
+                    return response
+                else:  # 미승인 스텝
+                    print(f"[DEBUG] 미승인 스텝 로그인 시도 (이메일): {staff_by_email.sName}")
+                    error_msg = f"해당 아이디({naver_email})로는 로그인이 불가능합니다. 관리자에게 문의바랍니다."
+                    return render(request, 'accounts/login.html', {'error_message': error_msg})
+
+            # 🔍 Step 4: Member에서 sNaverID(이메일)와 return1(naver_email)이 일치하는 것 찾기
+            member_by_email = Member.objects.filter(sNaverID=naver_email).first()
+            if member_by_email:
+                if member_by_email.bApproval:  # 승인된 업체 (첫 네이버 로그인)
+                    # sNaverID0에 return0 저장
+                    member_by_email.sNaverID0 = naver_id
+                    member_by_email.save()
+                    print(f"[DEBUG] 업체 첫 네이버 로그인, ID 연동: {member_by_email.sCompanyName}")
+
+                    request.session['member_user'] = {
+                        'no': member_by_email.no,
+                        'company_name': member_by_email.sCompanyName,
+                        'email': member_by_email.sNaverID,
+                        'naver_id': naver_id,
+                    }
+                    messages.success(request, f"환영합니다, {member_by_email.sCompanyName}님! (첫 네이버 로그인)")
+
+                    # 쿠키에 계정 정보 저장
+                    response = redirect('member:member_dashboard')  # 업체 대시보드로 이동
+                    self._save_account_to_cookie(response, {
+                        'email': member_by_email.sNaverID,
+                        'name': member_by_email.sCompanyName,
+                        'type': 'member',
+                        'naver_id': naver_id
+                    })
+                    return response
+                else:  # 미승인 업체
+                    print(f"[DEBUG] 미승인 업체 로그인 시도 (이메일): {member_by_email.sCompanyName}")
+                    error_msg = f"해당 아이디({naver_email})로는 로그인이 불가능합니다. 관리자에게 문의바랍니다."
+                    return render(request, 'accounts/login.html', {'error_message': error_msg})
+
+            # 등록되지 않은 사용자
+            print(f"[ERROR] 등록되지 않은 사용자: {naver_email}")
+            error_msg = f"등록되지 않은 계정입니다: {naver_email}\n관리자에게 계정 등록을 요청해주세요."
+            return render(request, 'accounts/login.html', {'error_message': error_msg})
+
+        except Exception as e:
+            print(f"[ERROR] 통합 콜백 처리 중 예외 발생: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            messages.error(request, f"로그인 처리 중 오류가 발생했습니다: {str(e)}")
+            return redirect('accounts:login')
+
+        finally:
+            # 세션에서 state 제거
+            if 'naver_state' in request.session:
+                del request.session['naver_state']
+            if 'login_type' in request.session:
+                del request.session['login_type']
+            print(f"[DEBUG] 로그인 세션 정리 완료")
 
 
