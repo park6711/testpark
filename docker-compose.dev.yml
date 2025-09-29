@@ -1,0 +1,52 @@
+# 개발 환경 전용 Docker Compose
+# 사용법: docker-compose -f docker-compose.dev.yml up -d
+
+version: '3.8'
+
+services:
+  # MariaDB만 로컬 개발용
+  mariadb:
+    image: mariadb:11.2
+    container_name: testpark-mariadb-dev
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=testpark-root
+      - MYSQL_DATABASE=testpark
+      - MYSQL_USER=testpark
+      - MYSQL_PASSWORD=**jeje4211
+      - TZ=Asia/Seoul
+    volumes:
+      - mariadb-dev-data:/var/lib/mysql
+    networks:
+      - testpark-dev-network
+    restart: unless-stopped
+
+  # Django 개발 서버 (선택사항)
+  django:
+    image: 7171man/testpark:latest
+    container_name: testpark-django-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app  # 코드 실시간 반영
+      - ./media:/app/media
+    environment:
+      - DEBUG=True
+      - USE_MYSQL=True
+      - DB_HOST=mariadb
+      - DB_NAME=testpark
+      - DB_USER=testpark
+      - DB_PASSWORD=**jeje4211
+    depends_on:
+      - mariadb
+    networks:
+      - testpark-dev-network
+    command: python manage.py runserver 0.0.0.0:8000
+
+networks:
+  testpark-dev-network:
+    driver: bridge
+
+volumes:
+  mariadb-dev-data:

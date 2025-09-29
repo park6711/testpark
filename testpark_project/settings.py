@@ -225,6 +225,18 @@ NAVER_REDIRECT_URI = os.getenv('NAVER_REDIRECT_URI', 'http://localhost:8000/auth
 # 잔디 웹훅 설정
 JANDI_WEBHOOK_URL = os.getenv('JANDI_WEBHOOK_URL', 'https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265')
 
+# 세션 설정
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # 데이터베이스에 세션 저장
+SESSION_COOKIE_AGE = 3600 * 24 * 7  # 세션 유효기간 7일
+SESSION_COOKIE_SECURE = True  # HTTPS에서만 쿠키 전송 (프로덕션 환경)
+SESSION_COOKIE_HTTPONLY = True  # JavaScript에서 쿠키 접근 차단
+SESSION_COOKIE_SAMESITE = 'None'  # 네이버 로그인을 위해 외부 사이트에서도 쿠키 전송 허용
+SESSION_SAVE_EVERY_REQUEST = True  # 모든 요청마다 세션 저장
+SESSION_COOKIE_NAME = 'testpark_sessionid'  # 세션 쿠키 이름
+CSRF_COOKIE_SECURE = True  # HTTPS에서만 CSRF 쿠키 전송
+CSRF_COOKIE_SAMESITE = 'None'  # 외부 사이트에서도 CSRF 쿠키 전송
+CSRF_TRUSTED_ORIGINS = ['https://carpenterhosting.cafe24.com']  # 신뢰할 수 있는 오리진
+
 # ================================================================================
 # 업체평가 전역변수 설정 (Global Variables for Company Evaluation)
 # ================================================================================

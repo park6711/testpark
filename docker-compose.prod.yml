@@ -1,0 +1,85 @@
+# 프로덕션 환경 Docker Compose
+# 사용법: docker-compose -f docker-compose.prod.yml up -d
+
+version: '3.8'
+
+services:
+  # MariaDB 데이터베이스 (프로덕션)
+  mariadb:
+    image: mariadb:11.2
+    container_name: testpark-mariadb
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-testpark-root}
+      - MYSQL_DATABASE=${DB_NAME:-testpark}
+      - MYSQL_USER=${DB_USER:-testpark}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-**jeje4211}
+      - TZ=Asia/Seoul
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    networks:
+      - testpark-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Django + React 통합 앱
+  testpark:
+    image: 7171man/testpark:latest
+    container_name: testpark
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DEBUG=False
+      - USE_MYSQL=True
+      - DB_HOST=mariadb
+      - DB_NAME=${DB_NAME:-testpark}
+      - DB_USER=${DB_USER:-testpark}
+      - DB_PASSWORD=${DB_PASSWORD:-**jeje4211}
+    volumes:
+      - ./media:/app/media
+      - ./seongdal-a900e25ac63c.json:/app/seongdal-a900e25ac63c.json
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - testpark-network
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+
+  # GitHub 웹훅 서버 (자동 배포용)
+  webhook:
+    build:
+      context: .
+      dockerfile: webhook.Dockerfile
+    container_name: testpark-webhook
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/var/www/testpark
+    environment:
+      - WEBHOOK_PORT=8080
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET:-testpark-webhook-secret}
+    networks:
+      - testpark-network
+    restart: always
+    depends_on:
+      - testpark
+
+networks:
+  testpark-network:
+    driver: bridge
+
+volumes:
+  mariadb-data:

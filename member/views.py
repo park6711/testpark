@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.db.models import Q
 from .models import Member
 from company.models import Company
+from order.models import Order
 
 
 def get_current_staff(request):
@@ -312,3 +313,76 @@ def member_view(request, pk):
         'read_only': True,
         'companies': companies
     })
+
+
+def member_dashboard(request):
+    """업체 전용 대시보드 페이지"""
+    # 로그인 확인
+    member_user = request.session.get('member_user')
+    if not member_user:
+        messages.error(request, '업체 로그인이 필요합니다.')
+        return redirect('accounts:login')
+
+    # 현재 로그인한 업체 정보 가져오기
+    try:
+        member = Member.objects.get(no=member_user['no'])
+    except Member.DoesNotExist:
+        messages.error(request, '업체 정보를 찾을 수 없습니다.')
+        return redirect('accounts:login')
+
+    # 업체의 회사 정보 가져오기
+    company = None
+    if member.noCompany:
+        try:
+            company = Company.objects.get(no=member.noCompany)
+        except Company.DoesNotExist:
+            pass
+
+    # 업체의 최근 주문 내역 가져오기 (최근 10개)
+    recent_orders = []
+    if company:
+        # assigned_company 필드를 사용하여 업체 주문 찾기
+        recent_orders = Order.objects.filter(
+            assigned_company=company.sName1  # 할당된 업체명으로 필터링
+        ).order_by('-created_at')[:10]
+
+    # 통계 정보
+    statistics = {
+        'total_orders': 0,
+        'pending_orders': 0,
+        'completed_orders': 0,
+        'monthly_orders': 0,
+    }
+
+    if company:
+        # 전체 주문 수
+        all_orders = Order.objects.filter(
+            assigned_company=company.sName1  # 할당된 업체명으로 필터링
+        )
+        statistics['total_orders'] = all_orders.count()
+
+        # 진행 중인 주문 (대기중이 아닌 주문)
+        statistics['pending_orders'] = all_orders.exclude(
+            recent_status='완료'
+        ).count()
+
+        # 완료된 주문
+        statistics['completed_orders'] = all_orders.filter(
+            recent_status='완료'
+        ).count()
+
+        # 이번 달 주문
+        from datetime import datetime, timedelta
+        this_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        statistics['monthly_orders'] = all_orders.filter(
+            created_at__gte=this_month
+        ).count()
+
+    context = {
+        'member': member,
+        'company': company,
+        'recent_orders': recent_orders,
+        'statistics': statistics,
+    }
+
+    return render(request, 'member/dashboard.html', context)

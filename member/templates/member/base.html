@@ -284,7 +284,10 @@
         <div class="nav-container">
             <div class="logo">🏢 PMIS 2.0</div>
             <div class="user-info">
-                {% if request.session.staff_user %}
+                {% if request.session.member_user %}
+                    <span class="user-name">{{ request.session.member_user.name }}</span>
+                    <a href="{% url 'accounts:logout' %}" class="logout-btn">로그아웃</a>
+                {% elif request.session.staff_user %}
                     <span class="user-name">
                         {% if current_staff.sNick %}
                             {{ current_staff.sNick }}({{ request.session.staff_user.name }})

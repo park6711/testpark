@@ -14,11 +14,8 @@ router.register(r'api/companies', api_views.CompanyViewSet)
 router.register(r'api/areas', api_views.AreaViewSet)
 
 urlpatterns = [
-    # 기존 뷰
+    # 메인 order 페이지
     path('', views.order_list, name='order_list'),
-
-    # React 앱을 위한 HTML 페이지
-    path('pplist/', views.pplist_view, name='pplist'),
 
     # API 엔드포인트
     path('', include(router.urls)),

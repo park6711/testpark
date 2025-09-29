@@ -1,29 +1,6 @@
 ########################################
-# TestPark 완전한 프로덕션 Dockerfile
-# 모든 기능을 포함한 최종 버전
-########################################
-
-# Stage 1: React 프론트엔드 빌드
-FROM node:18-alpine AS frontend-builder
-
-WORKDIR /frontend
-
-# package.json 파일들 복사
-COPY frontend/package*.json ./
-
-# 의존성 설치 (devDependencies 포함하여 빌드 가능하게)
-RUN npm install --legacy-peer-deps
-
-# React 소스 전체 복사
-COPY frontend/ ./
-
-# 프로덕션 빌드
-RUN npm run build && \
-    echo "✅ React 프로덕션 빌드 완료" && \
-    ls -la build/
-
-########################################
-# Stage 2: Django 애플리케이션
+# TestPark 프로덕션 Dockerfile
+# Django 애플리케이션
 ########################################
 FROM python:3.12-slim
 
@@ -88,16 +65,10 @@ RUN mkdir -p \
     /app/static/css \
     /app/static/js \
     /app/static/images \
-    /app/static/admin \
-    /app/static/react
+    /app/static/admin
 
-# Django 정적 파일 먼저 수집 (React 파일 복사 전에)
+# Django 정적 파일 수집
 RUN python manage.py collectstatic --noinput --clear || true
-
-# React 빌드 파일을 staticfiles로 직접 복사 (collectstatic 이후)
-# 이렇게 하면 React chunk 파일들이 삭제되지 않음
-COPY --from=frontend-builder /frontend/build/static /app/staticfiles/
-COPY --from=frontend-builder /frontend/build /app/staticfiles/react/
 
 # 권한 설정
 RUN chmod -R 755 /app && \
@@ -133,10 +104,9 @@ RUN echo '#!/bin/bash' > /app/entrypoint.sh && \
     echo 'echo "🔄 데이터베이스 마이그레이션..."' >> /app/entrypoint.sh && \
     echo 'python manage.py migrate --noinput' >> /app/entrypoint.sh && \
     echo '' >> /app/entrypoint.sh && \
-    echo '# 정적 파일 수집 (이미 빌드 시 완료, 변경사항만 추가)' >> /app/entrypoint.sh && \
+    echo '# 정적 파일 확인' >> /app/entrypoint.sh && \
     echo 'echo "📦 정적 파일 확인..."' >> /app/entrypoint.sh && \
-    echo '# collectstatic은 빌드 시 이미 완료, React chunk 파일 보존' >> /app/entrypoint.sh && \
-    echo 'ls -la /app/staticfiles/js/*.chunk.js | head -3' >> /app/entrypoint.sh && \
+    echo 'ls -la /app/staticfiles/ | head -5' >> /app/entrypoint.sh && \
     echo '' >> /app/entrypoint.sh && \
     echo '# 슈퍼유저 생성 (필요시)' >> /app/entrypoint.sh && \
     echo 'if [ -n "$DJANGO_SUPERUSER_USERNAME" ]; then' >> /app/entrypoint.sh && \

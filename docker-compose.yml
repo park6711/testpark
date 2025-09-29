@@ -2,8 +2,7 @@
 #
 # 서비스 구성:
 # - MariaDB: 데이터베이스 서버
-# - TestPark: Django + React 통합 앱
-# - Frontend: React 개발 서버 (개발 시 선택적)
+# - TestPark: Django 앱
 #
 # Webhook 서버는 로컬에서 실행 (scripts/webhook-server.js)
 services:
@@ -37,40 +36,11 @@ services:
       - "com.testpark.service=database"
       - "com.testpark.description=TestPark MariaDB Database"
 
-  # React 프론트엔드 (개발용)
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
-    container_name: testpark-frontend
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      # 개발 환경: localhost, 프로덕션: 실제 도메인 사용
-      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000}
-      - CHOKIDAR_USEPOLLING=true  # 파일 변경 감지 개선
-      - NODE_OPTIONS=--max-old-space-size=4096  # Node.js 메모리 할당 증가
-    restart: unless-stopped
-    networks:
-      - testpark-network
-    labels:
-      - "com.testpark.service=frontend"
-      - "com.testpark.description=TestPark React Frontend"
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-          cpus: '2.0'
-        reservations:
-          memory: 2G
-          cpus: '1.0'
-
   # TestPark 메인 애플리케이션
   testpark:
-    image: 7171man/testpark:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: testpark
     ports:
       - "8000:8000"
@@ -135,11 +105,10 @@ volumes:
 # 프로젝트 메타데이터
 x-project-info:
   name: "TestPark"
-  description: "TestPark Full-Stack Application (Django + React)"
+  description: "TestPark Django Application"
   version: "3.0.0"
   services:
     - "MariaDB Database (port 3306)"
-    - "React Frontend (port 3000)"
     - "Django Backend API (port 8000)"
   external_dependencies:
     - "Apache Proxy (ports 80/443)"
