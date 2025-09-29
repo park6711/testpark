@@ -81,7 +81,8 @@
       "Bash(gh auth:*)",
       "Bash(gh secret set:*)",
       "Bash(gh secret list:*)",
-      "Bash(gh run list:*)"
+      "Bash(gh run list:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []

@@ -126,12 +126,32 @@ WSGI_APPLICATION = 'testpark_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# MariaDB/MySQL 설정 (Docker 환경 및 로컬 환경 모두 지원)
+USE_MYSQL = os.environ.get('USE_MYSQL', 'True').lower() == 'true'
+
+if USE_MYSQL:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.environ.get('DB_NAME', 'testpark'),
+            'USER': os.environ.get('DB_USER', 'testpark'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', 'testpark123'),
+            'HOST': os.environ.get('DB_HOST', 'mariadb'),  # Docker 내부에서는 'mariadb', 로컬에서는 'localhost'
+            'PORT': os.environ.get('DB_PORT', '3306'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            }
+        }
     }
-}
+else:
+    # SQLite (개발 환경 백업)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation

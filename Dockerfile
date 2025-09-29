@@ -43,6 +43,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     python3-dev \
+    # MySQL/MariaDB 클라이언트 (필수)
+    pkg-config \
+    default-libmysqlclient-dev \
     # PostgreSQL 클라이언트 (필요시)
     libpq-dev \
     # 네트워크 도구

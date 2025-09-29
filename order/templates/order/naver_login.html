@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>네이버 로그인 연동</title>
+    <script type="text/javascript" src="https://static.nid.naver.com/js/naverLogin_implicit-1.0.3.js" charset="utf-8"></script>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <!-- 네이버 로그인 SDK를 포함한 React 컴포넌트 -->
+    <script>
+    // 네이버 로그인 헬퍼
+    window.NaverLoginHelper = {
+        clientId: null,
+        callbackUrl: null,
+        naver_id_login: null,
+        accessToken: null,
+
+        // 초기화
+        init: function(clientId, callbackUrl) {
+            this.clientId = clientId || 'YOUR_CLIENT_ID';  // 실제 클라이언트 ID로 교체
+            this.callbackUrl = callbackUrl || window.location.origin + '/naver/callback';
+
+            this.naver_id_login = new naver_id_login(this.clientId, this.callbackUrl);
+
+            var state = this.naver_id_login.getUniqState();
+            this.naver_id_login.setButton("white", 2, 40);
+            this.naver_id_login.setDomain(window.location.origin);
+            this.naver_id_login.setState(state);
+            this.naver_id_login.init_naver_id_login();
+        },
+
+        // 로그인 상태 확인 및 토큰 획득
+        checkLoginStatus: function(callback) {
+            // 현재 페이지 URL에서 토큰 추출 시도
+            const hash = window.location.hash;
+            if (hash) {
+                const token = this.getTokenFromHash(hash);
+                if (token) {
+                    this.accessToken = token;
+                    if (callback) callback(true, token);
+                    return;
+                }
+            }
+
+            // 로컬 스토리지에서 토큰 확인
+            const storedToken = localStorage.getItem('naver_access_token');
+            if (storedToken) {
+                this.accessToken = storedToken;
+                if (callback) callback(true, storedToken);
+                return;
+            }
+
+            // 토큰이 없으면 false 반환
+            if (callback) callback(false, null);
+        },
+
+        // URL 해시에서 토큰 추출
+        getTokenFromHash: function(hash) {
+            const params = new URLSearchParams(hash.substring(1));
+            const token = params.get('access_token');
+            if (token) {
+                // 토큰을 로컬 스토리지에 저장
+                localStorage.setItem('naver_access_token', token);
+                return token;
+            }
+            return null;
+        },
+
+        // 로그인 팝업 열기
+        openLoginPopup: function() {
+            const width = 500;
+            const height = 600;
+            const left = (screen.width - width) / 2;
+            const top = (screen.height - height) / 2;
+
+            const loginUrl = `https://nid.naver.com/oauth2.0/authorize?` +
+                `response_type=token&` +
+                `client_id=${this.clientId}&` +
+                `redirect_uri=${encodeURIComponent(this.callbackUrl)}&` +
+                `state=${this.naver_id_login.getUniqState()}`;
+
+            const popup = window.open(
+                loginUrl,
+                'naver_login',
+                `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+            );
+
+            // 팝업 상태 확인
+            const checkPopup = setInterval(() => {
+                try {
+                    if (popup.closed) {
+                        clearInterval(checkPopup);
+                        // 팝업이 닫힌 후 토큰 확인
+                        this.checkLoginStatus((success, token) => {
+                            if (success) {
+                                console.log('로그인 성공! 토큰:', token);
+                                this.onLoginSuccess(token);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    // 크로스 도메인 에러 무시
+                }
+            }, 1000);
+        },
+
+        // 로그인 성공 콜백
+        onLoginSuccess: function(token) {
+            // 부모 창에 메시지 전송
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'naver_login_success',
+                    token: token
+                }, '*');
+            }
+
+            // React 컴포넌트에 이벤트 발생
+            window.dispatchEvent(new CustomEvent('naverLoginSuccess', {
+                detail: { token: token }
+            }));
+        },
+
+        // 카페에 글 작성
+        postToCafe: async function(token, cafeId, menuId, subject, content) {
+            try {
+                // 백엔드로 토큰과 함께 전송
+                const response = await fetch('/api/orders/post-with-token/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': this.getCSRFToken()
+                    },
+                    body: JSON.stringify({
+                        access_token: token,
+                        cafe_id: cafeId,
+                        menu_id: menuId,
+                        subject: subject,
+                        content: content
+                    })
+                });
+
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('카페 게시 실패:', error);
+                return { success: false, error: error.message };
+            }
+        },
+
+        // CSRF 토큰 가져오기
+        getCSRFToken: function() {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'csrftoken') {
+                    return value;
+                }
+            }
+            return '';
+        },
+
+        // 로그아웃
+        logout: function() {
+            localStorage.removeItem('naver_access_token');
+            this.accessToken = null;
+        }
+    };
+    </script>
+</body>
+</html>
