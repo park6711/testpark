@@ -114,40 +114,6 @@ services:
           memory: 1G
           cpus: '0.5'
 
-  # TestPark 웹훅 서버
-  webhook:
-    build:
-      context: .
-      dockerfile: webhook.Dockerfile
-    container_name: testpark-webhook
-    ports:
-      - "8080:8080"
-    volumes:
-      # Docker socket 마운트 (컨테이너에서 Docker 명령 실행용)
-      - /var/run/docker.sock:/var/run/docker.sock
-      # 배포 스크립트 및 프로젝트 디렉토리 마운트
-      - .:/var/www/testpark
-    working_dir: /var/www/testpark
-    environment:
-      - NODE_ENV=production
-      - WEBHOOK_PORT=8080
-      - WEBHOOK_SECRET=testpark-webhook-secret
-      - DEPLOY_SCRIPT=/var/www/testpark/scripts/deploy-docker.sh
-    restart: unless-stopped
-    networks:
-      - testpark-network
-    depends_on:
-      testpark:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-    labels:
-      - "com.testpark.service=webhook"
-      - "com.testpark.description=TestPark Webhook Server"
 
 networks:
   testpark-network:
@@ -168,7 +134,6 @@ x-project-info:
     - "MariaDB Database (port 3306)"
     - "React Frontend (port 3000)"
     - "Django Backend API (port 8000)"
-    - "Webhook Server (port 8080)"
   external_dependencies:
     - "Apache Proxy (ports 80/443)"
     - "intea Django WSGI"
