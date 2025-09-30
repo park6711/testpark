@@ -41,12 +41,13 @@ class NaverAuthManager:
             return True
         return False
 
-    def get_login_url(self, login_type='company', prompt=None) -> Tuple[str, str]:
+    def get_login_url(self, login_type='company', prompt=None, login_hint=None) -> Tuple[str, str]:
         """
         네이버 로그인 URL 생성
         Args:
             login_type: 'company', 'staff', 'unified' - 로그인 타입을 state에 포함하여 구분
-            prompt: 'select_account' - 계정 선택 강제
+            prompt: 'select_account' - 계정 선택 강제, 'logout' - 로그아웃 후 로그인
+            login_hint: 로그인할 계정 이메일 힌트
         Returns:
             (login_url, state): 로그인 URL과 state 값
         """
@@ -66,9 +67,17 @@ class NaverAuthManager:
             'state': state_with_type
         }
 
-        # 프롬프트 파라미터 추가 (계정 선택 화면 강제 표시)
+        # 프롬프트 파라미터 추가
         if prompt == 'select_account':
-            params['auth_type'] = 'reprompt'  # 네이버는 auth_type=reprompt 사용
+            # 계정 선택 화면 강제 표시
+            params['auth_type'] = 'reprompt'
+        elif prompt == 'logout':
+            # 완전한 재인증 요구 (네이버 세션 무시)
+            params['auth_type'] = 'reauthenticate'
+
+        # 로그인 힌트 추가 (특정 계정으로 로그인 유도)
+        if login_hint:
+            params['login_hint'] = login_hint
 
         base_url = 'https://nid.naver.com/oauth2.0/authorize'
         login_url = f"{base_url}?{urllib.parse.urlencode(params)}"

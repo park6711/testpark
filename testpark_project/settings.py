@@ -198,7 +198,9 @@ STATICFILES_DIRS = [
 ]
 
 # WhiteNoise 설정 (Production에서 static 파일 서빙)
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# CompressedStaticFilesStorage: 해시 없이 압축만 사용 (개발 환경 권장)
+# CompressedManifestStaticFilesStorage: 해시 추가로 캐싱 최적화 (프로덕션 권장)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 WHITENOISE_AUTOREFRESH = True  # 개발 환경에서 파일 변경 감지
 
 # Media files (User uploads)

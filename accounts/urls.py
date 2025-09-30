@@ -22,4 +22,8 @@ urlpatterns = [
     # 인증번호 관련
     path('verify/', views.VerifyCodeView.as_view(), name='verify_code'),
     path('resend-code/', views.resend_auth_code, name='resend_auth_code'),
+
+
+    # 계정 전환
+    path('switch-account/', views.SwitchAccountView.as_view(), name='switch_account'),
 ]

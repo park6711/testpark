@@ -7,7 +7,9 @@ from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.urls import reverse
+from django.conf import settings
 import json
+import urllib.parse
 
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
@@ -29,18 +31,6 @@ class LoginView(View):
         if request.user.is_authenticated:
             return redirect('demo:home')  # 메인 페이지 URL
 
-        # 쿠키에서 최근 로그인한 네이버 계정 목록 가져오기
-        recent_accounts = []
-        for i in range(5):  # 최대 5개 계정 저장
-            account_data = request.COOKIES.get(f'naver_account_{i}')
-            if account_data:
-                import json
-                try:
-                    account = json.loads(account_data)
-                    recent_accounts.append(account)
-                except:
-                    pass
-
         # 현재 선택된 계정 (쿠키에서 읽기)
         current_account = request.COOKIES.get('current_naver_account')
         if current_account:
@@ -51,8 +41,8 @@ class LoginView(View):
                 current_account = None
 
         return render(request, 'accounts/login.html', {
-            'recent_accounts': recent_accounts,
-            'current_account': current_account
+            'current_account': current_account,
+            'naver_client_id': settings.NAVER_CLIENT_ID
         })
 
 
@@ -540,17 +530,58 @@ class LogoutView(View):
     """로그아웃"""
 
     def post(self, request):
-        logout(request)
+        # 네이버 세션도 종료할지 여부 확인
+        clear_naver_session = request.POST.get('clear_naver_session', 'false') == 'true'
+        next_url = request.POST.get('next', None)  # 로그아웃 후 이동할 URL
+
+        # 세션 완전히 정리
+        request.session.flush()
+
         messages.success(request, "로그아웃되었습니다.")
 
         # 쿠키 삭제
-        response = redirect('accounts:login')
+        if next_url:
+            response = redirect(next_url)
+        else:
+            response = redirect('accounts:login')
+
         response.delete_cookie('current_naver_account')
+
+        # 네이버 세션도 종료하는 경우
+        if clear_naver_session:
+            # 네이버 로그아웃 페이지로 리다이렉트
+            return_url = request.build_absolute_uri('/auth/login/')
+            naver_logout_url = f"https://nid.naver.com/nidlogin.logout?returl={return_url}"
+            return redirect(naver_logout_url)
+
         return response
 
     def get(self, request):
         # GET 요청도 허용 (링크로 로그아웃 가능)
-        return self.post(request)
+        clear_naver_session = request.GET.get('clear_naver_session', 'false') == 'true'
+        next_url = request.GET.get('next', None)  # 로그아웃 후 이동할 URL
+
+        # 세션 완전히 정리
+        request.session.flush()
+
+        messages.success(request, "로그아웃되었습니다.")
+
+        # 쿠키 삭제
+        if next_url:
+            response = redirect(next_url)
+        else:
+            response = redirect('accounts:login')
+
+        response.delete_cookie('current_naver_account')
+
+        # 네이버 세션도 종료하는 경우
+        if clear_naver_session:
+            # 네이버 로그아웃 페이지로 리다이렉트
+            return_url = request.build_absolute_uri('/auth/login/')
+            naver_logout_url = f"https://nid.naver.com/nidlogin.logout?returl={return_url}"
+            return redirect(naver_logout_url)
+
+        return response
 
 
 class StaffNaverLoginView(View):
@@ -914,9 +945,19 @@ class UnifiedNaverLoginView(View):
         try:
             # 프롬프트 파라미터 확인 (계정 선택 화면 강제 표시 여부)
             prompt = request.GET.get('prompt')
+            # 예상 이메일 (검증용)
+            expected_email = request.GET.get('expected')
+
+            # 예상 이메일을 세션에 저장 (콜백에서 검증용)
+            if expected_email:
+                request.session['expected_email'] = expected_email
+                print(f"[DEBUG] 예상 계정 설정: {expected_email}")
 
             # 통합 콜백 URL 생성
-            login_url, state = naver_auth.get_login_url(login_type='unified', prompt=prompt)
+            login_url, state = naver_auth.get_login_url(
+                login_type='unified',
+                prompt=prompt
+            )
             # state를 세션에 저장
             request.session['naver_state'] = state
             request.session['login_type'] = 'unified'
@@ -927,11 +968,31 @@ class UnifiedNaverLoginView(View):
             return redirect('accounts:login')
 
 
+class SwitchAccountView(View):
+    """계정 전환을 위한 중간 페이지 - 네이버 로그아웃을 확실히 처리"""
+
+    def get(self, request):
+        """선택한 계정으로 전환하기 위해 네이버 로그아웃 처리"""
+        selected_email = request.GET.get('email', '')
+
+        # 네이버 로그아웃 후 OAuth 페이지로 이동
+        # auth_type=reauthenticate로 강제 재인증
+        oauth_url = request.build_absolute_uri(
+            reverse('accounts:unified_naver_login')
+        ) + '?prompt=logout'
+
+        return render(request, 'accounts/switch_account.html', {
+            'selected_email': selected_email,
+            'oauth_url': oauth_url
+        })
+
+
+
 class UnifiedNaverCallbackView(View):
     """통합 네이버 로그인 콜백 처리 (Staff/Member 자동 구분)"""
 
     def _save_account_to_cookie(self, response, account_info):
-        """로그인한 계정 정보를 쿠키에 저장"""
+        """로그인한 계정 정보를 쿠키에 저장 (중복 제거)"""
         import json
 
         # 현재 계정을 쿠키에 저장
@@ -942,25 +1003,6 @@ class UnifiedNaverCallbackView(View):
             httponly=False  # JavaScript에서 읽을 수 있도록
         )
 
-        # 최근 로그인 계정 목록 업데이트
-        # 기존 계정들을 한 칸씩 뒤로 밀기
-        for i in range(4, 0, -1):
-            prev_account = self.request.COOKIES.get(f'naver_account_{i-1}')
-            if prev_account:
-                response.set_cookie(
-                    f'naver_account_{i}',
-                    prev_account,
-                    max_age=30*24*60*60,
-                    httponly=False
-                )
-
-        # 새 계정을 첫 번째 위치에 저장
-        response.set_cookie(
-            'naver_account_0',
-            json.dumps(account_info),
-            max_age=30*24*60*60,
-            httponly=False
-        )
 
         return response
 
@@ -1013,6 +1055,40 @@ class UnifiedNaverCallbackView(View):
             naver_id = user_info['id']  # return0: 네이버 식별자
             naver_email = user_info['email']  # return1: 로그인 이메일
             naver_name = user_info['name']
+
+            # 🔍 예상 계정 검증
+            expected_email = request.session.get('expected_email')
+            if expected_email:
+                print(f"[DEBUG] 계정 검증 - 예상: {expected_email}, 실제: {naver_email}")
+
+                if expected_email != naver_email:
+                    # 잘못된 계정으로 로그인됨 - 재시도 필요
+                    print(f"[WARNING] 잘못된 계정으로 로그인! 예상: {expected_email}, 실제: {naver_email}")
+
+                    # 재시도 횟수 확인
+                    retry_count = request.session.get('retry_count', 0)
+                    if retry_count >= 2:
+                        # 2번 이상 실패 시 포기
+                        messages.error(request, f"{expected_email} 계정으로 로그인할 수 없습니다. 네이버에서 해당 계정을 선택해주세요.")
+                        request.session.pop('expected_email', None)
+                        request.session.pop('retry_count', None)
+                        return redirect('accounts:login')
+
+                    # 재시도
+                    request.session['retry_count'] = retry_count + 1
+                    messages.warning(request, f"{expected_email} 계정을 선택해주세요.")
+
+                    # 네이버 로그아웃 페이지로 강제 이동
+                    return_url = request.build_absolute_uri(
+                        reverse('accounts:unified_naver_login') + f'?expected={expected_email}&prompt=select_account'
+                    )
+                    logout_url = f"https://nid.naver.com/nidlogin.logout?returl={urllib.parse.quote(return_url)}"
+                    return redirect(logout_url)
+                else:
+                    # 올바른 계정으로 로그인됨
+                    print(f"[SUCCESS] 예상한 계정으로 로그인 성공: {naver_email}")
+                    request.session.pop('expected_email', None)
+                    request.session.pop('retry_count', None)
 
             # 🔍 Step 1: Staff에서 sNaverID0와 return0(naver_id)가 일치하는 것 찾기
             staff = Staff.objects.filter(sNaverID0=naver_id).first()
