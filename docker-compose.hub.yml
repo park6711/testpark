@@ -1,0 +1,76 @@
+# TestPark Docker Compose - Docker Hub Image Configuration
+# Docker Hub의 최신 이미지를 사용하는 설정
+#
+# 사용 방법:
+# docker-compose -f docker-compose.hub.yml up -d
+
+services:
+  # TestPark 메인 애플리케이션 (Docker Hub 이미지 사용)
+  testpark:
+    image: 7171man/testpark:latest
+    container_name: testpark
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./media:/app/media  # 업로드 파일 유지
+      - ./seongdal-a900e25ac63c.json:/app/seongdal-a900e25ac63c.json  # 구글 시트 인증 파일
+      - ./testpark_project/settings.py:/app/testpark_project/settings.py  # 로컬 설정 파일 오버라이드
+      - ./accounts/naver_auth.py:/app/accounts/naver_auth.py  # 네이버 인증 설정 오버라이드
+      - ./evaluation/views.py:/app/evaluation/views.py  # 평가 뷰 오버라이드
+      - ./evaluation/urls.py:/app/evaluation/urls.py  # 평가 URL 오버라이드
+      - ./evaluation/templates:/app/evaluation/templates  # 평가 템플릿 오버라이드
+      - ./staff/templates/staff/base.html:/app/staff/templates/staff/base.html  # Staff 베이스 템플릿
+      - ./member/templates/member/base.html:/app/member/templates/member/base.html  # Member 베이스 템플릿
+      - ./gonggu/templates:/app/gonggu/templates  # 공동구매 템플릿
+      - ./gonggu/views.py:/app/gonggu/views.py  # 공동구매 뷰
+    env_file:
+      - .env
+    environment:
+      # 로컬 개발 환경 설정
+      - DEBUG=True  # 로컬 개발 모드 활성화
+      # 운영 MariaDB 연결 설정 (carpenterhosting.cafe24.com)
+      - USE_MYSQL=True
+      - USE_PRODUCTION_DB=True
+      - PROD_DB_HOST=carpenterhosting.cafe24.com
+      - PROD_DB_NAME=testpark
+      - PROD_DB_USER=testpark
+      - PROD_DB_PASSWORD=**jeje4211
+      - PROD_DB_PORT=3306
+      # 네이버 로그인 및 프록시 설정 (로컬 환경)
+      - ALLOWED_HOSTS=carpenterhosting.cafe24.com,210.114.22.100,localhost,127.0.0.1
+      - USE_X_FORWARDED_HOST=false  # 로컬에서는 프록시 비활성화
+      - USE_X_FORWARDED_PORT=false
+      - SECURE_PROXY_SSL_HEADER=
+      - SESSION_COOKIE_SECURE=False  # HTTP 허용
+      - CSRF_COOKIE_SECURE=False
+      - FORCE_SCRIPT_NAME=
+      # 네트워크 최적화
+      - DJANGO_SETTINGS_MODULE=testpark_project.settings
+      - PYTHONUNBUFFERED=1  # 로그 버퍼링 비활성화
+    restart: unless-stopped
+    networks:
+      - testpark-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.testpark.service=main"
+      - "com.testpark.description=TestPark Django Application from Docker Hub"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+networks:
+  testpark-network:
+    driver: bridge
+    name: testpark-network

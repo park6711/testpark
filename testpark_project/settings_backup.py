@@ -33,17 +33,9 @@ DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 ALLOWED_HOSTS = ['*']  # Docker 환경에서 모든 호스트 허용
 
 # 프록시 설정 (Apache Reverse Proxy)
-# 개발/운영 환경에 따라 프록시 설정 적용
-if DEBUG:
-    # 로컬 개발 환경에서는 프록시 설정 비활성화
-    USE_X_FORWARDED_HOST = False
-    USE_X_FORWARDED_PORT = False
-    SECURE_PROXY_SSL_HEADER = None
-else:
-    # 운영 환경에서는 프록시 설정 활성화
-    USE_X_FORWARDED_HOST = True
-    USE_X_FORWARDED_PORT = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # CSRF 설정
 CSRF_TRUSTED_ORIGINS = [
@@ -56,12 +48,13 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
 ]
 
-# CSRF 기본 설정
+# CSRF 설정 추가
+CSRF_COOKIE_SECURE = False  # HTTP도 허용
+CSRF_COOKIE_SAMESITE = 'Lax'  # SameSite 정책 완화
 CSRF_USE_SESSIONS = False  # 쿠키 기반 CSRF 토큰 사용
 CSRF_COOKIE_HTTPONLY = False  # JavaScript에서 접근 가능
 CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
-# CSRF_COOKIE_SECURE와 CSRF_COOKIE_SAMESITE은 아래 세션 설정 부분에서 환경별로 설정됨
 
 
 # Application definition
@@ -144,8 +137,8 @@ if USE_MYSQL:
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.mysql',
-                'NAME': os.environ.get('PROD_DB_NAME', 'testpark'),
-                'USER': os.environ.get('PROD_DB_USER', 'testpark'),
+                'NAME': os.environ.get('PROD_DB_NAME', 'carpenterhosting'),
+                'USER': os.environ.get('PROD_DB_USER', 'carpenterhosting'),
                 'PASSWORD': os.environ.get('PROD_DB_PASSWORD', '**jeje4211'),
                 'HOST': os.environ.get('PROD_DB_HOST', 'carpenterhosting.cafe24.com'),
                 'PORT': os.environ.get('PROD_DB_PORT', '3306'),
@@ -256,23 +249,14 @@ JANDI_WEBHOOK_URL = os.getenv('JANDI_WEBHOOK_URL', 'https://wh.jandi.com/connect
 # 세션 설정
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # 데이터베이스에 세션 저장
 SESSION_COOKIE_AGE = 3600 * 24 * 7  # 세션 유효기간 7일
+SESSION_COOKIE_SECURE = True  # HTTPS에서만 쿠키 전송 (프로덕션 환경)
 SESSION_COOKIE_HTTPONLY = True  # JavaScript에서 쿠키 접근 차단
+SESSION_COOKIE_SAMESITE = 'None'  # 네이버 로그인을 위해 외부 사이트에서도 쿠키 전송 허용
 SESSION_SAVE_EVERY_REQUEST = True  # 모든 요청마다 세션 저장
 SESSION_COOKIE_NAME = 'testpark_sessionid'  # 세션 쿠키 이름
-
-# 개발/운영 환경에 따른 쿠키 보안 설정
-if DEBUG:
-    # 개발 환경 (HTTP 사용)
-    SESSION_COOKIE_SECURE = False
-    SESSION_COOKIE_SAMESITE = 'Lax'
-    CSRF_COOKIE_SECURE = False
-    CSRF_COOKIE_SAMESITE = 'Lax'
-else:
-    # 운영 환경 (HTTPS 사용)
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_SAMESITE = 'None'
-    CSRF_COOKIE_SECURE = True
-    CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True  # HTTPS에서만 CSRF 쿠키 전송
+CSRF_COOKIE_SAMESITE = 'None'  # 외부 사이트에서도 CSRF 쿠키 전송
+CSRF_TRUSTED_ORIGINS = ['https://carpenterhosting.cafe24.com']  # 신뢰할 수 있는 오리진
 
 # ================================================================================
 # 업체평가 전역변수 설정 (Global Variables for Company Evaluation)

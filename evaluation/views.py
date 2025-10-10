@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
@@ -622,3 +623,85 @@ def satisfy_delete(request, pk):
             'success': False,
             'error': str(e)
         })
+
+
+def evaluation_links(request):
+    """각종 평가 링크 페이지"""
+
+    # TestPark Staff 로그인 확인
+    if 'staff_user' not in request.session:
+        messages.error(request, '스태프 로그인이 필요합니다.')
+        return redirect('/auth/login/?next=/evaluation/evaluation-links/')
+
+    # 현재 로그인한 스태프 정보 가져오기
+    current_staff = None
+    if 'staff_user' in request.session:
+        try:
+            current_staff = Staff.objects.get(no=request.session['staff_user']['no'])
+        except Staff.DoesNotExist:
+            pass
+
+    # 평가 링크 데이터 구조화
+    evaluation_links_data = [
+        {
+            'title': '구글 평가메인',
+            'buttons': [{'text': '구글 평가메인', 'url': 'https://docs.google.com/spreadsheets/d/1tt7mJTYYpzX8SAeS0bRNmZcjpHwEmYX0eDs-XCyN0Eo/edit?gid=372449456#gid=372449456'}]
+        },
+        {
+            'title': '구매 관련',
+            'buttons': [
+                {'text': '닷컴 구매', 'url': 'https://docs.google.com/spreadsheets/d/1tt7mJTYYpzX8SAeS0bRNmZcjpHwEmYX0eDs-XCyN0Eo/edit?gid=98580291#gid=98580291'},
+                {'text': 'BtoB 구매', 'url': 'https://docs.google.com/spreadsheets/d/1AeeurBRf5J3i_2vnuBT92AaA5jni4Bfnyl2MsvGT85c/edit?gid=1994807601#gid=1994807601'},
+            ]
+        },
+        {
+            'title': '고객 관련',
+            'buttons': [
+                {'text': '고객후기', 'url': 'https://docs.google.com/spreadsheets/d/18SQzoeoRncn62MkD5mmONuc6ZPr7jl5C0E0oohExsSg/edit?gid=82999904#gid=82999904'},
+                {'text': '고객불만', 'url': 'https://docs.google.com/spreadsheets/d/1wnvAeyUaKOYAkb_Eo6BViRD7YId8mpUAKtCODE2ZqAs/edit?gid=1498232542#gid=1498232542'},
+                {'text': '설문', 'url': 'https://docs.google.com/forms/d/e/1FAIpQLSd5inckt0nO3qQhHPgl43NE5k-YQIyIzBGVm3YNLdXMAG4OpA/viewform'},
+                {'text': '고객만족도', 'url': 'https://docs.google.com/spreadsheets/d/18SQzoeoRncn62MkD5mmONuc6ZPr7jl5C0E0oohExsSg/edit?gid=1976708328#gid=1976708328'},
+                {'text': '설문', 'url': 'https://docs.google.com/forms/d/e/1FAIpQLSfMThFOX3KR0Gxc7tOvxlYClWmLdVvkmKtMmzSTu9sn6nR7ng/viewform'},
+            ]
+        },
+        {
+            'title': '지식 활동',
+            'buttons': [
+                {'text': '지식인활동', 'url': 'https://docs.google.com/spreadsheets/d/1STo-ujhC9nuadFTu9CjXysBwLyY5RZaOlYWu6cR8gCQ/edit?gid=997548587#gid=997548587'},
+                {'text': '지식공유활동', 'url': 'https://docs.google.com/spreadsheets/d/1tt7mJTYYpzX8SAeS0bRNmZcjpHwEmYX0eDs-XCyN0Eo/edit?gid=1890115347#gid=1890115347'},
+                {'text': '세미나참석', 'url': 'https://docs.google.com/spreadsheets/d/1Fve8KMPHYybnmOVcl7EplIUwcl3hx239JCfEXFErwOs/edit?gid=70070085#gid=70070085'},
+                {'text': '설문', 'url': 'https://docs.google.com/forms/d/e/1FAIpQLSdoi3S-pJCqVMj5gz3ua-XiCOyVL-f-gjHmEI6LP4X402JoTQ/viewform'},
+            ]
+        },
+        {
+            'title': '보증 활동',
+            'buttons': [
+                {'text': '이행보증서', 'url': 'https://docs.google.com/spreadsheets/d/1ypxlKpB4eGDEYiWp-3_EFuLPHxqgAoNsbl4Ft8CgUDU/edit?gid=886875576#gid=886875576'},
+                {'text': '설문', 'url': 'https://docs.google.com/forms/d/e/1FAIpQLScgOthRZJQuwd3yar2XF8oDtcUMPpv8caa0-ofvngtbRs3Q3g/viewform'},
+                {'text': '증권발행보고', 'url': 'https://docs.google.com/spreadsheets/d/1jtOmXkn6QkXhIVnZXfwmE0qJp32UvdYnKxtR5wKMSmA/edit?gid=93281572#gid=93281572'},
+                {'text': '설문', 'url': 'https://docs.google.com/forms/d/e/1FAIpQLSd-A8jLtMdwObQC8Js6dy47zFn_bsoRibiYuWLO9z5z0oEy-g/viewform'},
+                {'text': '증권발행현황', 'url': 'https://docs.google.com/spreadsheets/d/1jtOmXkn6QkXhIVnZXfwmE0qJp32UvdYnKxtR5wKMSmA/edit?gid=1964668303#gid=1964668303'},
+            ]
+        },
+        {
+            'title': '안전 캠페인',
+            'buttons': [
+                {'text': '안전 캠페인', 'url': 'https://docs.google.com/spreadsheets/d/1jtOmXkn6QkXhIVnZXfwmE0qJp32UvdYnKxtR5wKMSmA/edit?gid=1231467169#gid=1231467169'},
+                {'text': '설문', 'url': 'https://docs.google.com/forms/d/e/1FAIpQLSfFBIeVtO9u0yQw7D5k_jIae925ycelSo5Gu1oW7dERaAHtVA/viewform'},
+            ]
+        },
+        {
+            'title': '특별점수',
+            'buttons': [
+                {'text': '특별점수', 'url': 'https://docs.google.com/spreadsheets/d/1tt7mJTYYpzX8SAeS0bRNmZcjpHwEmYX0eDs-XCyN0Eo/edit?gid=1546529032#gid=1546529032'},
+            ]
+        },
+    ]
+
+    context = {
+        'title': '각종 평가 링크',
+        'evaluation_links': evaluation_links_data,
+        'current_staff': current_staff,
+    }
+
+    return render(request, 'evaluation/evaluation_links.html', context)

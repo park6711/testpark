@@ -38,4 +38,7 @@ urlpatterns = [
     # Complain Webhook (새로운 버전)
     path('webhook/complain/', webhook_views.complain_webhook, name='complain_webhook'),
     path('webhook/test-complain/', webhook_views.test_complain_webhook, name='test_complain_webhook'),
+
+    # 각종 평가 링크
+    path('evaluation-links/', views.evaluation_links, name='evaluation_links'),
 ]

@@ -825,7 +825,7 @@
                     <a href="{% url 'evaluation:complain_list' %}" class="dropdown-item">고객불만 이력</a>
                     <a href="{% url 'evaluation:satisfy_list' %}" class="dropdown-item">고객만족도 이력</a>
                     <a href="#" class="dropdown-item">업체평가 시뮬레이션</a>
-                    <a href="#" class="dropdown-item">각종 평가 링크</a>
+                    <a href="{% url 'evaluation:evaluation_links' %}" class="dropdown-item">각종 평가 링크</a>
                     <a href="#" class="dropdown-item">회차별 업체평가</a>
                     <a href="#" class="dropdown-item">연간 업체평가</a>
                     <a href="{% url 'evaluation:evaluation_no_list' %}" class="dropdown-item">업체평가 회차 관리</a>
@@ -836,10 +836,12 @@
             <div class="menu-item">
                 <a href="#" class="menu-link">스텝/설정</a>
                 <div class="dropdown">
-                    {% if current_staff and current_staff.nStaffAuthority > 0 %}
+                    {% if current_staff and current_staff.nStaffAuthority >= 1 %}
                         <a href="{% url 'staff:staff_list' %}" class="dropdown-item">스텝 관리</a>
-                    {% else %}
+                    {% elif current_staff %}
                         <span class="dropdown-item" style="color: #ccc; cursor: not-allowed;">스텝 관리 (권한없음)</span>
+                    {% else %}
+                        <a href="{% url 'staff:staff_list' %}" class="dropdown-item">스텝 관리</a>
                     {% endif %}
                     <a href="{% url 'template:template_list' %}" class="dropdown-item">템플리트</a>
                     <a href="{% url 'point:point_list' %}" class="dropdown-item">포인트 내역</a>
