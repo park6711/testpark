@@ -9,6 +9,7 @@ requests==2.31.0
 
 # MySQL/MariaDB 데이터베이스
 mysqlclient==2.2.4
+PyMySQL==1.1.0
 
 # 구글 시트 동기화 관련 패키지
 gspread==6.1.4

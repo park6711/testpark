@@ -1,0 +1,133 @@
+{% extends 'staff/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<style>
+    .link-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .link-section {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+
+    .link-section h3 {
+        margin: 0 0 10px 0;
+        color: #495057;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .link-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .link-button {
+        display: inline-block;
+        padding: 8px 16px;
+        background: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        font-size: 14px;
+        transition: background-color 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+
+    .link-button:hover {
+        background: #0056b3;
+        color: white;
+        text-decoration: none;
+    }
+
+    .link-button.survey {
+        background: #28a745;
+    }
+
+    .link-button.survey:hover {
+        background: #218838;
+    }
+
+    /* 특정 버튼 다음에 오는 설문 버튼의 간격 줄이기 */
+    .link-button.reduce-gap + .link-button.survey {
+        margin-left: -8px; /* gap을 2px로 줄이기 (10px - 8px = 2px) */
+    }
+
+    .page-header {
+        background: #fff;
+        padding: 20px;
+        border-bottom: 2px solid #007bff;
+        margin-bottom: 30px;
+    }
+
+    .page-header h1 {
+        margin: 0;
+        color: #333;
+        font-size: 24px;
+    }
+
+    @media (max-width: 768px) {
+        .link-container {
+            padding: 10px;
+        }
+
+        .link-buttons {
+            flex-direction: column;
+        }
+
+        .link-button {
+            width: 100%;
+            text-align: center;
+        }
+    }
+</style>
+
+<div class="page-header">
+    <h1>{{ title }}</h1>
+</div>
+
+<div class="link-container">
+    {% for section in evaluation_links %}
+    <div class="link-section">
+        {% if section.title %}
+        <h3>{{ section.title }}</h3>
+        {% endif %}
+        <div class="link-buttons">
+            {% for button in section.buttons %}
+            <a href="{{ button.url }}"
+               target="_blank"
+               class="link-button {% if '설문' in button.text %}survey{% elif '고객불만' in button.text or '고객만족도' in button.text or '이행보증서' in button.text or '증권발행보고' in button.text or '안전 캠페인' in button.text or '세미나참석' in button.text %}reduce-gap{% endif %}">
+                {{ button.text }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    // 모든 링크에 대해 새 탭으로 열기 확인
+    document.addEventListener('DOMContentLoaded', function() {
+        const links = document.querySelectorAll('.link-button');
+        links.forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Google Docs/Forms 링크인지 확인
+                if (this.href.includes('docs.google.com') || this.href.includes('forms.google.com')) {
+                    // 새 탭으로 열기 (이미 target="_blank" 설정됨)
+                    console.log('Opening:', this.href);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

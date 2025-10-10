@@ -8,7 +8,12 @@ from staff.views import get_current_staff
 import json
 
 def gonggu_list(request):
-    """공동구매 리스트"""
+    """공동구매 리스트 - Staff 전용"""
+    # Staff 로그인 확인
+    if 'staff_user' not in request.session:
+        messages.error(request, '스태프 로그인이 필요합니다.')
+        return redirect('/auth/login/?next=/gonggu/')
+
     # 현재 스텝 정보 가져오기
     current_staff = get_current_staff(request)
 
@@ -199,7 +204,12 @@ def gonggu_create(request):
     })
 
 def gonggu_detail(request, pk):
-    """공동구매 상세보기/수정"""
+    """공동구매 상세보기/수정 - Staff 전용"""
+    # Staff 로그인 확인
+    if 'staff_user' not in request.session:
+        messages.error(request, '스태프 로그인이 필요합니다.')
+        return redirect('/auth/login/?next=/gonggu/')
+
     current_staff = get_current_staff(request)
     gonggu = get_object_or_404(Gonggu, no=pk)
 
@@ -336,7 +346,12 @@ def getHierarchyIcon(area_id):
 
 
 def area_manage(request, gonggu_company_id):
-    """공동구매 가능 지역 관리"""
+    """공동구매 가능 지역 관리 - Staff 전용"""
+    # Staff 로그인 확인
+    if 'staff_user' not in request.session:
+        messages.error(request, '스태프 로그인이 필요합니다.')
+        return redirect('/auth/login/?next=/gonggu/')
+
     current_staff = get_current_staff(request)
 
     if not current_staff or current_staff.nOrderAuthority < 2:

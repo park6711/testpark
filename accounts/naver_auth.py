@@ -17,7 +17,15 @@ class NaverAuthManager:
     def __init__(self):
         self.client_id = settings.NAVER_CLIENT_ID
         self.client_secret = settings.NAVER_CLIENT_SECRET
-        self.base_redirect_uri = "https://carpenterhosting.cafe24.com/auth"
+
+        # 환경에 따라 동적으로 base_redirect_uri 설정
+        if settings.DEBUG:
+            # 개발 환경
+            self.base_redirect_uri = "http://localhost:8000/auth"
+        else:
+            # 운영 환경
+            self.base_redirect_uri = "https://carpenterhosting.cafe24.com/auth"
+
         # 기본 redirect_uri를 base로 사용 (ex: http://domain.com/accounts/)
 
     def generate_state(self) -> str:
@@ -56,9 +64,14 @@ class NaverAuthManager:
         # 로그인 타입을 state에 포함 (콜백에서 구분용)
         state_with_type = f"{state}:{login_type}"
 
-        # 네이버 앱에 등록된 콜백 URL 사용 (기존 URL 유지)
-        # 네이버 API에는 하나의 콜백 URL만 등록되어 있으므로
-        redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/company/naver/callback/"
+        # 네이버 앱에 등록된 콜백 URL 사용
+        # 로컬과 운영 환경에 따라 다른 콜백 경로 사용
+        if settings.DEBUG:
+            # 로컬 개발 환경 - 간단한 경로 사용
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/naver/callback/"
+        else:
+            # 운영 환경 - company 경로 사용
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/company/naver/callback/"
 
         params = {
             'response_type': 'code',
@@ -104,7 +117,10 @@ class NaverAuthManager:
             return None
 
         # 네이버 앱에 등록된 콜백 URL 사용
-        redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/company/naver/callback/"
+        if settings.DEBUG:
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/naver/callback/"
+        else:
+            redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/company/naver/callback/"
 
         token_url = 'https://nid.naver.com/oauth2.0/token'
         data = {
@@ -183,8 +199,11 @@ class NaverAuthManager:
             # 1. 액세스 토큰 획득 (state 검증 포함 또는 제외)
             if skip_state_verification:
                 # state 검증을 건너뛰고 토큰 요청
-                # 단일 콜백 URL 사용
-                redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/naver/callback/"
+                # 환경에 따른 콜백 URL 사용
+                if settings.DEBUG:
+                    redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/naver/callback/"
+                else:
+                    redirect_uri = f"{self.base_redirect_uri.rstrip('/')}/company/naver/callback/"
 
                 token_url = 'https://nid.naver.com/oauth2.0/token'
                 data = {
