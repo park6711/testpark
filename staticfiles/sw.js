@@ -1,57 +1,35 @@
-// TestPark Service Worker
-const CACHE_NAME = 'testpark-v3'; // v3로 업데이트
+// Service Worker for TestPark
+// 간단한 Service Worker 구현
+
+const CACHE_NAME = 'testpark-v1';
 const urlsToCache = [
   '/',
-  '/static/css/main.a874db27.css',
-  '/static/js/main.f7a94119.js' // 새로운 JS 파일
+  '/static/css/',
+  '/static/js/',
 ];
 
-// Install event
-self.addEventListener('install', event => {
-  console.log('Service Worker: Installing v3...');
-  self.skipWaiting(); // 즉시 활성화
+self.addEventListener('install', function(event) {
+  // 설치 중에는 캐시 생성
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
+      .then(function(cache) {
         console.log('Service Worker: 캐시 생성');
         return cache.addAll(urlsToCache);
-      })
-      .catch(err => {
-        console.error('Service Worker: 캐시 생성 실패', err);
       })
   );
 });
 
-// Fetch event
-self.addEventListener('fetch', event => {
+self.addEventListener('fetch', function(event) {
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
+      .then(function(response) {
+        // 캐시에서 발견되면 반환, 없으면 네트워크에서 가져오기
         if (response) {
           return response;
         }
         return fetch(event.request);
-      })
-  );
-});
-
-// Activate event
-self.addEventListener('activate', event => {
-  console.log('Service Worker: Activating v3...');
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          // v3 이외의 모든 캐시 삭제
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: 오래된 캐시 삭제:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => {
-      return clients.claim(); // 즉시 컨트롤 획득
-    })
+      }
+    )
   );
 });
 

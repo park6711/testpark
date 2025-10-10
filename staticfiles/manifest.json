@@ -1,23 +1,23 @@
 {
+  "name": "TestPark 견적의뢰 관리 시스템",
   "short_name": "TestPark",
-  "name": "TestPark 의뢰할당 관리 시스템",
+  "description": "인테리어 업체와 고객을 연결하는 견적의뢰 관리 플랫폼",
+  "start_url": "/order/pplist/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea",
   "icons": [
     {
       "src": "/static/icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "sizes": "192x192"
+      "purpose": "any maskable"
     },
     {
-      "src": "/static/icon-512.png",
+      "src": "/static/icon-512.png", 
+      "sizes": "512x512",
       "type": "image/png",
-      "sizes": "512x512"
+      "purpose": "any maskable"
     }
-  ],
-  "start_url": "/",
-  "display": "standalone",
-  "theme_color": "#667eea",
-  "background_color": "#ffffff",
-  "description": "TestPark 의뢰할당 관리 시스템",
-  "lang": "ko-KR",
-  "orientation": "portrait"
+  ]
 }

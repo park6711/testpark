@@ -46,6 +46,9 @@ __pycache__/
 .Python
 *.pyc
 
+# Compressed files
+*.gz
+
 # Database
 db.sqlite3
 *.db
