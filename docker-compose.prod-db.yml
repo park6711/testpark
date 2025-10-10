@@ -1,0 +1,42 @@
+# 운영 DB를 사용하는 개발 환경 Docker Compose
+# 사용법: docker-compose -f docker-compose.prod-db.yml up -d
+
+version: '3.8'
+
+services:
+  # Django 개발 서버 (운영 DB 연결)
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: testpark-django-proddb
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app  # 코드 실시간 반영
+      - ./media:/app/media
+      - ./static:/app/static
+      - ./staticfiles:/app/staticfiles
+    environment:
+      - DEBUG=True
+      - USE_MYSQL=True
+      - USE_PRODUCTION_DB=True
+      - PROD_DB_HOST=carpenterhosting.cafe24.com
+      - PROD_DB_NAME=carpenterhosting
+      - PROD_DB_USER=carpenterhosting
+      - PROD_DB_PASSWORD=**jeje4211
+      - PROD_DB_PORT=3306
+      # 네이버 로그인 설정
+      - NAVER_CLIENT_ID=_mw6kojqJVXoWEBqYBKv
+      - NAVER_CLIENT_SECRET=hHKrIfKoMA
+      - NAVER_REDIRECT_URI=http://localhost:8000/auth/naver/callback/
+      # 잔디 웹훅
+      - JANDI_WEBHOOK_URL=https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265
+    networks:
+      - testpark-network
+    command: python manage.py runserver 0.0.0.0:8000
+    restart: unless-stopped
+
+networks:
+  testpark-network:
+    driver: bridge

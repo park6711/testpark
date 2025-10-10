@@ -129,22 +129,41 @@ WSGI_APPLICATION = 'testpark_project.wsgi.application'
 
 # MariaDB/MySQL 설정 (Docker 환경 및 로컬 환경 모두 지원)
 USE_MYSQL = os.environ.get('USE_MYSQL', 'True').lower() == 'true'
+USE_PRODUCTION_DB = os.environ.get('USE_PRODUCTION_DB', 'False').lower() == 'true'
 
 if USE_MYSQL:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.environ.get('DB_NAME', 'testpark'),
-            'USER': os.environ.get('DB_USER', 'testpark'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', 'testpark123'),
-            'HOST': os.environ.get('DB_HOST', 'mariadb'),  # Docker 내부에서는 'mariadb', 로컬에서는 'localhost'
-            'PORT': os.environ.get('DB_PORT', '3306'),
-            'OPTIONS': {
-                'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+    if USE_PRODUCTION_DB:
+        # 운영 서버 DB 연결 (carpenterhosting.cafe24.com)
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.mysql',
+                'NAME': os.environ.get('PROD_DB_NAME', 'carpenterhosting'),
+                'USER': os.environ.get('PROD_DB_USER', 'carpenterhosting'),
+                'PASSWORD': os.environ.get('PROD_DB_PASSWORD', '**jeje4211'),
+                'HOST': os.environ.get('PROD_DB_HOST', 'carpenterhosting.cafe24.com'),
+                'PORT': os.environ.get('PROD_DB_PORT', '3306'),
+                'OPTIONS': {
+                    'charset': 'utf8mb4',
+                    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                }
             }
         }
-    }
+    else:
+        # 로컬 개발 환경 (Docker MariaDB)
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.mysql',
+                'NAME': os.environ.get('DB_NAME', 'testpark'),
+                'USER': os.environ.get('DB_USER', 'testpark'),
+                'PASSWORD': os.environ.get('DB_PASSWORD', 'testpark123'),
+                'HOST': os.environ.get('DB_HOST', 'mariadb'),  # Docker 내부에서는 'mariadb', 로컬에서는 'localhost'
+                'PORT': os.environ.get('DB_PORT', '3306'),
+                'OPTIONS': {
+                    'charset': 'utf8mb4',
+                    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                }
+            }
+        }
 else:
     # SQLite (개발 환경 백업)
     DATABASES = {
