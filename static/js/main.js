@@ -1,10 +1,18 @@
 /**
- * TestPark 전역 애플리케이션 관리자
- * 모든 앱의 전역 함수를 중앙에서 관리
+ * TestPark 메인 애플리케이션
+ * 전역 네임스페이스 및 앱 관리
+ *
+ * 의존성: constants.js, utils.js
  */
 
 (function() {
     'use strict';
+
+    // 의존성 체크
+    if (!window.TestParkConstants) {
+        console.error('TestParkConstants가 로드되지 않았습니다. constants.js를 먼저 로드하세요.');
+        return;
+    }
 
     /**
      * TestPark 전역 네임스페이스
@@ -12,7 +20,10 @@
      */
     window.TestPark = {
         // 버전 정보
-        version: '1.0.0',
+        version: '1.1.0',
+
+        // 상수 참조 (편의성)
+        constants: window.TestParkConstants,
 
         // 공통 유틸리티 (기존 함수들과 호환)
         utils: {

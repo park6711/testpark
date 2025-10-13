@@ -429,14 +429,16 @@ setInterval(function() {
 {% endblock %}
 
 {% block extra_js %}
-<!-- 전역 공통 라이브러리 (프로젝트 전체) -->
-<script src="{% static 'js/api-helpers.js' %}"></script>
-<script src="{% static 'js/global-app.js' %}"></script>
+<!-- 전역 공통 라이브러리 (프로젝트 전체) - Django 표준 구조 -->
+<script src="{% static 'js/constants.js' %}"></script>
+<script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/main.js' %}"></script>
 
-<!-- Order 앱 의존성 순서대로 로드 -->
+<!-- Order 앱 의존성 순서대로 로드 - Django 표준 구조 -->
+<script src="{% static 'order/js/constants.js' %}"></script>
+<script src="{% static 'order/js/utils.js' %}"></script>
 <script src="{% static 'order/js/api-config.js' %}"></script>
 <script src="{% static 'order/js/toast.js' %}"></script>
-<script src="{% static 'order/js/common.js' %}"></script>
 <script src="{% static 'order/js/order-global-adapter.js' %}"></script>
 <script src="{% static 'order/js/order-detail.js' %}"></script>
 <script src="{% static 'order/js/order-assign.js' %}"></script>
@@ -447,6 +449,8 @@ setInterval(function() {
 <!-- 전역 함수 노출 (하위 호환성) -->
 <script>
     // Order 앱의 액션 함수들을 전역으로 노출
-    TestPark.exposeGlobal('order', 'actions');
+    if (window.TestPark && window.TestPark.exposeGlobal) {
+        TestPark.exposeGlobal('order', 'actions');
+    }
 </script>
 {% endblock %}
