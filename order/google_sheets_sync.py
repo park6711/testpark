@@ -224,7 +224,6 @@ class GoogleSheetsSync:
             return False
         return value.lower() in ['true', 'yes', '예', '동의', '1', 'o']
 
-    @transaction.atomic
     def sync_data(self, update_existing=False) -> Dict[str, int]:
         """구글 스프레드시트 데이터를 DB와 동기화
 
@@ -242,122 +241,146 @@ class GoogleSheetsSync:
         updated_count = 0
         skipped_count = 0
         invalid_count = 0
+        error_count = 0
 
         for row in sheet_data:
+            # 각 행을 개별 트랜잭션으로 처리 (한 행의 에러가 다른 행에 영향 주지 않도록)
+            sheet_uuid = row.get('uuid_col', '').strip()
+
+            # 트랜잭션 밖에서 검증 로직 수행
+            if not sheet_uuid:
+                skipped_count += 1
+                continue
+
+            # 타임스탬프 재검증 (이미 fetch_sheet_data에서 검증했지만 한번 더)
+            timestamp_str = row.get('timestamp', '')
+            if not timestamp_str or not self._is_valid_timestamp(timestamp_str):
+                skipped_count += 1
+                logger.warning(f"동기화 시 타임스탬프 검증 실패: UUID={sheet_uuid}")
+                continue
+
+            # 최소한의 고객 정보가 있는지 확인 (이름 또는 전화번호 중 하나는 있어야 함)
+            name = row.get('name', '').strip()
+            phone = row.get('phone', '').strip()
+
+            if not name and not phone:
+                skipped_count += 1
+                logger.info(f"고객 정보 부족으로 건너뜀: UUID={sheet_uuid}")
+                continue
+
+            # UUID로 기존 레코드 확인 (트랜잭션 밖에서 확인)
             try:
-                sheet_uuid = row.get('uuid_col', '').strip()
-
-                if not sheet_uuid:
-                    skipped_count += 1
-                    continue
-
-                # 타임스탬프 재검증 (이미 fetch_sheet_data에서 검증했지만 한번 더)
-                timestamp_str = row.get('timestamp', '')
-                if not timestamp_str or not self._is_valid_timestamp(timestamp_str):
-                    skipped_count += 1
-                    logger.warning(f"동기화 시 타임스탬프 검증 실패: UUID={sheet_uuid}")
-                    continue
-
-                # 최소한의 고객 정보가 있는지 확인 (이름 또는 전화번호 중 하나는 있어야 함)
-                name = row.get('name', '').strip()
-                phone = row.get('phone', '').strip()
-
-                if not name and not phone:
-                    skipped_count += 1
-                    logger.info(f"고객 정보 부족으로 건너뜀: UUID={sheet_uuid}")
-                    continue
-
-                # UUID로 기존 레코드 확인
                 existing_order = Order.objects.filter(google_sheet_uuid=sheet_uuid).first()
+            except Exception as e:
+                logger.error(f"UUID 조회 오류: {str(e)}, UUID: {sheet_uuid}")
+                error_count += 1
+                continue
 
-                if existing_order:
-                    if update_existing:
-                        # 기존 레코드 업데이트
-                        updated = False
-
-                        # 변경된 필드만 업데이트
-                        fields_to_check = [
-                            ('sName', row.get('name', '')),
-                            ('sPhone', row.get('phone', '')),
-                            ('sArea', row.get('area', '')),
-                            ('sConstruction', row.get('construction', '')),
-                        ]
-
-                        for field_name, new_value in fields_to_check:
-                            old_value = getattr(existing_order, field_name, '')
-                            if str(old_value) != str(new_value):
-                                setattr(existing_order, field_name, new_value)
-                                updated = True
-
-                        if updated:
-                            existing_order.save()
-                            updated_count += 1
-                            logger.info(f"레코드 업데이트: {sheet_uuid}")
-                        else:
-                            skipped_count += 1
-                    else:
-                        # 이미 존재하는 경우 스킵
-                        skipped_count += 1
-                        logger.debug(f"이미 존재하는 UUID: {sheet_uuid}")
-                    continue
-
-                # 지정 타입 결정
-                designation_value = row.get('designation', '')
-                if '공동구매' in designation_value:
-                    designation_type = '공동구매'
-                elif '열린업체' in designation_value or designation_value:
-                    designation_type = '업체지정'
-                else:
-                    designation_type = '지정없음'
-
-                # 새 레코드 생성
-                order_data = {
-                    'google_sheet_uuid': sheet_uuid,
-                    'designation': row.get('designation', ''),  # C열: 지정 내용
-                    'designation_type': designation_type,
-                    'sNick': row.get('nick', ''),  # D열: 별명
-                    'sNaverID': row.get('naver_id', ''),  # E열: Naver 아이디
-                    'sName': row.get('name', ''),  # F열: 이름
-                    'sPhone': row.get('phone', ''),  # G열: 전화번호
-                    'sPost': row.get('post', ''),  # H열: 견적의뢰게시글
-                    'post_link': row.get('post', ''),  # H열을 링크로도 저장
-                    'sArea': row.get('area', ''),  # I열: 공사지역
-                    'dateSchedule': self.parse_date(row.get('schedule_date', '')),  # J열: 공사예정일
-                    'sConstruction': row.get('construction', ''),  # K열: 공사내용
-                    'bPrivacy1': self.parse_boolean(row.get('privacy1', '')),
-                    'bPrivacy2': self.parse_boolean(row.get('privacy2', '')),
-                    'recent_status': '대기중',
-                    'assigned_company': '',
-                }
-
-                # 타임스탬프 처리 (한국 날짜 형식)
-                timestamp_str = row.get('timestamp', '')
-                if timestamp_str:
+            if existing_order:
+                if update_existing:
                     try:
-                        # 다양한 타임스탬프 형식 처리
-                        # 예: "2025. 9. 16 오전 12:12:46"
-                        import re
-                        # 한국어 오전/오후 처리
-                        timestamp_str = timestamp_str.replace('오전', 'AM').replace('오후', 'PM')
-                        # 점 제거
-                        timestamp_str = re.sub(r'(\d+)\. (\d+)\. (\d+)', r'\1/\2/\3', timestamp_str)
+                        with transaction.atomic():
+                            # 기존 레코드 업데이트
+                            updated = False
 
-                        # 여러 형식 시도
-                        for fmt in ['%Y/%m/%d %p %I:%M:%S', '%Y/%m/%d %H:%M:%S', '%m/%d/%Y %H:%M:%S']:
-                            try:
-                                order_data['time'] = datetime.strptime(timestamp_str, fmt)
-                                break
-                            except:
-                                continue
+                            # 변경된 필드만 업데이트
+                            fields_to_check = [
+                                ('sName', row.get('name', '')[:50]),
+                                ('sPhone', row.get('phone', '').strip().replace(' ', '').replace('-', '')[:20]),
+                                ('sArea', row.get('area', '')),
+                                ('sConstruction', row.get('construction', '')),
+                            ]
+
+                            for field_name, new_value in fields_to_check:
+                                old_value = getattr(existing_order, field_name, '')
+                                if str(old_value) != str(new_value):
+                                    setattr(existing_order, field_name, new_value)
+                                    updated = True
+
+                            if updated:
+                                existing_order.save()
+                                updated_count += 1
+                                logger.info(f"레코드 업데이트: {sheet_uuid}")
+                            else:
+                                skipped_count += 1
                     except Exception as e:
-                        logger.warning(f"타임스탬프 파싱 실패: {timestamp_str} - {str(e)}")
+                        error_count += 1
+                        logger.error(f"레코드 업데이트 오류: {str(e)}, UUID: {sheet_uuid}")
+                else:
+                    # 이미 존재하는 경우 스킵
+                    skipped_count += 1
+                    logger.debug(f"이미 존재하는 UUID: {sheet_uuid}")
+                continue
 
-                Order.objects.create(**order_data)
-                created_count += 1
-                logger.info(f"새 의뢰 생성: {sheet_uuid}")
+            # 새 레코드 생성 로직
+            try:
+                with transaction.atomic():
+                    # 지정 타입 결정
+                    designation_value = row.get('designation', '')
+                    if '공동구매' in designation_value:
+                        designation_type = '공동구매'
+                    elif '열린업체' in designation_value or designation_value:
+                        designation_type = '업체지정'
+                    else:
+                        designation_type = '지정없음'
+
+                    # 전화번호 길이 제한 및 정제 (최대 20자)
+                    phone = row.get('phone', '').strip()
+                    if phone:
+                        # 공백, 하이픈 제거
+                        phone = phone.replace(' ', '').replace('-', '')
+                        # 최대 20자로 제한
+                        phone = phone[:20]
+
+                    # 새 레코드 생성
+                    order_data = {
+                        'google_sheet_uuid': sheet_uuid,
+                        'designation': row.get('designation', '')[:200],  # 길이 제한
+                        'designation_type': designation_type,
+                        'sNick': row.get('nick', '')[:50],  # 길이 제한
+                        'sNaverID': row.get('naver_id', '')[:50],  # 길이 제한
+                        'sName': row.get('name', '')[:50],  # 길이 제한
+                        'sPhone': phone,  # 정제된 전화번호
+                        'sPost': row.get('post', '')[:200],  # 길이 제한
+                        'post_link': row.get('post', '')[:500],  # 길이 제한
+                        'sArea': row.get('area', ''),  # TEXT 타입이므로 제한 없음
+                        'dateSchedule': self.parse_date(row.get('schedule_date', '')),
+                        'sConstruction': row.get('construction', ''),  # TEXT 타입이므로 제한 없음
+                        'bPrivacy1': self.parse_boolean(row.get('privacy1', '')),
+                        'bPrivacy2': self.parse_boolean(row.get('privacy2', '')),
+                        'recent_status': '대기중',
+                        'assigned_company': '',
+                    }
+
+                    # 타임스탬프 처리 (한국 날짜 형식)
+                    timestamp_str = row.get('timestamp', '')
+                    if timestamp_str:
+                        try:
+                            # 다양한 타임스탬프 형식 처리
+                            # 예: "2025. 9. 16 오전 12:12:46"
+                            import re
+                            # 한국어 오전/오후 처리
+                            timestamp_str = timestamp_str.replace('오전', 'AM').replace('오후', 'PM')
+                            # 점 제거
+                            timestamp_str = re.sub(r'(\d+)\. (\d+)\. (\d+)', r'\1/\2/\3', timestamp_str)
+
+                            # 여러 형식 시도
+                            for fmt in ['%Y/%m/%d %p %I:%M:%S', '%Y/%m/%d %H:%M:%S', '%m/%d/%Y %H:%M:%S']:
+                                try:
+                                    order_data['time'] = datetime.strptime(timestamp_str, fmt)
+                                    break
+                                except:
+                                    continue
+                        except Exception as e:
+                            logger.warning(f"타임스탬프 파싱 실패: {timestamp_str} - {str(e)}")
+
+                    Order.objects.create(**order_data)
+                    created_count += 1
+                    logger.info(f"새 의뢰 생성: {sheet_uuid}")
 
             except Exception as e:
-                logger.error(f"행 처리 오류: {str(e)}, UUID: {row.get('uuid_col', 'Unknown')}")
+                error_count += 1
+                logger.error(f"행 처리 오류: {str(e)}, UUID: {sheet_uuid}")
                 continue
 
         # 동기화 시간 업데이트
@@ -368,6 +391,7 @@ class GoogleSheetsSync:
             'updated': updated_count,
             'skipped': skipped_count,
             'invalid': invalid_count,
+            'errors': error_count,
             'total': len(sheet_data),
             'sync_time': datetime.now().isoformat()
         }
@@ -375,6 +399,10 @@ class GoogleSheetsSync:
         # 새 접수 건이 있으면 로그 강조
         if created_count > 0:
             logger.warning(f"⚡ 새로운 접수 {created_count}건 동기화 완료!")
+
+        # 에러가 있으면 경고
+        if error_count > 0:
+            logger.warning(f"⚠️  {error_count}건의 행 처리 중 에러 발생")
 
         logger.info(f"동기화 완료: {result}")
         return result
