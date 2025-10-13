@@ -30,8 +30,8 @@ def order_list(request):
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
 
-    # 기본 쿼리셋
-    orders = Order.objects.all()
+    # 기본 쿼리셋 (최신순 정렬)
+    orders = Order.objects.all().order_by('-created_at', '-no')
 
     # 검색
     if search:
@@ -52,8 +52,8 @@ def order_list(request):
     if date_to:
         orders = orders.filter(created_at__lte=date_to + ' 23:59:59')
 
-    # 페이지네이션
-    paginator = Paginator(orders, 20)
+    # 페이지네이션 (50개씩 표시)
+    paginator = Paginator(orders, 50)
     page = request.GET.get('page', 1)
     page_obj = paginator.get_page(page)
 
