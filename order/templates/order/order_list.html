@@ -134,7 +134,11 @@
                         {% endif %}
                     </td>
                     <td style="text-align: center;">
-                        <button class="btn-small" onclick="showMemos({{ order.no }})" aria-label="의뢰 번호 {{ order.no }}의 메모 보기">메모</button>
+                        {% if order.first_assign %}
+                            <button class="btn-small" onclick="showMemos({{ order.no }}, {{ order.first_assign.no }})" aria-label="의뢰 번호 {{ order.no }}의 메모 보기">메모</button>
+                        {% else %}
+                            <button class="btn-small" disabled title="할당이 없습니다">메모</button>
+                        {% endif %}
                     </td>
                     <td style="text-align: center; position: sticky; right: 0; background: white; box-shadow: -2px 0 4px rgba(0,0,0,0.1);">
                         <div style="display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;" role="group" aria-label="의뢰 번호 {{ order.no }} 액션">
@@ -354,11 +358,67 @@
 
             <!-- 기존 메모 목록 -->
             <div class="section-box">
-                <h4 class="section-title">기존 메모 <span id="memoCount" style="color: #6b7280; font-size: 0.9rem;">(0개)</span></h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h4 class="section-title" style="margin: 0;">기존 메모 <span id="memoCount" style="color: #6b7280; font-size: 0.9rem;">(0개)</span></h4>
+
+                    <!-- 스코프 토글 버튼 -->
+                    <div class="scope-toggle" style="display: flex; gap: 0.5rem; background: #f3f4f6; padding: 0.25rem; border-radius: 0.5rem;">
+                        <button id="scopeMemoAssignBtn" class="scope-btn active" onclick="changeScopeMemo('assign')"
+                                style="padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; background: transparent; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">
+                            현재 할당만
+                        </button>
+                        <button id="scopeMemoOrderBtn" class="scope-btn" onclick="changeScopeMemo('order')"
+                                style="padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; background: transparent; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">
+                            전체 의뢰
+                        </button>
+                    </div>
+                </div>
                 <div id="memoList" style="max-height: 300px; overflow-y: auto;">
                     <!-- JavaScript로 동적 생성 -->
                 </div>
             </div>
+
+            <style>
+            /* 메모 카드 스타일 */
+            .memo-card {
+                padding: 12px;
+                border: 1px solid #e5e7eb;
+                border-radius: 0.5rem;
+                margin-bottom: 8px;
+                background: white;
+            }
+
+            .memo-card.other-assign {
+                background: #f9fafb;
+                border-left: 3px solid #9ca3af;
+            }
+
+            .memo-header {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 6px;
+            }
+
+            .memo-info {
+                display: flex;
+                align-items: center;
+                font-weight: 600;
+                color: #374151;
+            }
+
+            .memo-date {
+                font-size: 0.875rem;
+                color: #6b7280;
+            }
+
+            .memo-body {
+                color: #4b5563;
+            }
+
+            .memo-content {
+                white-space: pre-wrap;
+            }
+            </style>
         </div>
         <div class="assign-modal-footer">
             <button class="btn-secondary" onclick="closeMemoModal()">취소</button>
@@ -408,12 +468,56 @@
 
             <!-- 기존 견적서 목록 -->
             <div class="section-box">
-                <h4 class="section-title">등록된 견적서 <span id="estimateCount" style="color: #6b7280; font-size: 0.9rem;">(0개)</span></h4>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h4 class="section-title" style="margin: 0;">등록된 견적서 <span id="estimateCount" style="color: #6b7280; font-size: 0.9rem;">(0개)</span></h4>
+
+                    <!-- 스코프 토글 버튼 -->
+                    <div class="scope-toggle" style="display: flex; gap: 0.5rem; background: #f3f4f6; padding: 0.25rem; border-radius: 0.5rem;">
+                        <button id="scopeAssignBtn" class="scope-btn active" onclick="changeScopeEstimate('assign')"
+                                style="padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; background: transparent; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">
+                            현재 할당만
+                        </button>
+                        <button id="scopeOrderBtn" class="scope-btn" onclick="changeScopeEstimate('order')"
+                                style="padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; background: transparent; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">
+                            전체 의뢰
+                        </button>
+                    </div>
+                </div>
                 <div id="estimateList" style="max-height: 400px; overflow-y: auto;">
                     <!-- JavaScript로 동적 생성 -->
                     <div class="loading-spinner" style="padding: 2rem;"></div>
                 </div>
             </div>
+
+            <style>
+            /* 스코프 토글 버튼 스타일 */
+            .scope-btn.active {
+                background: white !important;
+                color: #3b82f6 !important;
+                font-weight: 600;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+
+            .scope-btn:hover {
+                background: rgba(255, 255, 255, 0.5);
+            }
+
+            /* 다른 할당 견적 카드 스타일 */
+            .estimate-card.other-assign {
+                background: #f9fafb;
+                border-left: 3px solid #9ca3af;
+            }
+
+            .info-badge.primary {
+                background: #dbeafe;
+                color: #1e40af;
+            }
+
+            .info-badge.info {
+                background: #e5e7eb;
+                color: #4b5563;
+            }
+            </style>
         </div>
         <div class="assign-modal-footer">
             <button class="btn-secondary" onclick="closeEstimateModal()">닫기</button>

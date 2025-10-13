@@ -3,15 +3,19 @@
  */
 (function() {
     'use strict';
-    
-    const { getCookie, apiCall } = window.OrderUtils;
-    
+
+    const { getCookie, apiCall, formatDate } = window.OrderUtils;
+
     let currentMemoOrderNo = null;
+    let currentMemoAssignNo = null;
     let currentMemoOrderData = null;
-    
+    let currentScope = 'assign'; // 'assign' 또는 'order'
+    let allMemos = [];
+
     // 메모 모달 열기
-    window.addMemo = function(orderNo) {
+    window.addMemo = function(orderNo, assignNo) {
         currentMemoOrderNo = orderNo;
+        currentMemoAssignNo = assignNo;
 
         const apiUrl = window.ApiConfig
             ? window.ApiConfig.endpoints.orders.detail(orderNo)
@@ -21,7 +25,7 @@
             .then(data => {
                 currentMemoOrderData = data;
                 displayMemoOrderInfo(data);
-                loadExistingMemos();
+                loadMemos(assignNo);
 
                 document.getElementById('memoContent').value = '';
                 document.getElementById('memoModal').classList.add('active');
@@ -40,7 +44,10 @@
     window.closeMemoModal = function() {
         document.getElementById('memoModal').classList.remove('active');
         currentMemoOrderNo = null;
+        currentMemoAssignNo = null;
         currentMemoOrderData = null;
+        currentScope = 'assign';
+        allMemos = [];
     };
     
     function displayMemoOrderInfo(data) {
@@ -65,28 +72,126 @@
         document.getElementById('memoOrderInfo').innerHTML = infoHtml;
     }
     
-    function loadExistingMemos() {
-        const memoListDiv = document.getElementById('memoList');
-        const memoCountSpan = document.getElementById('memoCount');
-        
-        if (currentMemoOrderData && currentMemoOrderData.memos) {
-            const memos = currentMemoOrderData.memos;
-            memoCountSpan.textContent = `(${memos.length}개)`;
-            
-            if (memos.length === 0) {
-                memoListDiv.innerHTML = '<div style="text-align: center; padding: 2rem; color: #9ca3af;">등록된 메모가 없습니다.</div>';
-            } else {
-                memoListDiv.innerHTML = memos.map(memo => `
-                    <div style="padding: 12px; border: 1px solid #e5e7eb; border-radius: 0.5rem; margin-bottom: 8px; background: #f9fafb;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                            <span style="font-weight: 600; color: #374151;">${memo.author || '작성자 미상'}</span>
-                            <span style="font-size: 0.875rem; color: #6b7280;">${memo.datetime || ''}</span>
+    /**
+     * 메모 목록 로드
+     * @param {number} assignNo - 할당 번호
+     * @param {string} scope - 'assign' 또는 'order'
+     */
+    function loadMemos(assignNo, scope = 'assign') {
+        currentScope = scope;
+
+        const apiUrl = window.ApiConfig
+            ? `${window.ApiConfig.endpoints.assignMemos.byAssign(assignNo)}&scope=${scope}`
+            : `/order/api/assign-memos/?assign_id=${assignNo}&scope=${scope}`;
+
+        // 토글 버튼 상태 업데이트
+        updateScopeToggle(scope);
+
+        apiCall(apiUrl)
+            .then(data => {
+                allMemos = data.results || data;
+                renderMemoList();
+            })
+            .catch(error => {
+                console.error('Error loading memos:', error);
+                if (window.Toast) {
+                    window.Toast.error('메모 목록을 불러오는데 실패했습니다.');
+                }
+
+                const listContainer = document.getElementById('memoList');
+                if (listContainer) {
+                    listContainer.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: #dc3545;">
+                            메모 목록을 불러오는데 실패했습니다.
                         </div>
-                        <div style="color: #4b5563; white-space: pre-wrap;">${memo.content || ''}</div>
-                    </div>
-                `).join('');
+                    `;
+                }
+            });
+    }
+
+    /**
+     * 스코프 토글 버튼 상태 업데이트
+     * @param {string} scope - 'assign' 또는 'order'
+     */
+    function updateScopeToggle(scope) {
+        const assignBtn = document.getElementById('scopeMemoAssignBtn');
+        const orderBtn = document.getElementById('scopeMemoOrderBtn');
+
+        if (assignBtn && orderBtn) {
+            if (scope === 'assign') {
+                assignBtn.classList.add('active');
+                orderBtn.classList.remove('active');
+            } else {
+                assignBtn.classList.remove('active');
+                orderBtn.classList.add('active');
             }
         }
+    }
+
+    /**
+     * 스코프 변경
+     * @param {string} newScope - 'assign' 또는 'order'
+     */
+    window.changeScopeMemo = function(newScope) {
+        if (currentScope === newScope) return;
+        loadMemos(currentMemoAssignNo, newScope);
+    };
+
+    /**
+     * 메모 목록 렌더링
+     */
+    function renderMemoList() {
+        const listContainer = document.getElementById('memoList');
+        const countSpan = document.getElementById('memoCount');
+
+        if (!listContainer) return;
+
+        // 메모 개수 업데이트
+        if (countSpan) {
+            const scopeLabel = currentScope === 'assign' ? '현재 할당' : '전체 의뢰';
+            countSpan.textContent = `(${allMemos.length}개 - ${scopeLabel})`;
+        }
+
+        if (allMemos.length === 0) {
+            listContainer.innerHTML = `
+                <div class="empty-state-text">
+                    <div class="icon">📝</div>
+                    <p>등록된 메모가 없습니다.</p>
+                    <p style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">
+                        위의 양식을 사용하여 첫 메모를 등록해보세요.
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        // 최신순으로 정렬
+        const sortedMemos = [...allMemos].sort((a, b) => {
+            return new Date(b.time || b.created_at) - new Date(a.time || a.created_at);
+        });
+
+        listContainer.innerHTML = sortedMemos.map(memo => {
+            const memoDate = memo.time || memo.created_at;
+            const formattedDate = memoDate ? formatDate(memoDate) : '-';
+            const isCurrentAssign = memo.noAssign === currentMemoAssignNo;
+
+            return `
+                <div class="memo-card ${!isCurrentAssign && currentScope === 'order' ? 'other-assign' : ''}">
+                    <div class="memo-header">
+                        <div class="memo-info">
+                            <strong>${memo.sWorker || '작성자 미상'}</strong>
+                            ${!isCurrentAssign && currentScope === 'order' ? '<span class="info-badge info" style="margin-left: 0.5rem;">다른 할당</span>' : ''}
+                            ${isCurrentAssign && currentScope === 'order' ? '<span class="info-badge primary" style="margin-left: 0.5rem;">현재 할당</span>' : ''}
+                        </div>
+                        <div class="memo-date">${formattedDate}</div>
+                    </div>
+                    <div class="memo-body">
+                        ${currentScope === 'order' ? `<div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.5rem;"><strong>할당ID:</strong> #${memo.noAssign}</div>` : ''}
+                        <div class="memo-content">${memo.sMemo || ''}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
     
     // 메모 저장 버튼 이벤트
@@ -105,36 +210,25 @@
             }
 
             const apiUrl = window.ApiConfig
-                ? window.ApiConfig.endpoints.orders.addMemo(currentMemoOrderNo)
-                : `/order/api/orders/${currentMemoOrderNo}/add_memo/`;
+                ? window.ApiConfig.endpoints.assignMemos.create
+                : `/order/api/assign-memos/`;
 
             apiCall(apiUrl, 'POST', {
-                content: content,
-                author: author
+                noOrder: currentMemoOrderNo,
+                noAssign: currentMemoAssignNo,
+                sMemo: content,
+                sWorker: author
             })
             .then(data => {
-                if (data.status === 'success') {
-                    closeMemoModal();
-                    if (window.Toast) {
-                        window.Toast.success('메모가 저장되었습니다.', {
-                            action: {
-                                text: '새로고침',
-                                onClick: () => location.reload()
-                            }
-                        });
-                    } else {
-                        alert('메모가 저장되었습니다.');
-                        if (confirm('페이지를 새로고침하시겠습니까?')) {
-                            location.reload();
-                        }
-                    }
-                } else {
-                    if (window.Toast) {
-                        window.Toast.error('메모 저장 실패: ' + (data.message || '알 수 없는 오류'));
-                    } else {
-                        alert('메모 저장 실패: ' + (data.message || '알 수 없는 오류'));
-                    }
+                if (window.Toast) {
+                    window.Toast.success('메모가 저장되었습니다.');
                 }
+
+                // 입력 필드 초기화
+                document.getElementById('memoContent').value = '';
+
+                // 목록 새로고침 (할당ID 기준)
+                loadMemos(currentMemoAssignNo, currentScope);
             })
             .catch(error => {
                 console.error('Error:', error);

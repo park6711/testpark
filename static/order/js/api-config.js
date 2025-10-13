@@ -41,13 +41,24 @@
             detail: (estimateNo) => `${API_BASE_URL}/estimates/${estimateNo}/`,
             create: `${API_BASE_URL}/estimates/`,
             delete: (estimateNo) => `${API_BASE_URL}/estimates/${estimateNo}/`,
-            byOrder: (orderNo) => `${API_BASE_URL}/estimates/?noOrder=${orderNo}`,
+            byOrder: (orderNo) => `${API_BASE_URL}/estimates/?order_id=${orderNo}`,
+            byAssign: (assignNo) => `${API_BASE_URL}/estimates/?assign_id=${assignNo}`,
         },
 
-        // 메모(Memo) 관련 API
+        // 메모(Memo) 관련 API (레거시)
         memos: {
             list: `${API_BASE_URL}/memos/`,
             detail: (memoNo) => `${API_BASE_URL}/memos/${memoNo}/`,
+        },
+
+        // 할당메모(AssignMemo) 관련 API
+        assignMemos: {
+            list: `${API_BASE_URL}/assign-memos/`,
+            detail: (memoNo) => `${API_BASE_URL}/assign-memos/${memoNo}/`,
+            create: `${API_BASE_URL}/assign-memos/`,
+            delete: (memoNo) => `${API_BASE_URL}/assign-memos/${memoNo}/`,
+            byOrder: (orderNo) => `${API_BASE_URL}/assign-memos/?order_id=${orderNo}`,
+            byAssign: (assignNo) => `${API_BASE_URL}/assign-memos/?assign_id=${assignNo}`,
         }
     };
 

@@ -71,3 +71,4 @@ test_*.html
 mysql-init/
 mariadb-init/
 *.sql
+.claude/settings.local.json

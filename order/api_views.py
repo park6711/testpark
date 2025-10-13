@@ -410,15 +410,28 @@ class EstimateViewSet(viewsets.ModelViewSet):
         # Get query parameters
         params = getattr(self.request, 'query_params', self.request.GET)
 
-        # 의뢰 ID로 필터링
-        order_id = params.get('order_id', None)
-        if order_id:
-            queryset = queryset.filter(noOrder=order_id)
+        # scope 파라미터: 'assign'(기본값) 또는 'order'
+        scope = params.get('scope', 'assign')
 
         # 할당 ID로 필터링
         assign_id = params.get('assign_id', None)
         if assign_id:
-            queryset = queryset.filter(noAssign=assign_id)
+            if scope == 'order':
+                # order 스코프: 같은 Order의 모든 Assign 견적 조회
+                try:
+                    from .models import Assign
+                    assign = Assign.objects.get(no=assign_id)
+                    queryset = queryset.filter(noOrder=assign.noOrder)
+                except Assign.DoesNotExist:
+                    queryset = queryset.filter(noAssign=assign_id)
+            else:
+                # assign 스코프 (기본값): 특정 Assign의 견적만 조회
+                queryset = queryset.filter(noAssign=assign_id)
+
+        # 의뢰 ID로 필터링 (직접 지정된 경우)
+        order_id = params.get('order_id', None)
+        if order_id:
+            queryset = queryset.filter(noOrder=order_id)
 
         return queryset.order_by('-created_at')
 
@@ -536,6 +549,44 @@ class CompanyViewSet(viewsets.ReadOnlyModelViewSet):
             })
 
         return Response(data)
+
+
+class AssignMemoViewSet(viewsets.ModelViewSet):
+    """할당메모(AssignMemo) ViewSet"""
+    queryset = AssignMemo.objects.all()
+    serializer_class = AssignMemoSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        """쿼리 최적화 및 필터링"""
+        queryset = super().get_queryset()
+
+        # Get query parameters
+        params = getattr(self.request, 'query_params', self.request.GET)
+
+        # scope 파라미터: 'assign'(기본값) 또는 'order'
+        scope = params.get('scope', 'assign')
+
+        # 할당 ID로 필터링
+        assign_id = params.get('assign_id', None)
+        if assign_id:
+            if scope == 'order':
+                # order 스코프: 같은 Order의 모든 Assign 메모 조회
+                try:
+                    assign = Assign.objects.get(no=assign_id)
+                    queryset = queryset.filter(noOrder=assign.noOrder)
+                except Assign.DoesNotExist:
+                    queryset = queryset.filter(noAssign=assign_id)
+            else:
+                # assign 스코프 (기본값): 특정 Assign의 메모만 조회
+                queryset = queryset.filter(noAssign=assign_id)
+
+        # 의뢰 ID로 필터링 (직접 지정된 경우)
+        order_id = params.get('order_id', None)
+        if order_id:
+            queryset = queryset.filter(noOrder=order_id)
+
+        return queryset.order_by('-created_at')
 
 
 class AreaViewSet(viewsets.ReadOnlyModelViewSet):

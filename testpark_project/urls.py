@@ -18,11 +18,9 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from demo import views as demo_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('accounts.api_urls')),  # API 경로 추가
     path('auth/', include('accounts.urls')),
     path('staff/', include('staff.urls')),
     path('member/', include('member.urls')),
@@ -32,20 +30,21 @@ urlpatterns = [
     path('stop/', include('stop.urls')),
     path('impossibleterm/', include('impossibleterm.urls')),
     path('possiblearea/', include('possiblearea.urls')),
-    path('order/', include('order.urls')),
     path('gonggu/', include('gonggu.urls')),
     path('contract/', include('contract.urls')),
     path('evaluation/', include('evaluation.urls')),
     path('template/', include('template.urls')),
     path('point/', include('point.urls')),
     path('companycondition/', include('companycondition.urls')),
-    path('globalvars/', include('globalvars.urls')),
-    path('fixfee/', include('fixfee.urls')),
-    path('favicon.ico', demo_views.favicon, name='favicon'),  # Favicon 경로
-    path('', include('demo.urls')),
+    path('demo/', include('demo.urls')),
+
+    # 의뢰리스트를 메인 페이지로 설정
+    path('order/', include('order.urls')),
+    path('의뢰리스트/', include(('order.urls', 'order'), namespace='order-kr')),
+    path('', include(('order.urls', 'order'), namespace='order-main')),
 ]
 
-# Static and Media files serving
-# Docker 환경에서는 DEBUG 모드와 관계없이 Django가 정적 파일을 직접 서빙
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+# Static and Media files serving in development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

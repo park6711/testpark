@@ -13,6 +13,7 @@
     let currentEstimateAssignNo = null;
     let currentEstimateOrderData = null;
     let allEstimates = [];
+    let currentScope = 'assign'; // 'assign' 또는 'order'
 
     /**
      * 견적서 관리 모달 열기
@@ -64,6 +65,7 @@
         currentEstimateAssignNo = null;
         currentEstimateOrderData = null;
         allEstimates = [];
+        currentScope = 'assign'; // 스코프 초기화
 
         // 입력 필드 초기화
         const postInput = document.getElementById('estimatePost');
@@ -109,11 +111,17 @@
     /**
      * 견적서 목록 로드
      * @param {number} assignNo - 할당 번호
+     * @param {string} scope - 'assign' 또는 'order'
      */
-    function loadEstimates(assignNo) {
+    function loadEstimates(assignNo, scope = 'assign') {
+        currentScope = scope;
+
         const apiUrl = window.ApiConfig
-            ? window.ApiConfig.endpoints.estimates.byAssign(assignNo)
-            : `/order/api/estimates/?assign_id=${assignNo}`;
+            ? `${window.ApiConfig.endpoints.estimates.byAssign(assignNo)}&scope=${scope}`
+            : `/order/api/estimates/?assign_id=${assignNo}&scope=${scope}`;
+
+        // 토글 버튼 상태 업데이트
+        updateScopeToggle(scope);
 
         apiCall(apiUrl)
             .then(data => {
@@ -138,6 +146,34 @@
     }
 
     /**
+     * 스코프 토글 버튼 상태 업데이트
+     * @param {string} scope - 'assign' 또는 'order'
+     */
+    function updateScopeToggle(scope) {
+        const assignBtn = document.getElementById('scopeAssignBtn');
+        const orderBtn = document.getElementById('scopeOrderBtn');
+
+        if (assignBtn && orderBtn) {
+            if (scope === 'assign') {
+                assignBtn.classList.add('active');
+                orderBtn.classList.remove('active');
+            } else {
+                assignBtn.classList.remove('active');
+                orderBtn.classList.add('active');
+            }
+        }
+    }
+
+    /**
+     * 스코프 변경
+     * @param {string} newScope - 'assign' 또는 'order'
+     */
+    window.changeScopeEstimate = function(newScope) {
+        if (currentScope === newScope) return;
+        loadEstimates(currentEstimateAssignNo, newScope);
+    };
+
+    /**
      * 견적서 목록 렌더링
      */
     function renderEstimateList() {
@@ -147,7 +183,8 @@
         // 견적서 개수 업데이트
         const countSpan = document.getElementById('estimateCount');
         if (countSpan) {
-            countSpan.textContent = `(${allEstimates.length}개)`;
+            const scopeLabel = currentScope === 'assign' ? '현재 할당' : '전체 의뢰';
+            countSpan.textContent = `(${allEstimates.length}개 - ${scopeLabel})`;
         }
 
         if (allEstimates.length === 0) {
@@ -172,13 +209,16 @@
             const estimateDate = estimate.time || estimate.created_at;
             const formattedDate = estimateDate ? formatDate(estimateDate) : '-';
             const isRecent = estimate.is_recent;
+            const isCurrentAssign = estimate.noAssign === currentEstimateAssignNo;
 
             return `
-                <div class="estimate-card">
+                <div class="estimate-card ${!isCurrentAssign && currentScope === 'order' ? 'other-assign' : ''}">
                     <div class="estimate-header">
                         <div class="estimate-info">
                             <strong>견적서 #${estimate.no}</strong>
                             ${isRecent ? '<span class="info-badge success" style="margin-left: 0.5rem;">최근</span>' : ''}
+                            ${!isCurrentAssign && currentScope === 'order' ? '<span class="info-badge info" style="margin-left: 0.5rem;">다른 할당</span>' : ''}
+                            ${isCurrentAssign && currentScope === 'order' ? '<span class="info-badge primary" style="margin-left: 0.5rem;">현재 할당</span>' : ''}
                         </div>
                         <div class="estimate-actions">
                             <button class="btn-small btn-danger" onclick="deleteEstimate(${estimate.no})" title="삭제">
@@ -190,6 +230,7 @@
                         <div class="estimate-meta">
                             <div><strong>등록일:</strong> ${formattedDate}</div>
                             ${estimate.company_name ? `<div><strong>업체:</strong> ${estimate.company_name}</div>` : ''}
+                            ${currentScope === 'order' ? `<div><strong>할당ID:</strong> #${estimate.noAssign}</div>` : ''}
                         </div>
                         ${estimate.sPost ? `
                             <div class="estimate-link">

@@ -1,10 +1,13 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.core.paginator import Paginator
 from django.db.models import Q
+import json
 from .models import Company, ContractFile
 from license.models import License
-from point.models import Point
 
 
 def safe_int(value, default=0):
@@ -501,15 +504,6 @@ def company_delete(request, pk):
     company = get_object_or_404(Company, pk=pk)
     company_name = company.sCompanyName
 
-    # 포인트 잔액 확인
-    last_point = Point.objects.filter(noCompany=company).order_by('-time', '-no').first()
-    if last_point and last_point.nRemainPoint != 0:
-        messages.warning(
-            request,
-            f'업체 "{company_name}"의 포인트 잔액이 {last_point.nRemainPoint:,}원 있습니다. '
-            f'삭제하면 포인트 내역은 보존되지만 업체 정보는 "삭제된 업체"로 표시됩니다.'
-        )
-
     # 연관된 파일들 삭제
     file_fields = [
         company.fileBuildLicense,
@@ -570,33 +564,260 @@ def company_view(request, pk):
     })
 
 
-from django.views.decorators.csrf import csrf_exempt
+def company_list_react(request):
+    """React 기반 업체 목록 페이지"""
+    return render(request, 'company/company_list_react.html')
+
+
+@require_http_methods(["GET"])
+def api_company_list(request):
+    """업체 목록 API"""
+    try:
+        # 권한 확인
+        company_permission = check_company_permission(request)
+        if company_permission == 0:
+            return JsonResponse({
+                'success': False,
+                'error': '업체 목록 조회 권한이 없습니다.'
+            }, status=403)
+
+        # 쿼리 파라미터
+        page = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 20))
+        search = request.GET.get('search', '')
+        type_filter = request.GET.get('type', '')
+        condition_filter = request.GET.get('condition', '')
+        union_only = request.GET.get('union_only', '') == 'true'
+        mentor_only = request.GET.get('mentor_only', '') == 'true'
+
+        # 기본 쿼리셋
+        queryset = Company.objects.all()
+
+        # 검색 필터
+        if search:
+            queryset = queryset.filter(
+                Q(sName1__icontains=search) |
+                Q(sNaverID__icontains=search) |
+                Q(sName2__icontains=search) |
+                Q(sCompanyName__icontains=search) |
+                Q(sAddress__icontains=search) |
+                Q(sBuildLicense__icontains=search) |
+                Q(sCeoName__icontains=search) |
+                Q(sCeoPhone__icontains=search) |
+                Q(sSaleName__icontains=search) |
+                Q(sManager__icontains=search)
+            )
+
+        # 타입 필터
+        if type_filter:
+            queryset = queryset.filter(nType=safe_int(type_filter))
+
+        # 상태 필터
+        if condition_filter:
+            queryset = queryset.filter(nCondition=safe_int(condition_filter))
+
+        # 연합회 필터
+        if union_only:
+            queryset = queryset.filter(bUnion=True)
+
+        # 멘토 필터
+        if mentor_only:
+            queryset = queryset.filter(bMentor=True)
+
+        # 정렬 (최신순)
+        queryset = queryset.order_by('-no')
+
+        # 페이지네이션
+        paginator = Paginator(queryset, page_size)
+        page_obj = paginator.get_page(page)
+
+        # 데이터 직렬화
+        data = []
+        for company in page_obj:
+            # 업체 타입 표시
+            type_display = dict(Company.TYPE_CHOICES).get(company.nType, '알 수 없음')
+
+            # 상태 표시
+            condition_display = dict(Company.CONDITION_CHOICES).get(company.nCondition, '알 수 없음')
+
+            # 특성 표시
+            features = []
+            if company.bUnion:
+                features.append('연합회')
+            if company.bMentor:
+                features.append('멘토')
+            if company.bAptAll:
+                features.append('아파트올수리')
+            if company.bHouseAll:
+                features.append('주택올수리')
+
+            company_data = {
+                'id': company.no,
+                'company_name': company.sCompanyName or '',
+                'display_name1': company.sName1 or '',
+                'display_name2': company.sName2 or '',
+                'naver_id': company.sNaverID or '',
+                'type': company.nType,
+                'type_display': type_display,
+                'condition': company.nCondition,
+                'condition_display': condition_display,
+                'address': company.sAddress or '',
+                'ceo_name': company.sCeoName or '',
+                'ceo_phone': company.sCeoPhone or '',
+                'sale_name': company.sSaleName or '',
+                'sale_phone': company.sSalePhone or '',
+                'manager': company.sManager or '',
+                'member_count': company.nMember,
+                'features': ', '.join(features),
+                'join_date': company.dateJoin.isoformat() if company.dateJoin else None,
+                'join_fee': company.nJoinFee,
+                'deposit': company.nDeposit,
+                'fix_fee': company.nFixFee,
+                'fee_percent': company.fFeePercent,
+                'is_union': company.bUnion,
+                'is_mentor': company.bMentor,
+                'can_edit': company_permission == 2,
+                'urgent': False  # 업체는 긴급성 없음
+            }
+            data.append(company_data)
+
+        response_data = {
+            'success': True,
+            'data': data,
+            'pagination': {
+                'current_page': page_obj.number,
+                'total_pages': paginator.num_pages,
+                'total_items': paginator.count,
+                'has_next': page_obj.has_next(),
+                'has_previous': page_obj.has_previous(),
+                'page_size': page_size
+            },
+            'permissions': {
+                'can_read': company_permission >= 1,
+                'can_write': company_permission == 2
+            }
+        }
+
+        return JsonResponse(response_data)
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
 
 @csrf_exempt
-def sync_companies_from_sheets(request):
-    """Google Sheets에서 Company 데이터를 동기화하는 API 엔드포인트"""
-    if request.method != 'POST':
-        return JsonResponse({'success': False, 'message': 'POST 메서드만 허용됩니다'}, status=405)
-
+@require_http_methods(["DELETE"])
+def api_company_delete(request, pk):
+    """업체 삭제 API"""
     try:
-        from .google_sheets_sync import CompanySheetsSync
-        import logging
+        # 권한 확인
+        if check_company_permission(request) != 2:
+            return JsonResponse({
+                'success': False,
+                'error': '업체 삭제 권한이 없습니다.'
+            }, status=403)
 
-        logger = logging.getLogger(__name__)
-        logger.info("Company 동기화 API 호출됨")
+        company = get_object_or_404(Company, pk=pk)
+        company_name = company.sCompanyName
 
-        sync_service = CompanySheetsSync()
-        result = sync_service.sync_data(update_existing=False)
+        # 연관된 파일들 삭제
+        file_fields = [
+            company.fileBuildLicense,
+            company.fileCeo,
+            company.fileSale,
+            company.fileLicense,
+            company.fileCampaignAgree
+        ]
+
+        for file_field in file_fields:
+            if file_field:
+                file_field.delete()
+
+        # 협약서 파일들 삭제
+        contract_files = company.contract_files.all()
+        for contract_file in contract_files:
+            contract_file.file.delete()
+            contract_file.delete()
+
+        # Company 삭제 (모델의 delete 메서드에서 관련 레코드 정리)
+        company.delete()
 
         return JsonResponse({
             'success': True,
-            'message': '동기화 완료',
-            'result': result
+            'message': f'업체 "{company_name}"이 성공적으로 삭제되었습니다.'
         })
 
     except Exception as e:
-        logger.error(f"Company 동기화 실패: {str(e)}", exc_info=True)
         return JsonResponse({
             'success': False,
-            'message': f'동기화 실패: {str(e)}'
+            'error': str(e)
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_company_bulk_delete(request):
+    """업체 일괄 삭제 API"""
+    try:
+        # 권한 확인
+        if check_company_permission(request) != 2:
+            return JsonResponse({
+                'success': False,
+                'error': '업체 삭제 권한이 없습니다.'
+            }, status=403)
+
+        data = json.loads(request.body)
+        company_ids = data.get('company_ids', [])
+
+        if not company_ids:
+            return JsonResponse({
+                'success': False,
+                'error': '삭제할 업체를 선택해주세요.'
+            }, status=400)
+
+        companies = Company.objects.filter(no__in=company_ids)
+        deleted_count = 0
+
+        for company in companies:
+            # 연관된 파일들 삭제
+            file_fields = [
+                company.fileBuildLicense,
+                company.fileCeo,
+                company.fileSale,
+                company.fileLicense,
+                company.fileCampaignAgree
+            ]
+
+            for file_field in file_fields:
+                if file_field:
+                    file_field.delete()
+
+            # 협약서 파일들 삭제
+            contract_files = company.contract_files.all()
+            for contract_file in contract_files:
+                contract_file.file.delete()
+                contract_file.delete()
+
+            company.delete()
+            deleted_count += 1
+
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'deleted_count': deleted_count,
+                'message': f'{deleted_count}개 업체가 삭제되었습니다.'
+            }
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': '잘못된 JSON 형식입니다.'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
         }, status=500)

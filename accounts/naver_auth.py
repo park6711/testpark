@@ -97,6 +97,22 @@ class NaverAuthManager:
 
         return login_url, state_with_type
 
+    def get_logout_and_login_url(self, login_type='company') -> str:
+        """
+        네이버 로그아웃 후 새로 로그인할 수 있는 URL 생성
+        Args:
+            login_type: 'company' 또는 'staff' - 로그인 타입
+        Returns:
+            logout_url: 네이버 로그아웃 URL (로그아웃 후 새 로그인으로 리다이렉트)
+        """
+        # 새 로그인 URL 생성
+        login_url, _ = self.get_login_url(login_type)
+
+        # 네이버 로그아웃 URL + 로그아웃 후 새 로그인으로 리다이렉트
+        logout_url = f"https://nid.naver.com/nidlogin.logout?returl={urllib.parse.quote(login_url)}"
+
+        return logout_url
+
     def get_access_token(self, code: str, state: str) -> Optional[Dict]:
         """
         인증 코드로 액세스 토큰 획득

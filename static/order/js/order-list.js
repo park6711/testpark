@@ -76,9 +76,9 @@
     // (중복 정의 제거 - order-estimate.js의 함수 사용)
 
     // 메모 보기 함수
-    window.showMemos = function(orderNo) {
+    window.showMemos = function(orderNo, assignNo) {
         if (typeof window.addMemo === 'function') {
-            window.addMemo(orderNo);
+            window.addMemo(orderNo, assignNo);
         } else {
             if (window.Toast) {
                 window.Toast.info(`의뢰 #${orderNo}의 메모 관리 기능은 다음 단계에서 구현됩니다.`);

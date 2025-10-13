@@ -8,12 +8,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#667eea">
     <link rel="manifest" href="/static/manifest.json">
-    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiBmaWxsPSIjNjY3ZWVhIi8+Cjx0ZXh0IHg9Ijk2IiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI0OCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSI+UDwvdGV4dD4KPC9zdmc+" type="image/svg+xml">
     <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiBmaWxsPSIjNjY3ZWVhIi8+Cjx0ZXh0IHg9Ijk2IiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI0OCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSI+UDwvdGV4dD4KPC9zdmc+">
     <title>{% block title %}PMIS 2.0 스텝 관리{% endblock %}</title>
-
-    {% block extra_css %}{% endblock %}
-
     <style>
         * {
             margin: 0;
@@ -120,23 +116,23 @@
 
         /* 상단 네비게이션 */
         .top-nav {
-            background: linear-gradient(90deg, #34d399 0%, #10b981 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 0;
-            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: relative;
             z-index: 1000;
             height: 70px; /* 고정 높이 설정 */
         }
 
         .nav-container {
+            max-width: 1200px;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 0 20px;
             height: 100%;
-            width: 100%;
         }
 
         .logo {
@@ -150,127 +146,10 @@
             align-items: center;
             gap: 15px;
             font-size: 14px;
-            position: relative;
-        }
-
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 8px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .user-profile:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.4);
-        }
-
-        .user-avatar {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 14px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .user-name {
-            color: rgba(255, 255, 255, 0.95);
-            font-weight: 500;
-        }
-
-        .user-dropdown-arrow {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 12px;
-            transition: transform 0.3s ease;
-        }
-
-        .user-profile:hover .user-dropdown-arrow {
-            transform: rotate(180deg);
-        }
-
-        /* 사용자 드롭다운 메뉴 */
-        .user-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background: white;
-            min-width: 220px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-            border-radius: 12px;
-            overflow: hidden;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-10px);
-            transition: all 0.3s ease;
-            z-index: 1100;
-            margin-top: 10px;
-        }
-
-        .user-info:hover .user-dropdown {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-
-        .user-dropdown-header {
-            background: linear-gradient(90deg, #34d399 0%, #10b981 100%);
-            color: white;
-            padding: 15px;
-            font-size: 13px;
-        }
-
-        .user-dropdown-header strong {
-            display: block;
-            font-size: 15px;
-            margin-bottom: 4px;
-        }
-
-        .user-dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 15px;
-            color: #333;
-            text-decoration: none;
-            border-bottom: 1px solid #f0f0f0;
-            transition: all 0.2s ease;
-            font-size: 14px;
-        }
-
-        .user-dropdown-item:last-child {
-            border-bottom: none;
-        }
-
-        .user-dropdown-item:hover {
-            background: #d1fae5;
-            padding-left: 20px;
-            color: #10b981;
-        }
-
-        .user-dropdown-item-icon {
-            font-size: 16px;
-            width: 20px;
-            text-align: center;
-        }
-
-        .logout-item {
-            color: #dc2626 !important;
-        }
-
-        .logout-item:hover {
-            background: #fee2e2 !important;
-            color: #dc2626 !important;
+            color: rgba(255, 255, 255, 0.9);
         }
 
         .logout-btn {
@@ -282,7 +161,6 @@
             text-decoration: none;
             font-size: 12px;
             transition: all 0.3s ease;
-            display: none; /* 드롭다운으로 대체되므로 숨김 */
         }
 
         .logout-btn:hover {
@@ -292,20 +170,18 @@
 
         /* 메인 메뉴 */
         .main-menu {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            height: 60px;
-            border-bottom: 1px solid #e5e7eb;
+            background: #2c3e50;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 50px; /* 고정 높이 설정 */
         }
 
         .menu-container {
+            max-width: 1200px;
             margin: 0 auto;
             display: flex;
             padding: 0 20px;
             height: 100%;
             align-items: center;
-            gap: 10px;
-            width: 100%;
         }
 
         .menu-item {
@@ -315,29 +191,14 @@
 
         .menu-link {
             display: block;
-            color: #374151;
+            color: white;
             text-decoration: none;
-            padding: 18px 20px;
+            padding: 15px 20px;
             text-align: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s ease;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
             position: relative;
             z-index: 1001;
-            font-weight: 600;
-            font-size: 15px;
-            border-bottom: 3px solid transparent;
-        }
-
-        .menu-link::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #34d399, #10b981);
-            border-radius: 2px;
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .menu-item:last-child .menu-link {
@@ -345,11 +206,8 @@
         }
 
         .menu-link:hover {
-            color: #10b981;
-        }
-
-        .menu-link:hover::after {
-            width: 60%;
+            background: #34495e;
+            color: #3498db;
         }
 
         /* 드롭다운 메뉴 */
@@ -359,50 +217,34 @@
             left: 0;
             right: 0;
             background: white;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             opacity: 0;
             visibility: hidden;
             transform: translateY(-10px);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s ease;
             z-index: 999;
-            border-radius: 0 0 12px 12px;
-            overflow: hidden;
-            border: 1px solid #e5e7eb;
-            border-top: none;
         }
 
         .menu-item:hover .dropdown {
             opacity: 1;
             visibility: visible;
             transform: translateY(0);
-            transition-delay: 0.1s;
+            transition-delay: 0.2s;
         }
 
         .menu-link:active {
-            background: rgba(16, 185, 129, 0.1);
+            background: #1a252f !important;
         }
+
 
         .dropdown-item {
             display: block;
-            color: #4b5563;
+            color: #333;
             text-decoration: none;
-            padding: 14px 20px;
-            border-bottom: 1px solid #f3f4f6;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 12px 20px;
+            border-bottom: 1px solid #eee;
+            transition: all 0.2s ease;
             font-size: 14px;
-            font-weight: 500;
-            position: relative;
-        }
-
-        .dropdown-item::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 0;
-            background: linear-gradient(90deg, #34d399, #10b981);
-            transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .dropdown-item:last-child {
@@ -410,13 +252,9 @@
         }
 
         .dropdown-item:hover {
-            background: #f0fdf4;
-            color: #10b981;
-            padding-left: 28px;
-        }
-
-        .dropdown-item:hover::before {
-            width: 4px;
+            background: #f8f9fa;
+            color: #3498db;
+            padding-left: 25px;
         }
 
         /* 전체 레이아웃 설정 */
@@ -449,7 +287,8 @@
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
-            margin: 0;
+            max-width: 1200px;
+            margin: 0 auto;
             padding: 20px;
             width: 100%;
             box-sizing: border-box;
@@ -575,10 +414,6 @@
                 */
             }
 
-            // 개발 환경에서는 개발자 도구 사용 가능하도록 주석 처리
-            // 프로덕션 환경에서만 활성화하려면 주석을 제거하세요
-
-            /*
             // 브라우저 컨텍스트 메뉴 비활성화
             document.addEventListener('contextmenu', function(e) {
                 e.preventDefault();
@@ -602,7 +437,6 @@
                     return false;
                 }
             });
-            */
 
             // 페이지 로드 시 주소창 숨김
             window.addEventListener('load', function() {
@@ -650,20 +484,20 @@
                     });
             }
 
-            // 자동 풀스크린 비활성화 (사용자 제스처 없이는 작동 안 함)
-            // setTimeout(function() {
-            //     // 모바일이나 태블릿에서 자동 풀스크린
-            //     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-            //         requestFullscreen();
-            //     } else if (document.body.scrollHeight > window.innerHeight) {
-            //         requestFullscreen();
-            //     }
-            // }, 2000);
+            // 풀스크린 강제 설정 (초기 로드에서 2초 후)
+            setTimeout(function() {
+                // 모바일이나 태블릿에서 자동 풀스크린
+                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                    requestFullscreen();
+                } else if (document.body.scrollHeight > window.innerHeight) {
+                    requestFullscreen();
+                }
+            }, 2000);
 
-            // // 브라우저 다시 시작 시 풀스크린 유지
-            // window.addEventListener('focus', function() {
-            //     setTimeout(requestFullscreen, 100);
-            // });
+            // 브라우저 다시 시작 시 풀스크린 유지
+            window.addEventListener('focus', function() {
+                setTimeout(requestFullscreen, 100);
+            });
         })();
 
         // 전역 풀스크린 토글 기능
@@ -714,51 +548,16 @@
             <div class="logo">🏢 PMIS 2.0</div>
             <div class="user-info">
                 {% if request.session.staff_user %}
-                    <div class="user-profile">
-                        <div class="user-avatar">
-                            {% if current_staff.sNick %}
-                                {{ current_staff.sNick|first|upper }}
-                            {% else %}
-                                {{ request.session.staff_user.name|first|upper }}
-                            {% endif %}
-                        </div>
-                        <span class="user-name">
-                            {% if current_staff.sNick %}
-                                {{ current_staff.sNick }}
-                            {% else %}
-                                {{ request.session.staff_user.name }}
-                            {% endif %}
-                        </span>
-                        <span class="user-dropdown-arrow">▼</span>
-                    </div>
-
-                    <!-- 사용자 드롭다운 메뉴 -->
-                    <div class="user-dropdown">
-                        <div class="user-dropdown-header">
-                            <strong>
-                                {% if current_staff.sNick %}
-                                    {{ current_staff.sNick }}({{ request.session.staff_user.name }})
-                                {% else %}
-                                    {{ request.session.staff_user.name }}
-                                {% endif %}
-                            </strong>
-                            <div>{{ request.session.staff_user.email }}</div>
-                        </div>
-                        <a href="#" class="user-dropdown-item">
-                            <span class="user-dropdown-item-icon">👤</span>
-                            프로필 설정
-                        </a>
-                        <a href="{% url 'accounts:login' %}" onclick="switchAccount(); return false;" class="user-dropdown-item">
-                            <span class="user-dropdown-item-icon">🔄</span>
-                            다른 계정으로 로그인
-                        </a>
-                        <a href="{% url 'accounts:logout' %}" class="user-dropdown-item logout-item">
-                            <span class="user-dropdown-item-icon">🚪</span>
-                            로그아웃
-                        </a>
-                    </div>
+                    <span class="user-name">
+                        {% if current_staff.sNick %}
+                            {{ current_staff.sNick }}({{ request.session.staff_user.name }})
+                        {% else %}
+                            {{ request.session.staff_user.name }}
+                        {% endif %}
+                    </span>
+                    <a href="{% url 'accounts:logout' %}" class="logout-btn">로그아웃</a>
                 {% else %}
-                    <a href="{% url 'accounts:login' %}" class="logout-btn" style="display: inline-block;">로그인</a>
+                    <a href="{% url 'accounts:login' %}" class="logout-btn">로그인</a>
                 {% endif %}
             </div>
         </div>
@@ -797,11 +596,11 @@
                 </div>
             </div>
 
-            <!-- 2. 의뢰관리 -->
+            <!-- 2. 의뢰할당 -->
             <div class="menu-item">
-                <a href="{% url 'order:order_list' %}" class="menu-link">의뢰관리</a>
+                <a href="{% url 'order:quote_list' %}" class="menu-link">의뢰할당</a>
                 <div class="dropdown">
-                    <a href="{% url 'order:order_list' %}" class="dropdown-item">의뢰 리스트</a>
+                    <a href="{% url 'order:quote_list' %}" class="dropdown-item">의뢰 리스트</a>
                     <a href="{% url 'gonggu:gonggu_list' %}" class="dropdown-item">공동구매 리스트</a>
                     <a href="/companycondition/" class="dropdown-item">업체 상태</a>
                     <a href="#" class="dropdown-item">가능지역 현황판</a>
@@ -813,9 +612,7 @@
                 <a href="#" class="menu-link">계약관리</a>
                 <div class="dropdown">
                     <a href="#" class="dropdown-item">계약보고 리스트</a>
-                    <a href="{% url 'contract:clientreport_list' %}" class="dropdown-item">고객계약보고 리스트</a>
-                    <a href="{% url 'fixfee:fixfee_list' %}" class="dropdown-item">월고정비 리스트</a>
-                    <a href="{% url 'fixfee:fixfee_status' %}" class="dropdown-item">월고정비 현황</a>
+                    <a href="#" class="dropdown-item">월고정비 관리</a>
                 </div>
             </div>
 
@@ -825,30 +622,28 @@
                 <div class="dropdown">
                     <a href="#" class="dropdown-item">업체평가 이력</a>
                     <a href="#" class="dropdown-item">계약보고 위반 이력</a>
-                    <a href="{% url 'evaluation:complain_list' %}" class="dropdown-item">고객불만 이력</a>
-                    <a href="{% url 'evaluation:satisfy_list' %}" class="dropdown-item">고객만족도 이력</a>
+                    <a href="#" class="dropdown-item">고객불만 이력</a>
+                    <a href="#" class="dropdown-item">고객만족도 이력</a>
+                    <a href="#" class="dropdown-item">휴무설정 이력</a>
                     <a href="#" class="dropdown-item">업체평가 시뮬레이션</a>
-                    <a href="{% url 'evaluation:evaluation_links' %}" class="dropdown-item">각종 평가 링크</a>
+                    <a href="#" class="dropdown-item">각종 평가 링크</a>
                     <a href="#" class="dropdown-item">회차별 업체평가</a>
                     <a href="#" class="dropdown-item">연간 업체평가</a>
-                    <a href="{% url 'evaluation:evaluation_no_list' %}" class="dropdown-item">업체평가 회차 관리</a>
+                    <a href="#" class="dropdown-item">업체평가 회차 관리</a>
                 </div>
             </div>
 
-            <!-- 5. 스텝/설정 -->
+            <!-- 5. 스텝/문자 -->
             <div class="menu-item">
-                <a href="#" class="menu-link">스텝/설정</a>
+                <a href="#" class="menu-link">스텝/문자</a>
                 <div class="dropdown">
-                    {% if current_staff and current_staff.nStaffAuthority >= 1 %}
+                    {% if current_staff and current_staff.nStaffAuthority > 0 %}
                         <a href="{% url 'staff:staff_list' %}" class="dropdown-item">스텝 관리</a>
-                    {% elif current_staff %}
-                        <span class="dropdown-item" style="color: #ccc; cursor: not-allowed;">스텝 관리 (권한없음)</span>
                     {% else %}
-                        <a href="{% url 'staff:staff_list' %}" class="dropdown-item">스텝 관리</a>
+                        <span class="dropdown-item" style="color: #ccc; cursor: not-allowed;">스텝 관리 (권한없음)</span>
                     {% endif %}
-                    <a href="{% url 'template:template_list' %}" class="dropdown-item">템플리트</a>
-                    <a href="{% url 'point:point_list' %}" class="dropdown-item">포인트 내역</a>
-                    <a href="{% url 'globalvars:globalvar_list' %}" class="dropdown-item">전역변수 설정</a>
+                    <a href="#" class="dropdown-item">템플리스</a>
+                    <a href="#" class="dropdown-item">포인트 내역</a>
                 </div>
             </div>
         </div>
@@ -887,93 +682,6 @@
                 }, 500);
             }
         }, 5000);
-
-        // 다른 계정으로 전환
-        function switchAccount() {
-            // 로컬 세션 정리
-            document.cookie = 'current_naver_account=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-
-            // 로딩 오버레이 표시
-            showLoadingOverlay('네이버 로그아웃 후 계정을 전환합니다...');
-
-            // 먼저 로컬 세션 로그아웃
-            fetch("/auth/logout/", {
-                method: 'GET',
-                credentials: 'same-origin'
-            }).then(function() {
-                // 네이버 로그아웃 페이지로 이동 (콜백으로 네이버 로그인 페이지 지정)
-                const returnUrl = encodeURIComponent(window.location.origin + "/auth/naver/login/?prompt=logout");
-                window.location.href = "https://nid.naver.com/nidlogin.logout?returl=" + returnUrl;
-            });
-        }
-
-        // 로딩 오버레이 표시 함수
-        function showLoadingOverlay(message) {
-            const overlay = document.createElement('div');
-            overlay.id = 'loadingOverlay';
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.7);
-                backdrop-filter: blur(4px);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 9999;
-            `;
-
-            const content = document.createElement('div');
-            content.style.cssText = `
-                background: white;
-                padding: 40px 50px;
-                border-radius: 20px;
-                text-align: center;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            `;
-
-            const spinner = document.createElement('div');
-            spinner.style.cssText = `
-                width: 50px;
-                height: 50px;
-                border: 4px solid #f3f3f3;
-                border-top: 4px solid #667eea;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-                margin: 0 auto 20px;
-            `;
-
-            const text = document.createElement('p');
-            text.textContent = message;
-            text.style.cssText = `
-                color: #1a202c;
-                font-size: 16px;
-                font-weight: 500;
-                margin: 0;
-            `;
-
-            content.appendChild(spinner);
-            content.appendChild(text);
-            overlay.appendChild(content);
-            document.body.appendChild(overlay);
-
-            // CSS 애니메이션 추가
-            if (!document.getElementById('loadingStyles')) {
-                const style = document.createElement('style');
-                style.id = 'loadingStyles';
-                style.textContent = `
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                `;
-                document.head.appendChild(style);
-            }
-        }
     </script>
-
-    {% block extra_js %}{% endblock %}
 </body>
 </html>
