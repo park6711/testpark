@@ -8,6 +8,7 @@ app_name = 'order'
 router = DefaultRouter()
 router.register(r'api/orders', api_views.OrderViewSet)
 router.register(r'api/assigns', api_views.AssignViewSet)
+router.register(r'api/estimates', api_views.EstimateViewSet)
 router.register(r'api/group-purchases', api_views.GroupPurchaseViewSet)
 router.register(r'api/message-templates', api_views.MessageTemplateViewSet)
 router.register(r'api/companies', api_views.CompanyViewSet)

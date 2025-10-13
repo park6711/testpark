@@ -338,13 +338,20 @@
         apiCall(apiUrl, 'POST', assignData)
             .then(data => {
                 if (data.success) {
+                    closeAssignModal();
                     if (window.Toast) {
-                        window.Toast.success(`${selectedCompanyIds.length}개 업체가 할당되었습니다.`);
+                        window.Toast.success(`${selectedCompanyIds.length}개 업체가 할당되었습니다.`, {
+                            action: {
+                                text: '새로고침',
+                                onClick: () => location.reload()
+                            }
+                        });
                     } else {
                         alert(`${selectedCompanyIds.length}개 업체가 할당되었습니다.`);
+                        if (confirm('페이지를 새로고침하시겠습니까?')) {
+                            location.reload();
+                        }
                     }
-                    closeAssignModal();
-                    setTimeout(() => location.reload(), 1000);
                 } else {
                     if (window.Toast) {
                         window.Toast.error('할당 실패: ' + (data.message || '알 수 없는 오류'));

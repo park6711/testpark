@@ -51,11 +51,16 @@
         apiCall(apiUrl, 'POST')
             .then(data => {
                 if (window.Toast) {
-                    window.Toast.success(`의뢰가 복사되었습니다! 새 의뢰번호: #${data.no}`);
+                    window.Toast.success(`의뢰가 복사되었습니다! 새 의뢰번호: #${data.no}`, {
+                        action: {
+                            text: '새로고침',
+                            onClick: () => location.reload()
+                        }
+                    });
                 } else {
                     alert(`의뢰가 복사되었습니다! 새 의뢰번호: #${data.no}`);
                 }
-                setTimeout(() => location.reload(), 1500);
+                // 자동 새로고침 제거 - 사용자가 필요시 수동으로 새로고침
             })
             .catch(error => {
                 console.error('Error:', error);

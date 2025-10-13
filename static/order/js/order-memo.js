@@ -114,13 +114,20 @@
             })
             .then(data => {
                 if (data.status === 'success') {
+                    closeMemoModal();
                     if (window.Toast) {
-                        window.Toast.success('메모가 저장되었습니다.');
+                        window.Toast.success('메모가 저장되었습니다.', {
+                            action: {
+                                text: '새로고침',
+                                onClick: () => location.reload()
+                            }
+                        });
                     } else {
                         alert('메모가 저장되었습니다.');
+                        if (confirm('페이지를 새로고침하시겠습니까?')) {
+                            location.reload();
+                        }
                     }
-                    closeMemoModal();
-                    setTimeout(() => location.reload(), 1000);
                 } else {
                     if (window.Toast) {
                         window.Toast.error('메모 저장 실패: ' + (data.message || '알 수 없는 오류'));

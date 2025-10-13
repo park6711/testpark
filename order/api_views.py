@@ -397,6 +397,60 @@ class AssignViewSet(viewsets.ModelViewSet):
         return AssignSerializer
 
 
+class EstimateViewSet(viewsets.ModelViewSet):
+    """견적(Estimate) ViewSet"""
+    queryset = Estimate.objects.all()
+    serializer_class = EstimateSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        """쿼리 최적화 및 필터링"""
+        queryset = super().get_queryset()
+
+        # Get query parameters
+        params = getattr(self.request, 'query_params', self.request.GET)
+
+        # 의뢰 ID로 필터링
+        order_id = params.get('order_id', None)
+        if order_id:
+            queryset = queryset.filter(noOrder=order_id)
+
+        # 할당 ID로 필터링
+        assign_id = params.get('assign_id', None)
+        if assign_id:
+            queryset = queryset.filter(noAssign=assign_id)
+
+        return queryset.order_by('-created_at')
+
+    @action(detail=False, methods=['get'])
+    def by_order(self, request):
+        """특정 의뢰의 모든 견적 조회"""
+        order_id = request.query_params.get('order_id')
+        if not order_id:
+            return Response({
+                'status': 'error',
+                'message': '의뢰 ID가 필요합니다.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        estimates = self.get_queryset().filter(noOrder=order_id)
+        serializer = self.get_serializer(estimates, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def by_assign(self, request):
+        """특정 할당의 모든 견적 조회"""
+        assign_id = request.query_params.get('assign_id')
+        if not assign_id:
+            return Response({
+                'status': 'error',
+                'message': '할당 ID가 필요합니다.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        estimates = self.get_queryset().filter(noAssign=assign_id)
+        serializer = self.get_serializer(estimates, many=True)
+        return Response(serializer.data)
+
+
 class GroupPurchaseViewSet(viewsets.ModelViewSet):
     """공동구매 ViewSet"""
     queryset = GroupPurchase.objects.filter(is_active=True)
