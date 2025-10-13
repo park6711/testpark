@@ -1,5 +1,5 @@
-from django.shortcuts import render
-from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render, redirect
+from django.http import HttpResponse, JsonResponse, FileResponse
 from django.utils import timezone
 from django.conf import settings
 from django.db import connection
@@ -83,3 +83,19 @@ def health_check(request):
             'error': str(e),
             'timestamp': timezone.now().isoformat()
         }, status=503)
+
+def favicon(request):
+    """
+    Favicon 제공 - 브라우저가 자동으로 /favicon.ico를 요청함
+    """
+    favicon_path = os.path.join(settings.BASE_DIR, 'static', 'favicon.svg')
+
+    if os.path.exists(favicon_path):
+        return FileResponse(open(favicon_path, 'rb'), content_type='image/svg+xml')
+    else:
+        # SVG를 직접 생성해서 반환
+        svg_content = '''<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <rect width="32" height="32" fill="#667eea"/>
+  <text x="16" y="22" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="white" text-anchor="middle">P</text>
+</svg>'''
+        return HttpResponse(svg_content, content_type='image/svg+xml')

@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from demo import views as demo_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -40,6 +41,7 @@ urlpatterns = [
     path('companycondition/', include('companycondition.urls')),
     path('globalvars/', include('globalvars.urls')),
     path('fixfee/', include('fixfee.urls')),
+    path('favicon.ico', demo_views.favicon, name='favicon'),  # Favicon 경로
     path('', include('demo.urls')),
 ]
 
