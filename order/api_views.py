@@ -477,7 +477,6 @@ class CompanyViewSet(viewsets.ReadOnlyModelViewSet):
                 'sAddress': company.sAddress or '',
                 'grade': company.nGrade or 4,
                 'license': company.sBuildLicense or '-',
-                'sArea': company.sArea or '',
                 'specialty': company.sStrength or '-',
                 'assignCount': 0  # TODO: 할당 횟수 계산
             })

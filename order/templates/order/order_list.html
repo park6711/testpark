@@ -6,8 +6,8 @@
 <style>
     .order-container {
         padding: 20px;
-        max-width: 1600px;
-        margin: 0 auto;
+        margin: 0;
+        width: 100%;
     }
 
     .page-header {
@@ -65,12 +65,13 @@
     .order-table {
         background: white;
         border-radius: 10px;
-        overflow: hidden;
+        overflow-x: auto;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .order-table table {
-        width: 100%;
+        width: max-content;
+        min-width: 100%;
         border-collapse: collapse;
     }
 
@@ -305,6 +306,81 @@
 
     .detail-section {
         margin-bottom: 30px;
+        padding: 1.5rem;
+        background: #f9fafb;
+        border-radius: 0.75rem;
+        border-left: 4px solid #10b981;
+    }
+
+    .section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .detail-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6b7280;
+    }
+
+    .detail-value {
+        font-size: 1rem;
+        color: #1f2937;
+        font-weight: 500;
+    }
+
+    .detail-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        padding-top: 1.5rem;
+        border-top: 2px solid #e5e7eb;
+        flex-wrap: wrap;
+    }
+
+    .loading-spinner {
+        text-align: center;
+        padding: 3rem;
+        color: #6b7280;
+        font-size: 1rem;
+    }
+
+    .error-message {
+        text-align: center;
+        padding: 3rem;
+        color: #ef4444;
+        font-size: 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .detail-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .detail-actions {
+            flex-direction: column;
+        }
+
+        .btn-action {
+            width: 100%;
+        }
     }
 
     .detail-section h3 {
@@ -948,25 +1024,25 @@
         <table>
             <thead>
                 <tr>
-                    <th style="width: 60px;">
+                    <th style="width: 40px;">
                         <input type="checkbox" id="selectAll" onchange="handleSelectAll(this)">
                     </th>
-                    <th>접수일시</th>
-                    <th style="width: 160px;">지정</th>
-                    <th>별명</th>
-                    <th>네이버ID</th>
-                    <th>이름</th>
-                    <th>전화번호</th>
-                    <th>의뢰게시글</th>
-                    <th style="width: 180px;">공사지역</th>
-                    <th>공사예정일</th>
-                    <th>공사내용</th>
-                    <th>할당업체명</th>
-                    <th>최근할당상태</th>
-                    <th>재의뢰</th>
-                    <th>견적</th>
-                    <th>메모</th>
-                    <th>액션</th>
+                    <th style="width: 110px;">접수일시</th>
+                    <th style="width: 100px;">지정</th>
+                    <th style="width: 80px;">별명</th>
+                    <th style="width: 90px;">네이버ID</th>
+                    <th style="width: 80px;">이름</th>
+                    <th style="width: 110px;">전화</th>
+                    <th style="width: 70px;">게시글</th>
+                    <th style="width: 130px;">공사지역</th>
+                    <th style="width: 95px;">예정일</th>
+                    <th style="width: 150px;">공사내용</th>
+                    <th style="width: 120px;">할당업체</th>
+                    <th style="width: 90px;">상태</th>
+                    <th style="width: 50px;">재의뢰</th>
+                    <th style="width: 50px;">견적</th>
+                    <th style="width: 50px;">메모</th>
+                    <th style="width: 110px; position: sticky; right: 0; background: white; box-shadow: -2px 0 4px rgba(0,0,0,0.1); z-index: 10;">액션</th>
                 </tr>
             </thead>
             <tbody>
@@ -983,7 +1059,9 @@
                     <td>{{ order.sPhone|default:"-" }}</td>
                     <td>
                         {% if order.post_link %}
-                            <a href="{{ order.post_link }}" target="_blank" style="color: #10b981;">링크 🔗</a>
+                            <a href="{{ order.post_link }}" target="_blank" style="color: #10b981;" title="{{ order.post_link }}">
+                                {{ order.post_link|slice:"-6:" }}
+                            </a>
                         {% else %}
                             -
                         {% endif %}
@@ -1016,8 +1094,18 @@
                     <td style="text-align: center;">
                         <button class="btn-small" onclick="showMemos({{ order.no }})">메모</button>
                     </td>
-                    <td style="text-align: center;">
-                        <button class="btn-view" data-order-id="{{ order.no }}">보기</button>
+                    <td style="text-align: center; position: sticky; right: 0; background: white; box-shadow: -2px 0 4px rgba(0,0,0,0.1);">
+                        <div style="display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;">
+                            <button class="btn-small" onclick="showDetailModal({{ order.no }})" title="상세보기">
+                                👁️
+                            </button>
+                            <button class="btn-small" onclick="copyOrder({{ order.no }})" title="복사">
+                                📋
+                            </button>
+                            <button class="btn-small" onclick="assignToCompany({{ order.no }})" title="업체할당">
+                                👥
+                            </button>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -1644,6 +1732,14 @@ function renderCompanyTable() {
     }).join('');
 }
 
+// 전체 선택 토글
+function handleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+    });
+}
+
 // 업체 선택 토글
 function toggleCompanySelection(companyNo) {
     const index = selectedCompanyIds.indexOf(companyNo);
@@ -1861,6 +1957,204 @@ function addMemo(orderNo) {
 function editOrder(orderNo) {
     alert(`의뢰 #${orderNo} 수정 기능은 다음 단계에서 구현됩니다.`);
 }
+
+// 상세보기 모달 표시
+function showDetailModal(orderNo) {
+    const modal = document.getElementById('orderModal');
+    const modalContent = document.getElementById('modalContent');
+
+    // 로딩 표시
+    modalContent.innerHTML = '<div class="loading-spinner">로딩 중...</div>';
+    modal.classList.add('active');
+
+    // 의뢰 상세 정보 가져오기
+    fetch(`/order/api/orders/${orderNo}/`)
+        .then(response => response.json())
+        .then(data => {
+            modalContent.innerHTML = generateDetailHTML(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            modalContent.innerHTML = '<div class="error-message">정보를 불러오는데 실패했습니다.</div>';
+        });
+}
+
+// 상세 정보 HTML 생성
+function generateDetailHTML(data) {
+    return `
+        <div class="detail-section">
+            <h3 class="section-title">📋 기본 정보</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">의뢰번호:</span>
+                    <span class="detail-value">#${data.no}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">접수일시:</span>
+                    <span class="detail-value">${data.time || data.created_at || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">지정 타입:</span>
+                    <span class="detail-value">${data.designation_type || '지정없음'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">지정 내용:</span>
+                    <span class="detail-value">${data.designation || '-'}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <h3 class="section-title">👤 고객 정보</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">별명:</span>
+                    <span class="detail-value">${data.sNick || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">네이버ID:</span>
+                    <span class="detail-value">${data.sNaverID || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">이름:</span>
+                    <span class="detail-value">${data.sName || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">전화번호:</span>
+                    <span class="detail-value">${data.sPhone || '-'}</span>
+                </div>
+                <div class="detail-item" style="grid-column: span 2;">
+                    <span class="detail-label">게시글:</span>
+                    <span class="detail-value">
+                        ${data.post_link ? `<a href="${data.post_link}" target="_blank" style="color: #3b82f6;">링크 열기 🔗</a>` : '-'}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <h3 class="section-title">🏗️ 공사 정보</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">공사지역:</span>
+                    <span class="detail-value">${data.sArea || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">공사예정일:</span>
+                    <span class="detail-value">${data.dateSchedule || '-'}</span>
+                </div>
+                <div class="detail-item" style="grid-column: span 2;">
+                    <span class="detail-label">공사내용:</span>
+                    <div class="detail-value" style="white-space: pre-wrap; margin-top: 0.5rem;">
+                        ${data.sConstruction || '-'}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-section">
+            <h3 class="section-title">📊 할당 정보</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">할당업체:</span>
+                    <span class="detail-value">${data.assigned_company || '-'}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">최근상태:</span>
+                    <span class="detail-value">
+                        <span class="status-badge ${getStatusClass(data.recent_status)}">
+                            ${data.recent_status || '대기중'}
+                        </span>
+                    </span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">재의뢰 횟수:</span>
+                    <span class="detail-value">${data.re_request_count || 0}회</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">개인정보동의:</span>
+                    <span class="detail-value">
+                        ${data.bPrivacy1 ? '✅' : '❌'} 1차 / ${data.bPrivacy2 ? '✅' : '❌'} 2차
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-actions">
+            <button class="btn-action btn-action-primary" onclick="assignToCompany(${data.no})">
+                🏢 업체 할당
+            </button>
+            <button class="btn-action btn-action-primary" onclick="addMemo(${data.no})">
+                📝 메모 작성
+            </button>
+            <button class="btn-action btn-action-primary" onclick="copyOrder(${data.no}); document.getElementById('orderModal').classList.remove('active');">
+                📋 의뢰 복사
+            </button>
+            <button class="btn-action btn-action-secondary" onclick="editOrder(${data.no})">
+                ✏️ 수정
+            </button>
+        </div>
+    `;
+}
+
+// 상태별 CSS 클래스 반환
+function getStatusClass(status) {
+    const statusMap = {
+        '대기중': 'waiting',
+        '할당': 'assigned',
+        '반려': 'rejected',
+        '취소': 'cancelled',
+        '제외': 'cancelled',
+        '계약': 'completed'
+    };
+    return statusMap[status] || 'waiting';
+}
+
+// 의뢰 복사 함수
+function copyOrder(orderNo) {
+    if (!confirm('이 의뢰를 복사하시겠습니까?')) {
+        return;
+    }
+
+    fetch(`/order/api/orders/${orderNo}/copy/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(`의뢰가 복사되었습니다! 새 의뢰번호: #${data.no}`);
+        location.reload();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('의뢰 복사에 실패했습니다.');
+    });
+}
+
+// 견적서 보기 함수
+function showEstimates(orderNo) {
+    alert(`의뢰 #${orderNo}의 견적서 관리 기능은 다음 단계에서 구현됩니다.`);
+}
+
+// 메모 보기 함수
+function showMemos(orderNo) {
+    alert(`의뢰 #${orderNo}의 메모 관리 기능은 다음 단계에서 구현됩니다.`);
+}
+
+// 모달 닫기 이벤트
+document.getElementById('modalCloseBtn').addEventListener('click', function() {
+    document.getElementById('orderModal').classList.remove('active');
+});
+
+// 모달 외부 클릭시 닫기
+document.getElementById('orderModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.classList.remove('active');
+    }
+});
 
 // 30초마다 자동 새로고침 (첫 페이지만)
 {% if orders.number == 1 %}
