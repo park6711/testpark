@@ -363,6 +363,60 @@
     </div>
 </div>
 
+<!-- 견적서 관리 모달 -->
+<div class="assign-modal-overlay" id="estimateModal" role="dialog" aria-modal="true" aria-labelledby="estimateModalTitle">
+    <div class="assign-modal-container" style="max-width: 800px;">
+        <div class="assign-modal-header">
+            <h2 id="estimateModalTitle">💰 견적서 관리</h2>
+            <button class="modal-close" id="estimateModalCloseBtn" aria-label="모달 닫기">&times;</button>
+        </div>
+        <div class="assign-modal-body">
+            <!-- 의뢰 정보 요약 -->
+            <div class="section-box">
+                <h4 class="section-title">의뢰 정보</h4>
+                <div class="info-grid" id="estimateOrderInfo">
+                    <!-- JavaScript로 동적 생성 -->
+                </div>
+            </div>
+
+            <!-- 견적서 추가 양식 -->
+            <div class="section-box">
+                <h4 class="section-title">새 견적서 등록</h4>
+                <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <label for="estimatePost" class="sr-only">견적서 게시글 링크</label>
+                        <input type="url"
+                               id="estimatePost"
+                               name="estimatePost"
+                               placeholder="견적서 게시글 URL을 입력하세요 (예: https://cafe.naver.com/...)"
+                               aria-label="견적서 게시글 링크"
+                               aria-required="true"
+                               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 0.5rem; font-size: 14px;">
+                    </div>
+                    <button class="btn-primary" id="addEstimateBtn" style="white-space: nowrap; padding: 10px 20px;">
+                        ➕ 추가
+                    </button>
+                </div>
+                <p style="margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280;">
+                    💡 팁: 네이버 카페 게시글 URL을 입력하세요.
+                </p>
+            </div>
+
+            <!-- 기존 견적서 목록 -->
+            <div class="section-box">
+                <h4 class="section-title">등록된 견적서 <span id="estimateCount" style="color: #6b7280; font-size: 0.9rem;">(0개)</span></h4>
+                <div id="estimateList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- JavaScript로 동적 생성 -->
+                    <div class="loading-spinner" style="padding: 2rem;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="assign-modal-footer">
+            <button class="btn-secondary" onclick="closeEstimateModal()">닫기</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // 30초마다 자동 새로고침 (첫 페이지만)
 {% if orders.number == 1 %}
@@ -382,5 +436,6 @@ setInterval(function() {
 <script src="{% static 'order/js/order-detail.js' %}"></script>
 <script src="{% static 'order/js/order-assign.js' %}"></script>
 <script src="{% static 'order/js/order-memo.js' %}"></script>
+<script src="{% static 'order/js/order-estimate.js' %}"></script>
 <script src="{% static 'order/js/order-list.js' %}"></script>
 {% endblock %}

@@ -1002,3 +1002,115 @@
         /* 포커스가 모달 내부에 갇히도록 */
         isolation: isolate;
     }
+
+    /* ===== 견적서 관리 모달 스타일 ===== */
+    /* 견적서 카드 */
+    .estimate-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .estimate-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-color: #10b981;
+    }
+
+    .estimate-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .estimate-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .estimate-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .estimate-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .estimate-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #6b7280;
+        padding: 0.5rem;
+        background: #f9fafb;
+        border-radius: 0.5rem;
+    }
+
+    .estimate-link {
+        padding: 0.75rem;
+        background: #f0fdf4;
+        border-left: 3px solid #10b981;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .estimate-link a {
+        color: #10b981;
+        text-decoration: none;
+        word-break: break-all;
+        font-weight: 500;
+    }
+
+    .estimate-link a:hover {
+        text-decoration: underline;
+        color: #059669;
+    }
+
+    /* 견적서 입력 폼 스타일 */
+    #estimatePost {
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #estimatePost:focus {
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    #estimatePost::placeholder {
+        color: #9ca3af;
+        font-size: 0.875rem;
+    }
+
+    /* 빈 상태 스타일 개선 */
+    .empty-state-text p {
+        margin: 0.5rem 0;
+        line-height: 1.6;
+    }
+
+    /* 반응형 디자인 */
+    @media (max-width: 768px) {
+        .estimate-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .estimate-actions {
+            width: 100%;
+            justify-content: flex-end;
+        }
+
+        .estimate-meta {
+            grid-template-columns: 1fr;
+        }
+    }

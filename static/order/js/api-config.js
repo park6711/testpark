@@ -39,6 +39,9 @@
         estimates: {
             list: `${API_BASE_URL}/estimates/`,
             detail: (estimateNo) => `${API_BASE_URL}/estimates/${estimateNo}/`,
+            create: `${API_BASE_URL}/estimates/`,
+            delete: (estimateNo) => `${API_BASE_URL}/estimates/${estimateNo}/`,
+            byOrder: (orderNo) => `${API_BASE_URL}/estimates/?noOrder=${orderNo}`,
         },
 
         // 메모(Memo) 관련 API
