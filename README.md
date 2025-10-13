@@ -23,6 +23,7 @@ docker-compose up -d
 
 ## 🏗️ 프로젝트 구조
 
+### 디렉토리 구조
 ```
 testpark/
 ├── README.md
@@ -31,21 +32,89 @@ testpark/
 ├── docker-compose.yml
 ├── manage.py                  # Django 관리 스크립트
 ├── requirements.txt           # Python 의존성
+│
+├── testpark_project/          # 🎯 Django 메인 설정
+│   ├── settings.py           # Django 설정
+│   ├── urls.py               # URL 라우팅
+│   ├── constants.py          # ⭐ 프로젝트 전역 상수
+│   └── utils.py              # ⭐ 프로젝트 전역 유틸리티
+│
+├── order/                     # 📦 의뢰 관리 앱
+│   ├── models.py             # 데이터 모델
+│   ├── views.py              # 뷰 로직
+│   ├── api_views.py          # REST API
+│   ├── constants.py          # ⭐ Order 앱 상수
+│   └── utils.py              # ⭐ Order 앱 유틸리티
+│
 ├── accounts/                  # 사용자 인증 앱
-├── testpark_project/          # Django 메인 설정
+├── company/                   # 업체 관리 앱
+├── member/                    # 회원 관리 앱
+│
+├── static/                    # 정적 파일
+│   ├── js/                   # 🌐 전역 JavaScript
+│   │   ├── constants.js      # ⭐ JS 전역 상수
+│   │   ├── utils.js          # ⭐ JS 전역 유틸리티
+│   │   └── main.js           # ⭐ 메인 앱 (TestPark 네임스페이스)
+│   └── order/js/             # Order 앱 JavaScript
+│       ├── constants.js      # ⭐ Order 앱 상수
+│       ├── utils.js          # ⭐ Order 앱 유틸리티
+│       ├── order-list.js     # 의뢰 리스트
+│       ├── order-assign.js   # 업체 할당
+│       ├── order-memo.js     # 메모 관리
+│       └── order-estimate.js # 견적서 관리
+│
 ├── scripts/
-│   ├── deploy.sh             # 🆕 5단계 스마트 배포 스크립트
+│   ├── deploy.sh             # 5단계 스마트 배포 스크립트
 │   ├── webhook-server.js     # 웹훅 서버 (Express.js)
 │   └── webhook.service       # Systemd 서비스 설정
+│
 ├── docs/
 │   ├── CICD-SETUP.md        # CI/CD 설정 가이드
 │   ├── LOCAL-SETUP.md       # 로컬 개발 환경 설정
 │   └── NAVER_LOGIN_GUIDE.md # 네이버 로그인 연동 가이드
+│
 ├── .github/
 │   └── workflows/
-│       └── ci-cd.yml        # 🆕 완전 자동화 GitHub Actions
+│       └── ci-cd.yml        # 완전 자동화 GitHub Actions
 └── .gitignore
 ```
+
+### ⭐ Django 표준 구조 (v1.1.0+)
+
+이 프로젝트는 Django 커뮤니티 베스트 프랙티스를 따릅니다:
+
+**Python 계층 구조**
+```python
+# 프로젝트 전역 (모든 앱에서 사용)
+from testpark_project.constants import OrderStatus, PAGINATION
+from testpark_project.utils import format_date, is_urgent
+
+# 앱별 (해당 앱 전용)
+from order.constants import AssignStatus
+from order.utils import calculate_assign_priority
+```
+
+**JavaScript 계층 구조**
+```javascript
+// 전역 상수
+TestParkConstants.OrderStatus.WAITING  // '대기중'
+TestParkConstants.BadgeType.SUCCESS    // 'success'
+
+// 전역 유틸리티
+TestPark.utils.formatDate(date)
+TestPark.api.call(url, 'GET')
+
+// Order 앱
+OrderConstants.AssignStatus.PENDING
+OrderUtils.getOrderDisplayName(order)
+```
+
+**구조의 장점**
+- ✅ **일관성**: 표준 패턴으로 코드 위치 즉시 파악
+- ✅ **확장성**: 새 앱 추가 시 동일한 패턴 적용
+- ✅ **유지보수**: 상수/유틸리티가 명확히 분리
+- ✅ **재사용성**: 프로젝트 전역/앱별 구분으로 코드 재사용 극대화
+- ✅ **테스트**: 독립적인 함수로 유닛 테스트 용이
 
 ## 🚀 로컬 개발 환경 구축
 
@@ -132,23 +201,53 @@ git push origin master
 ## 🌟 주요 기능
 
 ### 현재 구현된 기능
+
+**인증 & 사용자 관리**
 - ✅ **네이버 소셜 로그인** - OAuth 2.0 연동
 - ✅ **사용자 인증 시스템** - Django 기본 인증 + 소셜 로그인
-- ✅ **홈페이지** - 로그인/로그아웃 기능
+- ✅ **사용자 프로필** - 회원 정보 관리
+
+**의뢰 & 업체 관리 (Order 앱)**
+- ✅ **의뢰 리스트 관리** - 검색, 필터링, 페이지네이션
+- ✅ **업체 할당 시스템** - 지정/공동구매 방식 지원
+- ✅ **견적서 관리** - 견적서 등록, 조회, 삭제
+- ✅ **메모 시스템** - 의뢰별 메모 작성 및 관리
+- ✅ **의뢰 상세보기** - 모달 기반 상세 정보 표시
+- ✅ **의뢰 복사 기능** - 기존 의뢰 복제
+
+**개발 & 배포**
 - ✅ **완전 자동화 배포** - GitHub Actions + 5단계 알림 시스템
+- ✅ **Django 표준 구조** - constants/utils 패턴 적용
+- ✅ **전역 네임스페이스** - 함수 충돌 방지 시스템
+- ✅ **REST API** - Django REST framework 기반
 
 ### API 엔드포인트
-```
-Django URLs:
-- GET  /                    # 메인 홈페이지
-- GET  /accounts/login/     # 로그인 페이지
-- GET  /accounts/logout/    # 로그아웃
-- GET  /accounts/profile/   # 사용자 프로필
-- GET  /auth/naver/         # 네이버 로그인 시작
-- GET  /auth/naver/callback/ # 네이버 로그인 콜백
 
-Admin URLs:
-- GET  /admin/              # Django 관리자 페이지
+**웹 페이지**
+```
+GET  /                      # 메인 홈페이지
+GET  /accounts/login/       # 로그인 페이지
+GET  /accounts/logout/      # 로그아웃
+GET  /accounts/profile/     # 사용자 프로필
+GET  /auth/naver/           # 네이버 로그인 시작
+GET  /auth/naver/callback/  # 네이버 로그인 콜백
+GET  /order/                # 의뢰 리스트
+GET  /admin/                # Django 관리자 페이지
+```
+
+**REST API (Order)**
+```
+GET    /order/api/orders/                    # 의뢰 목록
+GET    /order/api/orders/{id}/               # 의뢰 상세
+POST   /order/api/orders/{id}/copy/          # 의뢰 복사
+POST   /order/api/orders/assign_companies/   # 업체 할당
+GET    /order/api/companies/                 # 업체 목록
+GET    /order/api/estimates/                 # 견적서 목록
+POST   /order/api/estimates/                 # 견적서 생성
+DELETE /order/api/estimates/{id}/            # 견적서 삭제
+GET    /order/api/memos/                     # 메모 목록
+POST   /order/api/memos/                     # 메모 생성
+GET    /order/api/group-purchases/           # 공동구매 목록
 ```
 
 ## 🛠️ 로컬 개발 가이드
