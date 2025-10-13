@@ -350,4 +350,12 @@
         console.log('견적서 관리 모듈 초기화 완료');
     });
 
+    // TestPark 전역 네임스페이스에 등록
+    if (window.TestPark && window.TestPark.apps.order) {
+        window.TestPark.apps.order.actions.showEstimates = showEstimates;
+        window.TestPark.apps.order.actions.closeEstimateModal = closeEstimateModal;
+        window.TestPark.apps.order.actions.addEstimate = addEstimate;
+        window.TestPark.apps.order.actions.deleteEstimate = deleteEstimate;
+    }
+
 })();
