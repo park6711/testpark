@@ -9,4 +9,5 @@ urlpatterns = [
     path('update/<int:pk>/', views.company_update, name='company_update'),
     path('delete/<int:pk>/', views.company_delete, name='company_delete'),
     path('view/<int:pk>/', views.company_view, name='company_view'),
+    path('api/sync-google-sheets/', views.sync_companies_from_sheets, name='sync_companies'),
 ]

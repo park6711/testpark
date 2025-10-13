@@ -568,3 +568,35 @@ def company_view(request, pk):
         'read_only': True,
         'staff_list': staff_list
     })
+
+
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def sync_companies_from_sheets(request):
+    """Google Sheets에서 Company 데이터를 동기화하는 API 엔드포인트"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST 메서드만 허용됩니다'}, status=405)
+
+    try:
+        from .google_sheets_sync import CompanySheetsSync
+        import logging
+
+        logger = logging.getLogger(__name__)
+        logger.info("Company 동기화 API 호출됨")
+
+        sync_service = CompanySheetsSync()
+        result = sync_service.sync_data(update_existing=False)
+
+        return JsonResponse({
+            'success': True,
+            'message': '동기화 완료',
+            'result': result
+        })
+
+    except Exception as e:
+        logger.error(f"Company 동기화 실패: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'message': f'동기화 실패: {str(e)}'
+        }, status=500)

@@ -26,6 +26,7 @@ class Company(models.Model):
     ]
 
     no = models.AutoField(primary_key=True)
+    google_sheet_uuid = models.CharField(max_length=36, unique=True, null=True, blank=True, verbose_name='Google Sheets UUID')
     sName1 = models.CharField(max_length=100, verbose_name='열린업체명1')
     sName2 = models.CharField(max_length=100, blank=True, verbose_name='열린업체명2')
     sName3 = models.CharField(max_length=100, blank=True, verbose_name='열린업체명3')

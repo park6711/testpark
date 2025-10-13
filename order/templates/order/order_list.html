@@ -127,7 +127,11 @@
                     </td>
                     <td style="text-align: center;">{{ order.re_request_count }}</td>
                     <td style="text-align: center;">
-                        <button class="btn-small" onclick="showEstimates({{ order.no }})" aria-label="의뢰 번호 {{ order.no }}의 견적 보기">견적</button>
+                        {% if order.first_assign %}
+                            <button class="btn-small" onclick="showEstimates({{ order.no }}, {{ order.first_assign.no }})" aria-label="의뢰 번호 {{ order.no }}의 견적 보기">견적</button>
+                        {% else %}
+                            <button class="btn-small" disabled title="할당이 없습니다">견적</button>
+                        {% endif %}
                     </td>
                     <td style="text-align: center;">
                         <button class="btn-small" onclick="showMemos({{ order.no }})" aria-label="의뢰 번호 {{ order.no }}의 메모 보기">메모</button>

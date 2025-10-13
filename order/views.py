@@ -57,6 +57,11 @@ def order_list(request):
     page = request.GET.get('page', 1)
     page_obj = paginator.get_page(page)
 
+    # 각 Order의 Assign 정보 추가 (견적 관리용)
+    for order in page_obj:
+        # 해당 Order의 첫 번째 Assign 조회 (보통 할당된 업체의 Assign)
+        order.first_assign = Assign.objects.filter(noOrder=order.no).first()
+
     context = {
         'orders': page_obj,
         'current_staff': current_staff,

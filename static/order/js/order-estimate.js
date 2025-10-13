@@ -10,15 +10,18 @@
 
     // 상태 관리
     let currentEstimateOrderNo = null;
+    let currentEstimateAssignNo = null;
     let currentEstimateOrderData = null;
     let allEstimates = [];
 
     /**
      * 견적서 관리 모달 열기
      * @param {number} orderNo - 의뢰 번호
+     * @param {number} assignNo - 할당 번호 (필수)
      */
-    window.showEstimates = function(orderNo) {
+    window.showEstimates = function(orderNo, assignNo) {
         currentEstimateOrderNo = orderNo;
+        currentEstimateAssignNo = assignNo;
 
         // API URL 가져오기
         const orderApiUrl = window.ApiConfig
@@ -30,7 +33,7 @@
             .then(data => {
                 currentEstimateOrderData = data;
                 displayEstimateOrderInfo(data);
-                loadEstimates(orderNo);
+                loadEstimates(assignNo);
 
                 // 모달 표시
                 const modal = document.getElementById('estimateModal');
@@ -58,6 +61,7 @@
         }
 
         currentEstimateOrderNo = null;
+        currentEstimateAssignNo = null;
         currentEstimateOrderData = null;
         allEstimates = [];
 
@@ -104,12 +108,12 @@
 
     /**
      * 견적서 목록 로드
-     * @param {number} orderNo - 의뢰 번호
+     * @param {number} assignNo - 할당 번호
      */
-    function loadEstimates(orderNo) {
+    function loadEstimates(assignNo) {
         const apiUrl = window.ApiConfig
-            ? window.ApiConfig.endpoints.estimates.byOrder(orderNo)
-            : `/order/api/estimates/?noOrder=${orderNo}`;
+            ? window.ApiConfig.endpoints.estimates.byAssign(assignNo)
+            : `/order/api/estimates/?assign_id=${assignNo}`;
 
         apiCall(apiUrl)
             .then(data => {
@@ -239,7 +243,7 @@
 
         const estimateData = {
             noOrder: currentEstimateOrderNo,
-            noAssign: 0, // TODO(human): 현재 할당 정보가 없으면 0으로 설정. 할당 선택 기능을 추가할 수 있습니다.
+            noAssign: currentEstimateAssignNo, // 할당ID 기준으로 견적 관리
             sPost: sPost
         };
 
@@ -252,8 +256,8 @@
                 // 입력 필드 초기화
                 postInput.value = '';
 
-                // 목록 새로고침
-                loadEstimates(currentEstimateOrderNo);
+                // 목록 새로고침 (할당ID 기준)
+                loadEstimates(currentEstimateAssignNo);
             })
             .catch(error => {
                 console.error('Error:', error);

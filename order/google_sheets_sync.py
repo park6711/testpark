@@ -124,6 +124,7 @@ class GoogleSheetsSync:
                     row_dict['area'] = row[8] if len(row) > 8 else ''  # I: 공사지역
                     row_dict['schedule_date'] = row[9] if len(row) > 9 else ''  # J: 공사예정일
                     row_dict['construction'] = row[10] if len(row) > 10 else ''  # K: 공사내용
+                    row_dict['company_status'] = row[11] if len(row) > 11 else ''  # L: 업체할당+업체상태
 
                     # AH열: 참조용링크 (인덱스 33)
                     row_dict['ref_link'] = row[33] if len(row) > 33 else ''
@@ -223,6 +224,121 @@ class GoogleSheetsSync:
         if not value:
             return False
         return value.lower() in ['true', 'yes', '예', '동의', '1', 'o']
+
+    def parse_company_status(self, company_status_str: str) -> Dict[str, str]:
+        """L열 (업체할당+업체상태) 파싱
+
+        Args:
+            company_status_str: L열 값 (예: "대구99올", "대구99?", "대구99취소", "업체미비")
+
+        Returns:
+            {
+                'assigned_company': str,  # 할당된 업체명
+                'recent_status': str,      # 상태
+                'should_create_assign': bool  # Assign 레코드 생성 여부
+            }
+        """
+        result = {
+            'assigned_company': '',
+            'recent_status': '대기중',
+            'should_create_assign': False
+        }
+
+        if not company_status_str or not company_status_str.strip():
+            return result
+
+        value = company_status_str.strip()
+
+        # 마무리 상태 (Assign 없이 Order만)
+        finish_statuses = {
+            '업체미비': '업체미비',
+            '중복접수': '중복접수',
+        }
+
+        # 완전 일치 확인
+        if value in finish_statuses:
+            result['recent_status'] = finish_statuses[value]
+            result['assigned_company'] = ''
+            result['should_create_assign'] = False
+            return result
+
+        # 연락처오류 처리
+        if '연락처오류' in value:
+            result['recent_status'] = '연락처오류'
+            result['assigned_company'] = ''
+            result['should_create_assign'] = False
+            return result
+
+        # 고객문의(?) 처리 - 내용, 주소, 공사일정 관련
+        customer_inquiry_keywords = [
+            '내용', '주소문의', '내용문의', '주소내용문의',
+            '공사일정문의', '공사일정먼경우', '공사일정촉박'
+        ]
+        for keyword in customer_inquiry_keywords:
+            if keyword in value:
+                result['recent_status'] = '고객문의'
+                result['assigned_company'] = ''
+                result['should_create_assign'] = False
+                return result
+
+        # 불가능답변(X) 처리
+        if '불가능' in value or 'X' in value or 'x' in value:
+            company_name = value.replace('불가능답변', '').replace('X', '').replace('x', '').strip()
+            result['assigned_company'] = company_name if company_name else ''
+            result['recent_status'] = '불가능답변(X)'
+            result['should_create_assign'] = False
+            return result
+
+        # 패턴 기반 파싱
+        # 1. 취소 패턴: "대구99취소", "대구99올취소"
+        if '취소' in value:
+            company_name = value.replace('취소', '').strip()
+            result['assigned_company'] = company_name if company_name else ''
+            result['recent_status'] = '취소'
+            result['should_create_assign'] = False
+            return result
+
+        # 2. 제외 패턴: "대구99제외", "대구99올제외"
+        if '제외' in value:
+            company_name = value.replace('제외', '').strip()
+            result['assigned_company'] = company_name if company_name else ''
+            result['recent_status'] = '제외'
+            result['should_create_assign'] = False
+            return result
+
+        # 3. 반려 패턴: "대구99반려", "대구99올반려"
+        if '반려' in value:
+            company_name = value.replace('반려', '').strip()
+            result['assigned_company'] = company_name if company_name else ''
+            result['recent_status'] = '반려'
+            result['should_create_assign'] = False
+            return result
+
+        # 4. 문의중 패턴: "대구99?", "대구99올?", "대구99지정?"
+        if '?' in value:
+            company_name = value.replace('?', '').replace('지정', '').strip()
+            result['assigned_company'] = company_name if company_name else ''
+            result['recent_status'] = '가능문의'
+            result['should_create_assign'] = True  # 문의중도 Assign 생성
+            return result
+
+        # 5. 문의 키워드: "대구99내용문의", "대구99요청"
+        inquiry_keywords = ['문의', '요청', '자료요청']
+        for keyword in inquiry_keywords:
+            if keyword in value:
+                company_name = value.replace(keyword, '').strip()
+                result['assigned_company'] = company_name if company_name else ''
+                result['recent_status'] = '가능문의'
+                result['should_create_assign'] = True
+                return result
+
+        # 6. 정상 할당: "대구99", "대구99올" (특수 키워드 없음)
+        # 위의 모든 패턴에 걸리지 않으면 정상 할당으로 간주
+        result['assigned_company'] = value
+        result['recent_status'] = '할당'
+        result['should_create_assign'] = True
+
+        return result
 
     def sync_data(self, update_existing=False) -> Dict[str, int]:
         """구글 스프레드시트 데이터를 DB와 동기화
@@ -332,6 +448,9 @@ class GoogleSheetsSync:
                         # 최대 20자로 제한
                         phone = phone[:20]
 
+                    # L열 (업체할당+업체상태) 파싱
+                    company_status_result = self.parse_company_status(row.get('company_status', ''))
+
                     # 새 레코드 생성
                     order_data = {
                         'google_sheet_uuid': sheet_uuid,
@@ -348,8 +467,8 @@ class GoogleSheetsSync:
                         'sConstruction': row.get('construction', ''),  # TEXT 타입이므로 제한 없음
                         'bPrivacy1': self.parse_boolean(row.get('privacy1', '')),
                         'bPrivacy2': self.parse_boolean(row.get('privacy2', '')),
-                        'recent_status': '대기중',
-                        'assigned_company': '',
+                        'recent_status': company_status_result['recent_status'],
+                        'assigned_company': company_status_result['assigned_company'][:100] if company_status_result['assigned_company'] else '',
                     }
 
                     # 타임스탬프 처리 (한국 날짜 형식)
@@ -374,9 +493,47 @@ class GoogleSheetsSync:
                         except Exception as e:
                             logger.warning(f"타임스탬프 파싱 실패: {timestamp_str} - {str(e)}")
 
-                    Order.objects.create(**order_data)
+                    # Order 생성
+                    new_order = Order.objects.create(**order_data)
                     created_count += 1
                     logger.info(f"새 의뢰 생성: {sheet_uuid}")
+
+                    # Assign 레코드 생성 (필요한 경우)
+                    if company_status_result['should_create_assign'] and company_status_result['assigned_company']:
+                        try:
+                            from .models import Assign
+                            from company.models import Company
+
+                            # 업체명으로 Company 조회
+                            # "서울26올" → "서울26" (올 제거 후 sName1에서 검색)
+                            company_name = company_status_result['assigned_company']
+                            search_name = company_name.replace('올', '')  # "올" 제거
+                            company = Company.objects.filter(sName1__contains=search_name).first()
+
+                            if company:
+                                # Assign 상태 매핑
+                                assign_status_map = {
+                                    '할당': 1,  # 할당
+                                    '가능문의': 7,  # 가능문의
+                                }
+                                assign_status = assign_status_map.get(company_status_result['recent_status'], 0)
+
+                                Assign.objects.create(
+                                    noOrder=new_order.no,
+                                    noCompany=company.no,
+                                    nConstructionType=0,  # 기본값 (아파트 올수리)
+                                    nAssignType=assign_status,
+                                    sCompanyPhone=company.sSalePhone or company.sCeoPhone or '',
+                                    sClientPhone=new_order.sPhone or '',
+                                    sWorker='시스템',
+                                    nAppoint=0  # 지정없음
+                                )
+                                logger.info(f"Assign 생성: Order#{new_order.no} → Company#{company.no} ({company_name})")
+                            else:
+                                logger.warning(f"업체를 찾을 수 없음: {company_name} (Order#{new_order.no})")
+                        except Exception as e:
+                            logger.error(f"Assign 생성 오류: {str(e)}, Order#{new_order.no}")
+
 
             except Exception as e:
                 error_count += 1
