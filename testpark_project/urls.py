@@ -43,7 +43,7 @@ urlpatterns = [
     path('', include('demo.urls')),
 ]
 
-# Static and Media files serving in development
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+# Static and Media files serving
+# Docker 환경에서는 DEBUG 모드와 관계없이 Django가 정적 파일을 직접 서빙
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
