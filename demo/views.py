@@ -1,7 +1,8 @@
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.conf import settings
+from django.db import connection
 import platform
 import os
 
@@ -58,3 +59,27 @@ def api_status(request):
         """,
         content_type='text/html; charset=utf-8'
     )
+
+def health_check(request):
+    """
+    헬스체크 엔드포인트 - Docker HEALTHCHECK에서 사용
+    데이터베이스 연결 상태를 확인하여 애플리케이션의 실제 가용성을 판단
+    """
+    try:
+        # 데이터베이스 연결 확인
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+
+        return JsonResponse({
+            'status': 'healthy',
+            'database': 'connected',
+            'timestamp': timezone.now().isoformat()
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'unhealthy',
+            'database': 'disconnected',
+            'error': str(e),
+            'timestamp': timezone.now().isoformat()
+        }, status=503)
