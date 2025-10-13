@@ -50,6 +50,8 @@ services:
     env_file:
       - .env
     environment:
+      # Django 디버그 모드
+      - DEBUG=True
       # MariaDB 연결 설정
       - USE_MYSQL=True
       - DB_HOST=mariadb  # Docker 네트워크 내부 호스트명

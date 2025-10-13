@@ -829,6 +829,204 @@ python manage.py shell
 - [ ] HTTPS 인증서 정상 작동
 - [ ] CLIENT_ID, CLIENT_SECRET 정확성
 
+## 🆕 배포 추적 및 로깅 시스템 (v3.0.0)
+
+### 새로운 기능 (2025-10-13 업데이트)
+
+#### ✨ 주요 개선사항
+
+1. **⏰ 한국 시간(KST) 표시**
+   - GitHub Actions 알림에 배포 시작 시각 표시
+   - 모든 알림에 KST 타임스탬프 포함
+
+2. **📝 커밋 정보 상세 표시**
+   - 커밋 메시지 전체 내용
+   - 커밋 작성자 이름
+   - 브랜치 정보
+
+3. **👤 수동 배포 추적**
+   - 배포 요청자 이름 기록
+   - 요청 IP 주소 로깅
+   - 잔디 알림으로 즉시 통지
+
+4. **📊 배포 이력 로깅**
+   - 모든 배포 이력을 JSON 형식으로 저장
+   - 자동/수동 배포 구분
+   - 시간, 커밋, 요청자 등 모든 정보 기록
+
+5. **🔍 배포 로그 조회 API**
+   - 웹 API로 배포 이력 조회
+   - 최근 N개 배포 조회 가능
+
+### 배포 이력 조회 방법
+
+#### API를 통한 조회
+
+```bash
+# 최근 50개 배포 이력 조회 (기본값)
+curl https://carpenterhosting.cafe24.com/deploy-logs
+
+# 최근 10개만 조회
+curl https://carpenterhosting.cafe24.com/deploy-logs?limit=10
+
+# JSON 형식으로 예쁘게 보기
+curl -s https://carpenterhosting.cafe24.com/deploy-logs | python3 -m json.tool
+```
+
+#### 응답 예시
+
+```json
+{
+  "success": true,
+  "count": 2,
+  "logs": [
+    {
+      "timestamp": "2025. 10. 13. 오후 3:45:12",
+      "data": {
+        "type": "github_actions",
+        "project": "testpark",
+        "commit": "abc1234567890...",
+        "branch": "master",
+        "message": "feat: 새로운 기능 추가",
+        "author": "park6711",
+        "deployTime": "2025-10-13 15:45:12",
+        "trigger": "github_actions"
+      }
+    },
+    {
+      "timestamp": "2025. 10. 13. 오후 2:30:45",
+      "data": {
+        "type": "manual_deploy",
+        "deployTime": "2025-10-13 14:30:45",
+        "requestIP": "::ffff:127.0.0.1",
+        "requestUser": "park6711",
+        "commit": "def9876543210...",
+        "branch": "master",
+        "message": "fix: 버그 수정",
+        "author": "park6711"
+      }
+    }
+  ]
+}
+```
+
+#### 로그 파일 직접 조회
+
+```bash
+# 전체 배포 이력 확인
+cat /var/www/testpark/logs/deploy-history.log
+
+# 최근 10개만
+tail -10 /var/www/testpark/logs/deploy-history.log
+
+# 특정 날짜 배포만 검색
+grep "2025-10-13" /var/www/testpark/logs/deploy-history.log
+
+# 수동 배포만 필터링
+grep "manual_deploy" /var/www/testpark/logs/deploy-history.log
+
+# GitHub Actions 배포만 필터링
+grep "github_actions" /var/www/testpark/logs/deploy-history.log
+
+# 특정 사용자의 배포만 검색
+grep "park6711" /var/www/testpark/logs/deploy-history.log
+```
+
+### 수동 배포 스크립트 사용법
+
+```bash
+cd /var/www/testpark
+./manual-deploy.sh
+```
+
+**실행 과정:**
+1. 배포 요청자 이름 입력 (Enter시 현재 사용자명 사용)
+2. 배포 확인 프롬프트 (y/N)
+3. 웹훅 서버로 요청 전송
+4. 잔디에서 실시간 배포 진행 상황 확인
+
+**잔디 알림 내용:**
+- ⚠️ 수동 배포 표시 (자동 배포와 구분)
+- ⏰ 배포 시각 (한국 시간)
+- 👤 요청자 이름
+- 🌐 요청 IP 주소
+- 📝 현재 커밋 정보
+
+### 배포 원인 추적 예시
+
+#### 사례: 10월 12일 밤 10시 55분 배포 원인 파악
+
+```bash
+# 1. 배포 로그에서 해당 시간대 검색
+grep "2025-10-12.*22:" /var/www/testpark/logs/deploy-history.log
+
+# 2. API로 해당 날짜 배포 조회
+curl -s "https://carpenterhosting.cafe24.com/deploy-logs?limit=100" | \
+  python3 -m json.tool | grep -A 10 "2025-10-12"
+
+# 3. GitHub Actions 실행 이력 확인
+gh run list --limit 20 --json createdAt,displayTitle,conclusion
+
+# 4. 커밋 이력과 비교
+git log --since="2025-10-12 22:00" --until="2025-10-12 23:00"
+```
+
+### 웹훅 서버 v3.0.0 새로운 기능
+
+#### 배포 이력 자동 로깅
+- 모든 배포 요청이 자동으로 `/var/www/testpark/logs/deploy-history.log`에 기록
+- JSON 형식으로 구조화된 데이터 저장
+- 타임스탬프는 한국 시간(KST) 기준
+
+#### 배포 로그 조회 API
+- GET `/deploy-logs?limit=N`: 최근 N개 배포 이력 조회
+- GET `/health`: 웹훅 서버 상태 및 버전 정보
+
+#### 향상된 잔디 알림
+- 배포 시작, 진행, 완료 단계별 상세 알림
+- 수동/자동 배포 구분 표시
+- 요청자 및 IP 정보 포함
+
+### 웹훅 서버 관리
+
+```bash
+# 서버 상태 확인
+curl -s https://carpenterhosting.cafe24.com/health | python3 -m json.tool
+
+# 프로세스 확인
+ps aux | grep "node.*webhook-server"
+
+# 서버 재시작 (업데이트 후)
+pkill -f "node.*webhook-server"
+mkdir -p logs
+nohup node scripts/webhook-server.js > logs/webhook-server.log 2>&1 &
+
+# 로그 확인
+tail -f logs/webhook-server.log
+```
+
+### 트러블슈팅
+
+#### 배포 로그가 기록되지 않을 때
+```bash
+# 1. 로그 디렉토리 확인
+ls -la /var/www/testpark/logs/
+
+# 2. 로그 디렉토리 생성 (없을 경우)
+mkdir -p /var/www/testpark/logs
+
+# 3. 권한 확인
+chmod 755 /var/www/testpark/logs
+
+# 4. 웹훅 서버 재시작
+pkill -f webhook-server && nohup node scripts/webhook-server.js > logs/webhook-server.log 2>&1 &
+```
+
+#### 배포 시간이 이상하게 표시될 때
+- 모든 시간은 한국 시간(KST, UTC+9) 기준입니다
+- GitHub Actions는 UTC 시간으로 실행되지만, 알림은 KST로 변환되어 전송됩니다
+- 서버 시간대 확인: `timedatectl` 또는 `date`
+
 ## 📚 참고 자료
 
 ### 배포 관련

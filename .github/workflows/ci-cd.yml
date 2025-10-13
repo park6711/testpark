@@ -36,56 +36,74 @@ jobs:
 
     - name: Notify deployment start
       run: |
+        # 한국 시간 계산 (UTC+9)
+        KST_TIME=$(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S')
+
+        # 커밋 메시지 가져오기
+        COMMIT_MSG=$(git log -1 --pretty=%B)
+        COMMIT_AUTHOR=$(git log -1 --pretty=%an)
+
         # 0% - 배포 시작 알림
         curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
           -H "Content-Type: application/json" \
-          -d '{
-            "body": "🚀 **TestPark 자동배포 시작**\n\n📍 **위치**: GitHub 서버\n📊 **진행률**: ░░░░░░░░░░ (0%)\n🔄 **상태**: 배포 파이프라인 시작\n\n📋 **정보**:\n• 프로젝트: testpark\n• 커밋: ${{ github.sha }}\n• 브랜치: ${{ github.ref_name }}\n• 트리거: push 이벤트",
-            "connectColor": "#2196F3"
-          }'
+          -d "{
+            \"body\": \"🚀 **TestPark 자동배포 시작**\n\n📍 **위치**: GitHub 서버\n📊 **진행률**: ░░░░░░░░░░ (0%)\n🔄 **상태**: 배포 파이프라인 시작\n\n📋 **정보**:\n• 프로젝트: testpark\n• 커밋: ${{ github.sha }}\n• 브랜치: ${{ github.ref_name }}\n• 트리거: push 이벤트\n\n⏰ **배포 시작 시각**: ${KST_TIME} (KST)\n👤 **작성자**: ${COMMIT_AUTHOR}\n📝 **커밋 메시지**: ${COMMIT_MSG}\",
+            \"connectColor\": \"#2196F3\"
+          }"
 
     - name: Notify build start
       run: |
+        KST_TIME=$(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S')
+
         # 20% - Docker 빌드 시작 알림
         curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
           -H "Content-Type: application/json" \
-          -d '{
-            "body": "🔨 **Docker 이미지 빌드 시작**\n\n📍 **위치**: GitHub 서버\n📊 **진행률**: ▓▓░░░░░░░░ (20%)\n🔄 **상태**: Docker 이미지 빌드 중\n\n🐳 **이미지**: 7171man/testpark:latest\n⏱️ **예상 시간**: 2-3분",
-            "connectColor": "#FF9800"
-          }'
+          -d "{
+            \"body\": \"🔨 **Docker 이미지 빌드 시작**\n\n📍 **위치**: GitHub 서버\n📊 **진행률**: ▓▓░░░░░░░░ (20%)\n🔄 **상태**: Docker 이미지 빌드 중\n\n🐳 **이미지**: 7171man/testpark:latest\n⏱️ **예상 시간**: 2-3분\n⏰ **현재 시각**: ${KST_TIME} (KST)\",
+            \"connectColor\": \"#FF9800\"
+          }"
 
     - name: Notify push success
       if: success()
       run: |
+        KST_TIME=$(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S')
+
         # 40% - Docker Hub 푸시 완료 알림
         curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
           -H "Content-Type: application/json" \
-          -d '{
-            "body": "✅ **Docker Hub 푸시 완료**\n\n📍 **위치**: GitHub → Docker Hub\n📊 **진행률**: ▓▓▓▓░░░░░░ (40%)\n🔄 **상태**: 이미지 업로드 완료\n\n🐳 **이미지**: 7171man/testpark:latest\n🏷️ **태그**: latest, ${{ github.sha }}",
-            "connectColor": "#4CAF50"
-          }'
+          -d "{
+            \"body\": \"✅ **Docker Hub 푸시 완료**\n\n📍 **위치**: GitHub → Docker Hub\n📊 **진행률**: ▓▓▓▓░░░░░░ (40%)\n🔄 **상태**: 이미지 업로드 완료\n\n🐳 **이미지**: 7171man/testpark:latest\n🏷️ **태그**: latest, ${{ github.sha }}\n⏰ **완료 시각**: ${KST_TIME} (KST)\",
+            \"connectColor\": \"#4CAF50\"
+          }"
 
     - name: Trigger deployment and notify
       if: success()
       run: |
+        KST_TIME=$(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S')
+        COMMIT_MSG=$(git log -1 --pretty=%B)
+        COMMIT_AUTHOR=$(git log -1 --pretty=%an)
+
         # 60% - 웹훅 트리거 알림
         curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
           -H "Content-Type: application/json" \
-          -d '{
-            "body": "🌐 **실서버 배포 트리거**\n\n📍 **위치**: GitHub → 실서버\n📊 **진행률**: ▓▓▓▓▓▓░░░░ (60%)\n🔄 **상태**: 웹훅 요청 전송 중\n\n🖥️ **대상**: carpenterhosting.cafe24.com\n⏱️ **예상 시간**: 1-2분",
-            "connectColor": "#9C27B0"
-          }'
+          -d "{
+            \"body\": \"🌐 **실서버 배포 트리거**\n\n📍 **위치**: GitHub → 실서버\n📊 **진행률**: ▓▓▓▓▓▓░░░░ (60%)\n🔄 **상태**: 웹훅 요청 전송 중\n\n🖥️ **대상**: carpenterhosting.cafe24.com\n⏱️ **예상 시간**: 1-2분\n⏰ **현재 시각**: ${KST_TIME} (KST)\n👤 **작성자**: ${COMMIT_AUTHOR}\n📝 **커밋**: ${COMMIT_MSG}\",
+            \"connectColor\": \"#9C27B0\"
+          }"
 
         # 웹훅을 통한 실서버 배포 트리거
         curl -X POST "https://carpenterhosting.cafe24.com/deploy-from-github" \
           -H "Content-Type: application/json" \
-          -d '{
-            "project": "testpark",
-            "commit": "${{ github.sha }}",
-            "branch": "${{ github.ref_name }}",
-            "image": "7171man/testpark:latest",
-            "trigger": "github_actions"
-          }'
+          -d "{
+            \"project\": \"testpark\",
+            \"commit\": \"${{ github.sha }}\",
+            \"branch\": \"${{ github.ref_name }}\",
+            \"image\": \"7171man/testpark:latest\",
+            \"trigger\": \"github_actions\",
+            \"commit_message\": \"${COMMIT_MSG}\",
+            \"commit_author\": \"${COMMIT_AUTHOR}\",
+            \"deploy_time_kst\": \"${KST_TIME}\"
+          }"
 
         echo "🎉 빌드 및 배포 요청이 완료되었습니다!"
 
