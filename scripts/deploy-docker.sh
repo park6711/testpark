@@ -176,7 +176,13 @@ echo "🔄 Docker Compose 서비스를 재시작합니다..."
 docker-compose pull testpark 2>&1 | tee /tmp/docker-pull.log
 PULL_RESULT=${PIPESTATUS[0]}
 
-docker-compose up -d --no-deps testpark 2>&1 | tee /tmp/docker-up.log
+# 기존 컨테이너 중지 및 삭제 (최신 이미지로 강제 재생성)
+echo "🛑 기존 컨테이너 중지 및 삭제..."
+docker-compose down testpark 2>&1 | tee /tmp/docker-down.log
+
+# 새 컨테이너 생성 및 시작
+echo "🚀 새 컨테이너 생성 및 시작..."
+docker-compose up -d --force-recreate --no-deps testpark 2>&1 | tee /tmp/docker-up.log
 UP_RESULT=${PIPESTATUS[0]}
 
 # 실제 Docker 명령 결과만 확인 (경고는 무시)
