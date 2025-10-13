@@ -85,6 +85,9 @@ INSTALLED_APPS = [
     'template',
     'point',
     'companycondition',
+    'globalvars',
+    'fixfee',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
