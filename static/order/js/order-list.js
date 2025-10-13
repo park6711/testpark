@@ -67,18 +67,8 @@
             });
     };
 
-    // 견적서 보기 함수
-    // 주의: 이 함수는 order-estimate.js에서도 정의됩니다.
-    // order-estimate.js가 로드되면 그쪽 구현으로 덮어쓰여집니다.
-    window.showEstimates = function(orderNo) {
-        // order-estimate.js가 로드되지 않은 경우의 폴백
-        if (window.Toast) {
-            window.Toast.info(`견적서 관리 기능을 로드하는 중입니다...`);
-        } else {
-            alert(`견적서 관리 기능을 로드하는 중입니다...`);
-        }
-        console.warn('order-estimate.js가 로드되지 않았습니다.');
-    };
+    // 견적서 보기 함수는 order-estimate.js에서 정의됨
+    // (중복 정의 제거 - order-estimate.js의 함수 사용)
 
     // 메모 보기 함수
     window.showMemos = function(orderNo) {
