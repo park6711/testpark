@@ -38,9 +38,7 @@ services:
 
   # TestPark 메인 애플리케이션
   testpark:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: 7171man/testpark:latest  # Docker Hub에서 최신 이미지 사용
     container_name: testpark
     ports:
       - "8000:8000"
