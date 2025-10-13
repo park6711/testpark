@@ -39,8 +39,8 @@ jobs:
         # 한국 시간 계산 (UTC+9)
         KST_TIME=$(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S')
 
-        # 커밋 메시지 가져오기
-        COMMIT_MSG=$(git log -1 --pretty=%B)
+        # 커밋 메시지 가져오기 (줄바꿈 제거)
+        COMMIT_MSG=$(git log -1 --pretty=%B | tr '\n' ' ' | sed 's/  */ /g' | xargs)
         COMMIT_AUTHOR=$(git log -1 --pretty=%an)
 
         # 0% - 배포 시작 알림
@@ -80,7 +80,8 @@ jobs:
       if: success()
       run: |
         KST_TIME=$(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S')
-        COMMIT_MSG=$(git log -1 --pretty=%B)
+        # 커밋 메시지에서 줄바꿈 제거 (JSON 파싱 에러 방지)
+        COMMIT_MSG=$(git log -1 --pretty=%B | tr '\n' ' ' | sed 's/  */ /g' | xargs)
         COMMIT_AUTHOR=$(git log -1 --pretty=%an)
 
         # 60% - 웹훅 트리거 알림
