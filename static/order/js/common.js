@@ -19,8 +19,14 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// API 호출 헬퍼 함수
+// API 호출 헬퍼 함수 (하위 호환성 유지)
 async function apiCall(url, method = 'GET', data = null) {
+    // ApiConfig가 있으면 사용, 없으면 기존 방식
+    if (window.ApiConfig && window.ApiConfig.request) {
+        return window.ApiConfig.request(url, method, data);
+    }
+
+    // 폴백: 기존 방식
     const options = {
         method: method,
         headers: {

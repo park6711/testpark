@@ -20,8 +20,13 @@
         currentAssignOrderNo = orderNo;
         selectedCompanyIds = [];
 
+        // API URL 가져오기
+        const apiUrl = window.ApiConfig
+            ? window.ApiConfig.endpoints.orders.detail(orderNo)
+            : `/order/api/orders/${orderNo}/`;
+
         // 의뢰 정보 가져오기
-        apiCall(`/order/api/orders/${orderNo}/`)
+        apiCall(apiUrl)
             .then(data => {
                 currentAssignOrderData = data;
                 displayAssignOrderInfo(data);
@@ -32,7 +37,11 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('의뢰 정보를 불러오는데 실패했습니다.');
+                if (window.Toast) {
+                    window.Toast.error('의뢰 정보를 불러오는데 실패했습니다.');
+                } else {
+                    alert('의뢰 정보를 불러오는데 실패했습니다.');
+                }
             });
     };
 
@@ -99,13 +108,20 @@
 
     // 업체 목록 로드
     function loadCompanies() {
-        apiCall('/order/api/companies/')
+        const apiUrl = window.ApiConfig
+            ? window.ApiConfig.endpoints.companies.list
+            : '/order/api/companies/';
+
+        apiCall(apiUrl)
             .then(data => {
                 allCompanies = data.results || data;
                 renderCompanyTable();
             })
             .catch(error => {
                 console.error('Error loading companies:', error);
+                if (window.Toast) {
+                    window.Toast.error('업체 목록을 불러오는데 실패했습니다.');
+                }
                 const tbody = document.getElementById('companyTableBody');
                 if (tbody) {
                     tbody.innerHTML = `
@@ -119,7 +135,11 @@
 
     // 공동구매 목록 로드
     function loadGroupPurchases() {
-        apiCall('/order/api/group-purchases/')
+        const apiUrl = window.ApiConfig
+            ? window.ApiConfig.endpoints.groupPurchases.list
+            : '/order/api/group-purchases/';
+
+        apiCall(apiUrl)
             .then(data => {
                 allGroupPurchases = data.results || data;
                 const gpSelect = document.getElementById('gpSelect');
@@ -132,6 +152,9 @@
             })
             .catch(error => {
                 console.error('Error loading group purchases:', error);
+                if (window.Toast) {
+                    window.Toast.error('공동구매 목록을 불러오는데 실패했습니다.');
+                }
             });
     }
 
@@ -278,7 +301,11 @@
     // 할당 실행
     function executeAssignment() {
         if (selectedCompanyIds.length === 0) {
-            alert('할당할 업체를 선택해주세요.');
+            if (window.Toast) {
+                window.Toast.warning('할당할 업체를 선택해주세요.');
+            } else {
+                alert('할당할 업체를 선택해주세요.');
+            }
             return;
         }
 
@@ -287,9 +314,18 @@
         const gpNo = designationType === '공동구매' ? parseInt(gpSelect.value) : null;
 
         if (designationType === '공동구매' && !gpNo) {
-            alert('공동구매를 선택해주세요.');
+            if (window.Toast) {
+                window.Toast.warning('공동구매를 선택해주세요.');
+            } else {
+                alert('공동구매를 선택해주세요.');
+            }
             return;
         }
+
+        // API URL 가져오기
+        const apiUrl = window.ApiConfig
+            ? window.ApiConfig.endpoints.orders.assignCompanies
+            : '/order/api/orders/assign_companies/';
 
         // 할당 API 호출
         const assignData = {
@@ -299,19 +335,31 @@
             group_purchase_id: gpNo
         };
 
-        apiCall('/order/api/orders/assign_companies/', 'POST', assignData)
+        apiCall(apiUrl, 'POST', assignData)
             .then(data => {
                 if (data.success) {
-                    alert(`${selectedCompanyIds.length}개 업체가 할당되었습니다.`);
+                    if (window.Toast) {
+                        window.Toast.success(`${selectedCompanyIds.length}개 업체가 할당되었습니다.`);
+                    } else {
+                        alert(`${selectedCompanyIds.length}개 업체가 할당되었습니다.`);
+                    }
                     closeAssignModal();
-                    location.reload();
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert('할당 실패: ' + (data.message || '알 수 없는 오류'));
+                    if (window.Toast) {
+                        window.Toast.error('할당 실패: ' + (data.message || '알 수 없는 오류'));
+                    } else {
+                        alert('할당 실패: ' + (data.message || '알 수 없는 오류'));
+                    }
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('할당 중 오류가 발생했습니다.');
+                if (window.Toast) {
+                    window.Toast.error('할당 중 오류가 발생했습니다.');
+                } else {
+                    alert('할당 중 오류가 발생했습니다.');
+                }
             });
     }
 

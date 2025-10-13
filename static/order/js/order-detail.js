@@ -20,12 +20,22 @@
         modalContent.innerHTML = '<div class="loading-spinner"></div>';
 
         // API 호출하여 상세 정보 가져오기
-        apiCall(`/order/api/orders/${orderNo}/`)
+        const apiUrl = window.ApiConfig
+            ? window.ApiConfig.endpoints.orders.detail(orderNo)
+            : `/order/api/orders/${orderNo}/`;
+
+        apiCall(apiUrl)
             .then(data => {
                 modalContent.innerHTML = generateOrderDetailHTML(data);
             })
             .catch(error => {
                 console.error('Error:', error);
+
+                // Toast 알림 사용
+                if (window.Toast) {
+                    window.Toast.error('데이터를 불러오는데 실패했습니다: ' + error.message);
+                }
+
                 modalContent.innerHTML = `
                     <div style="text-align: center; padding: 40px; color: #dc3545;">
                         <h3>❌ 데이터를 불러오는데 실패했습니다</h3>

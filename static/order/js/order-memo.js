@@ -12,19 +12,27 @@
     // 메모 모달 열기
     window.addMemo = function(orderNo) {
         currentMemoOrderNo = orderNo;
-        
-        apiCall(`/order/api/orders/${orderNo}/`)
+
+        const apiUrl = window.ApiConfig
+            ? window.ApiConfig.endpoints.orders.detail(orderNo)
+            : `/order/api/orders/${orderNo}/`;
+
+        apiCall(apiUrl)
             .then(data => {
                 currentMemoOrderData = data;
                 displayMemoOrderInfo(data);
                 loadExistingMemos();
-                
+
                 document.getElementById('memoContent').value = '';
                 document.getElementById('memoModal').classList.add('active');
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('의뢰 정보를 불러오는데 실패했습니다.');
+                if (window.Toast) {
+                    window.Toast.error('의뢰 정보를 불러오는데 실패했습니다.');
+                } else {
+                    alert('의뢰 정보를 불러오는데 실패했습니다.');
+                }
             });
     };
     
@@ -86,28 +94,48 @@
         document.getElementById('saveMemoBtn').addEventListener('click', function() {
             const content = document.getElementById('memoContent').value.trim();
             const author = document.getElementById('memoAuthor').value.trim() || '관리자';
-            
+
             if (!content) {
-                alert('메모 내용을 입력해주세요.');
+                if (window.Toast) {
+                    window.Toast.warning('메모 내용을 입력해주세요.');
+                } else {
+                    alert('메모 내용을 입력해주세요.');
+                }
                 return;
             }
-            
-            apiCall(`/order/api/orders/${currentMemoOrderNo}/add_memo/`, 'POST', {
+
+            const apiUrl = window.ApiConfig
+                ? window.ApiConfig.endpoints.orders.addMemo(currentMemoOrderNo)
+                : `/order/api/orders/${currentMemoOrderNo}/add_memo/`;
+
+            apiCall(apiUrl, 'POST', {
                 content: content,
                 author: author
             })
             .then(data => {
                 if (data.status === 'success') {
-                    alert('메모가 저장되었습니다.');
+                    if (window.Toast) {
+                        window.Toast.success('메모가 저장되었습니다.');
+                    } else {
+                        alert('메모가 저장되었습니다.');
+                    }
                     closeMemoModal();
-                    location.reload();
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    alert('메모 저장 실패: ' + (data.message || '알 수 없는 오류'));
+                    if (window.Toast) {
+                        window.Toast.error('메모 저장 실패: ' + (data.message || '알 수 없는 오류'));
+                    } else {
+                        alert('메모 저장 실패: ' + (data.message || '알 수 없는 오류'));
+                    }
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('메모 저장 중 오류가 발생했습니다.');
+                if (window.Toast) {
+                    window.Toast.error('메모 저장 중 오류가 발생했습니다.');
+                } else {
+                    alert('메모 저장 중 오류가 발생했습니다.');
+                }
             });
         });
         

@@ -31,57 +31,61 @@
     </div>
 
     <!-- 필터 섹션 -->
-    <div class="filter-section">
+    <div class="filter-section" role="search" aria-label="의뢰 검색 필터">
         <form method="get" class="filter-form">
-            <input type="text" name="search" placeholder="고객명, 연락처, 지역 검색" value="{{ search }}">
+            <label for="search-input" class="sr-only">고객명, 연락처, 지역 검색</label>
+            <input type="text" id="search-input" name="search" placeholder="고객명, 연락처, 지역 검색" value="{{ search }}" aria-label="검색어 입력">
 
-            <select name="status">
+            <label for="status-select" class="sr-only">상태 선택</label>
+            <select name="status" id="status-select" aria-label="의뢰 상태 필터">
                 <option value="">전체 상태</option>
                 {% for value, label in status_choices %}
                     <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
             </select>
 
-            <input type="date" name="date_from" value="{{ date_from }}" placeholder="시작일">
-            <input type="date" name="date_to" value="{{ date_to }}" placeholder="종료일">
+            <label for="date-from" class="sr-only">시작일</label>
+            <input type="date" id="date-from" name="date_from" value="{{ date_from }}" placeholder="시작일" aria-label="시작일 선택">
+            <label for="date-to" class="sr-only">종료일</label>
+            <input type="date" id="date-to" name="date_to" value="{{ date_to }}" placeholder="종료일" aria-label="종료일 선택">
 
-            <button type="submit">🔍 검색</button>
-            <a href="{% url 'order:order_list' %}" style="padding: 8px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px;">초기화</a>
+            <button type="submit" aria-label="검색 실행">🔍 검색</button>
+            <a href="{% url 'order:order_list' %}" role="button" aria-label="필터 초기화" style="padding: 8px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px;">초기화</a>
         </form>
     </div>
 
     <!-- 의뢰 테이블 -->
-    <div class="order-table">
+    <div class="order-table" role="region" aria-label="의뢰 목록 테이블">
         {% if orders %}
-        <table>
+        <table role="table" aria-label="의뢰 정보">
             <thead>
                 <tr>
-                    <th style="width: 40px;">
-                        <input type="checkbox" id="selectAll" onchange="handleSelectAll(this)">
+                    <th style="width: 40px;" scope="col">
+                        <input type="checkbox" id="selectAll" onchange="handleSelectAll(this)" aria-label="전체 선택">
                     </th>
-                    <th style="width: 110px;">접수일시</th>
-                    <th style="width: 100px;">지정</th>
-                    <th style="width: 80px;">별명</th>
-                    <th style="width: 90px;">네이버ID</th>
-                    <th style="width: 80px;">이름</th>
-                    <th style="width: 110px;">전화</th>
-                    <th style="width: 70px;">게시글</th>
-                    <th style="width: 130px;">공사지역</th>
-                    <th style="width: 95px;">예정일</th>
-                    <th style="width: 150px;">공사내용</th>
-                    <th style="width: 120px;">할당업체</th>
-                    <th style="width: 90px;">상태</th>
-                    <th style="width: 50px;">재의뢰</th>
-                    <th style="width: 50px;">견적</th>
-                    <th style="width: 50px;">메모</th>
-                    <th style="width: 110px; position: sticky; right: 0; background: white; box-shadow: -2px 0 4px rgba(0,0,0,0.1); z-index: 10;">액션</th>
+                    <th style="width: 110px;" scope="col">접수일시</th>
+                    <th style="width: 100px;" scope="col">지정</th>
+                    <th style="width: 80px;" scope="col">별명</th>
+                    <th style="width: 90px;" scope="col">네이버ID</th>
+                    <th style="width: 80px;" scope="col">이름</th>
+                    <th style="width: 110px;" scope="col">전화</th>
+                    <th style="width: 70px;" scope="col">게시글</th>
+                    <th style="width: 130px;" scope="col">공사지역</th>
+                    <th style="width: 95px;" scope="col">예정일</th>
+                    <th style="width: 150px;" scope="col">공사내용</th>
+                    <th style="width: 120px;" scope="col">할당업체</th>
+                    <th style="width: 90px;" scope="col">상태</th>
+                    <th style="width: 50px;" scope="col">재의뢰</th>
+                    <th style="width: 50px;" scope="col">견적</th>
+                    <th style="width: 50px;" scope="col">메모</th>
+                    <th style="width: 110px; position: sticky; right: 0; background: white; box-shadow: -2px 0 4px rgba(0,0,0,0.1); z-index: 10;" scope="col">액션</th>
                 </tr>
             </thead>
             <tbody>
                 {% for order in orders %}
                 <tr class="order-row" data-order-id="{{ order.no }}">
                     <td style="text-align: center;">
-                        <input type="checkbox" class="row-checkbox" value="{{ order.no }}">
+                        <input type="checkbox" class="row-checkbox" value="{{ order.no }}" aria-label="의뢰 번호 {{ order.no }} 선택">
                     </td>
                     <td style="font-size: 0.875rem;">{{ order.created_at|date:"Y-m-d H:i" }}</td>
                     <td style="font-size: 0.75rem; max-width: 160px; word-break: break-word;">{{ order.designation|default:"-" }}</td>
@@ -91,7 +95,7 @@
                     <td>{{ order.sPhone|default:"-" }}</td>
                     <td>
                         {% if order.post_link %}
-                            <a href="{{ order.post_link }}" target="_blank" style="color: #10b981;" title="{{ order.post_link }}">
+                            <a href="{{ order.post_link }}" target="_blank" rel="noopener noreferrer" style="color: #10b981;" title="{{ order.post_link }}" aria-label="의뢰 번호 {{ order.no }}의 게시글 열기">
                                 {{ order.post_link|slice:"-6:" }}
                             </a>
                         {% else %}
@@ -101,7 +105,7 @@
                     <td style="font-size: 0.875rem; max-width: 180px; word-break: break-word;">{{ order.sArea|default:"-" }}</td>
                     <td style="text-align: center;">
                         {% if order.dateSchedule %}
-                            {{ order.dateSchedule|date:"Y-m-d" }}
+                            <time datetime="{{ order.dateSchedule|date:'Y-m-d' }}">{{ order.dateSchedule|date:"Y-m-d" }}</time>
                         {% else %}
                             <span style="color: #999;">미정</span>
                         {% endif %}
@@ -115,27 +119,32 @@
                             {% if order.recent_status == '대기중' %}waiting
                             {% elif order.recent_status == '할당' %}assigned
                             {% elif order.recent_status == '반려' %}rejected
-                            {% else %}cancelled{% endif %}">
+                            {% else %}cancelled{% endif %}"
+                            role="status"
+                            aria-label="현재 상태: {{ order.recent_status }}">
                             {{ order.recent_status }}
                         </span>
                     </td>
                     <td style="text-align: center;">{{ order.re_request_count }}</td>
                     <td style="text-align: center;">
-                        <button class="btn-small" onclick="showEstimates({{ order.no }})">견적</button>
+                        <button class="btn-small" onclick="showEstimates({{ order.no }})" aria-label="의뢰 번호 {{ order.no }}의 견적 보기">견적</button>
                     </td>
                     <td style="text-align: center;">
-                        <button class="btn-small" onclick="showMemos({{ order.no }})">메모</button>
+                        <button class="btn-small" onclick="showMemos({{ order.no }})" aria-label="의뢰 번호 {{ order.no }}의 메모 보기">메모</button>
                     </td>
                     <td style="text-align: center; position: sticky; right: 0; background: white; box-shadow: -2px 0 4px rgba(0,0,0,0.1);">
-                        <div style="display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;">
-                            <button class="btn-small" onclick="showDetailModal({{ order.no }})" title="상세보기">
-                                👁️
+                        <div style="display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;" role="group" aria-label="의뢰 번호 {{ order.no }} 액션">
+                            <button class="btn-small" onclick="showDetailModal({{ order.no }})" aria-label="의뢰 번호 {{ order.no }} 상세보기">
+                                <span aria-hidden="true">👁️</span>
+                                <span class="sr-only">상세보기</span>
                             </button>
-                            <button class="btn-small" onclick="copyOrder({{ order.no }})" title="복사">
-                                📋
+                            <button class="btn-small" onclick="copyOrder({{ order.no }})" aria-label="의뢰 번호 {{ order.no }} 복사">
+                                <span aria-hidden="true">📋</span>
+                                <span class="sr-only">복사</span>
                             </button>
-                            <button class="btn-small" onclick="assignToCompany({{ order.no }})" title="업체할당">
-                                👥
+                            <button class="btn-small" onclick="assignToCompany({{ order.no }})" aria-label="의뢰 번호 {{ order.no }}에 업체 할당">
+                                <span aria-hidden="true">👥</span>
+                                <span class="sr-only">업체할당</span>
                             </button>
                         </div>
                     </td>
@@ -176,24 +185,24 @@
 </div>
 
 <!-- 상세보기 모달 -->
-<div class="modal-overlay" id="orderModal">
+<div class="modal-overlay" id="orderModal" role="dialog" aria-modal="true" aria-labelledby="orderModalTitle">
     <div class="modal-container">
         <div class="modal-header">
-            <h2>📋 의뢰 상세 정보</h2>
-            <button class="modal-close" id="modalCloseBtn">&times;</button>
+            <h2 id="orderModalTitle">📋 의뢰 상세 정보</h2>
+            <button class="modal-close" id="modalCloseBtn" aria-label="모달 닫기">&times;</button>
         </div>
-        <div class="modal-body" id="modalContent">
-            <div class="loading-spinner"></div>
+        <div class="modal-body" id="modalContent" role="document">
+            <div class="loading-spinner" role="status" aria-live="polite" aria-label="로딩 중"></div>
         </div>
     </div>
 </div>
 
 <!-- 업체 할당 모달 -->
-<div class="assign-modal-overlay" id="assignModal">
+<div class="assign-modal-overlay" id="assignModal" role="dialog" aria-modal="true" aria-labelledby="assignModalTitle">
     <div class="assign-modal-container">
         <div class="assign-modal-header">
-            <h2>🏢 업체 할당</h2>
-            <button class="modal-close" id="assignModalCloseBtn">&times;</button>
+            <h2 id="assignModalTitle">🏢 업체 할당</h2>
+            <button class="modal-close" id="assignModalCloseBtn" aria-label="모달 닫기">&times;</button>
         </div>
         <div class="assign-modal-body" id="assignModalContent">
             <!-- 의뢰 정보 요약 -->
@@ -205,21 +214,22 @@
 
             <!-- 지정 타입 선택 -->
             <div class="section-box">
-                <h4 class="section-title">지정 타입</h4>
-                <div class="radio-group">
+                <h4 class="section-title" id="designationTypeLabel">지정 타입</h4>
+                <div class="radio-group" role="radiogroup" aria-labelledby="designationTypeLabel">
                     <label class="radio-label">
-                        <input type="radio" name="designationType" value="지정없음" checked>
+                        <input type="radio" name="designationType" id="designation-none" value="지정없음" checked aria-label="지정없음 선택">
                         <span>지정없음</span>
                     </label>
                     <label class="radio-label">
-                        <input type="radio" name="designationType" value="업체지정">
+                        <input type="radio" name="designationType" id="designation-company" value="업체지정" aria-label="업체지정 선택">
                         <span>업체지정</span>
                     </label>
                     <label class="radio-label">
-                        <input type="radio" name="designationType" value="공동구매">
+                        <input type="radio" name="designationType" id="designation-gp" value="공동구매" aria-label="공동구매 선택">
                         <span>공동구매</span>
                     </label>
-                    <select id="gpSelect" class="select-box" style="display: none; margin-left: 1rem;">
+                    <label for="gpSelect" class="sr-only">공동구매 선택</label>
+                    <select id="gpSelect" name="gpSelect" class="select-box" aria-label="공동구매 선택" style="display: none; margin-left: 1rem;">
                         <option value="">공동구매 선택</option>
                     </select>
                 </div>
@@ -241,8 +251,8 @@
                 <h4 class="section-title">필터</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                     <div>
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">지역구 선택</label>
-                        <select id="regionFilter" class="select-box" style="max-width: 100%;">
+                        <label for="regionFilter" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">지역구 선택</label>
+                        <select id="regionFilter" name="regionFilter" class="select-box" aria-label="지역구 필터" style="max-width: 100%;">
                             <option value="">전체</option>
                             <option value="서울">서울</option>
                             <option value="경기">경기</option>
@@ -250,8 +260,8 @@
                         </select>
                     </div>
                     <div>
-                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">공사구분 선택</label>
-                        <select id="constructionTypeFilter" class="select-box" style="max-width: 100%;">
+                        <label for="constructionTypeFilter" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">공사구분 선택</label>
+                        <select id="constructionTypeFilter" name="constructionTypeFilter" class="select-box" aria-label="공사구분 필터" style="max-width: 100%;">
                             <option value="">전체</option>
                             <option value="아파트">아파트</option>
                             <option value="주택">주택</option>
@@ -260,8 +270,8 @@
                     </div>
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">업체명 검색</label>
-                    <input type="text" id="companySearch" class="search-input" placeholder="업체명으로 검색...">
+                    <label for="companySearch" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">업체명 검색</label>
+                    <input type="text" id="companySearch" name="companySearch" class="search-input" placeholder="업체명으로 검색..." aria-label="업체명 검색">
                 </div>
             </div>
 
@@ -300,11 +310,11 @@
 </div>
 
 <!-- 메모 작성 모달 -->
-<div class="assign-modal-overlay" id="memoModal">
+<div class="assign-modal-overlay" id="memoModal" role="dialog" aria-modal="true" aria-labelledby="memoModalTitle">
     <div class="assign-modal-container" style="max-width: 600px;">
         <div class="assign-modal-header">
-            <h2>📝 메모 작성</h2>
-            <button class="modal-close" id="memoModalCloseBtn">&times;</button>
+            <h2 id="memoModalTitle">📝 메모 작성</h2>
+            <button class="modal-close" id="memoModalCloseBtn" aria-label="모달 닫기">&times;</button>
         </div>
         <div class="assign-modal-body">
             <!-- 의뢰 정보 -->
@@ -316,20 +326,25 @@
 
             <!-- 메모 입력 -->
             <div class="section-box">
-                <h4 class="section-title">메모 내용</h4>
+                <label for="memoContent" class="section-title">메모 내용</label>
                 <textarea id="memoContent"
+                          name="memoContent"
                           placeholder="메모 내용을 입력하세요..."
                           rows="6"
+                          aria-label="메모 내용 입력"
+                          aria-required="true"
                           style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 0.5rem; font-size: 14px; resize: vertical; font-family: 'Noto Sans KR', sans-serif;"></textarea>
             </div>
 
             <!-- 작성자 입력 -->
             <div class="section-box">
-                <h4 class="section-title">작성자</h4>
+                <label for="memoAuthor" class="section-title">작성자</label>
                 <input type="text"
                        id="memoAuthor"
+                       name="memoAuthor"
                        value="{{ current_staff.sName }}"
                        placeholder="작성자 이름"
+                       aria-label="작성자 이름"
                        style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 0.5rem; font-size: 14px;">
             </div>
 
@@ -349,522 +364,6 @@
 </div>
 
 <script>
-// DOM이 로드된 후 실행
-document.addEventListener('DOMContentLoaded', function() {
-    // 모든 '보기' 버튼에 이벤트 리스너 추가
-    const viewButtons = document.querySelectorAll('.btn-view');
-    viewButtons.forEach(function(button) {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const orderNo = this.getAttribute('data-order-id');
-            viewOrder(orderNo);
-        });
-    });
-
-    // 모달 닫기 버튼
-    const closeBtn = document.getElementById('modalCloseBtn');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closeModal);
-    }
-
-    // 모달 외부 클릭시 닫기
-    const modal = document.getElementById('orderModal');
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
-            }
-        });
-    }
-
-    // ESC 키로 모달 닫기
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && modal.classList.contains('active')) {
-            e.stopPropagation();
-            closeModal();
-        }
-    });
-});
-
-// 모달 열기
-function viewOrder(orderNo) {
-    const modal = document.getElementById('orderModal');
-    const modalContent = document.getElementById('modalContent');
-
-    // 모달 표시
-    modal.classList.add('active');
-
-    // 로딩 표시
-    modalContent.innerHTML = '<div class="loading-spinner"></div>';
-
-    // API 호출하여 상세 정보 가져오기
-    fetch(`/order/api/orders/${orderNo}/`)
-        .then(response => response.json())
-        .then(data => {
-            modalContent.innerHTML = generateOrderDetailHTML(data);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            modalContent.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #dc3545;">
-                    <h3>❌ 데이터를 불러오는데 실패했습니다</h3>
-                    <p>${error.message}</p>
-                </div>
-            `;
-        });
-}
-
-// 모달 닫기
-function closeModal() {
-    const modal = document.getElementById('orderModal');
-    modal.classList.remove('active');
-}
-
-// 상세 정보 HTML 생성
-function generateOrderDetailHTML(data) {
-    // 날짜 포맷팅
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '<span style="color: #999;">미정</span>';
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-    };
-
-    const formatDateTime = (dateTimeStr) => {
-        if (!dateTimeStr) return '-';
-        const date = new Date(dateTimeStr);
-        return date.toLocaleString('ko-KR');
-    };
-
-    // 상태에 따른 뱃지 클래스
-    const getStatusBadge = (status) => {
-        const statusMap = {
-            '대기중': 'warning',
-            '할당': 'success',
-            '반려': 'danger',
-            '취소': 'danger',
-            '제외': 'danger',
-            '계약': 'success',
-            '업체미비': 'info',
-            '중복접수': 'warning',
-            '가능문의': 'info',
-            '불가능답변': 'danger'
-        };
-        const badgeClass = statusMap[status] || 'info';
-        return `<span class="info-badge ${badgeClass}">${status}</span>`;
-    };
-
-    // 할당 목록 HTML
-    const generateAssignsHTML = () => {
-        if (!data.assigns || data.assigns.length === 0) {
-            return `
-                <div class="empty-state-text">
-                    <div class="icon">📋</div>
-                    <p>할당 내역이 없습니다</p>
-                </div>
-            `;
-        }
-
-        return data.assigns.map(assign => `
-            <div class="assign-card">
-                <div class="assign-header">
-                    <div class="assign-company">${assign.company_name || '업체 정보 없음'}</div>
-                    ${getStatusBadge(assign.assign_type_display)}
-                </div>
-                <div class="assign-meta">
-                    <div>
-                        <strong>공사 종류:</strong> ${assign.construction_type_display || '-'}
-                    </div>
-                    <div>
-                        <strong>할당일:</strong> ${formatDateTime(assign.time)}
-                    </div>
-                    ${assign.sWorker ? `<div><strong>담당자:</strong> ${assign.sWorker}</div>` : ''}
-                    ${assign.area_name ? `<div><strong>지역:</strong> ${assign.area_name}</div>` : ''}
-                </div>
-            </div>
-        `).join('');
-    };
-
-    // 견적 목록 HTML
-    const generateEstimatesHTML = () => {
-        if (!data.estimates || data.estimates.length === 0) {
-            return `
-                <div class="empty-state-text">
-                    <div class="icon">💰</div>
-                    <p>견적서가 없습니다</p>
-                </div>
-            `;
-        }
-
-        return data.estimates.map(estimate => `
-            <div class="assign-card">
-                <div class="assign-header">
-                    <div class="assign-company">${estimate.company_name || '업체 정보 없음'}</div>
-                    ${estimate.is_recent ? '<span class="info-badge success">최근</span>' : ''}
-                </div>
-                <div class="assign-meta">
-                    <div>
-                        <strong>등록일:</strong> ${formatDateTime(estimate.time)}
-                    </div>
-                    ${estimate.sPost ? `
-                        <div>
-                            <strong>견적서:</strong>
-                            <a href="${estimate.sPost}" target="_blank" style="color: #10b981;">보기 🔗</a>
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-        `).join('');
-    };
-
-    // 메모 목록 HTML
-    const generateMemosHTML = () => {
-        if (!data.memos || data.memos.length === 0) {
-            return `
-                <div class="empty-state-text">
-                    <div class="icon">📝</div>
-                    <p>메모가 없습니다</p>
-                </div>
-            `;
-        }
-
-        return data.memos.map(memo => `
-            <div class="assign-card">
-                <div class="assign-header">
-                    <div class="assign-company">${memo.sWorker || '작성자 없음'}</div>
-                    <div style="font-size: 0.875rem; color: #6b7280;">
-                        ${formatDateTime(memo.time)}
-                    </div>
-                </div>
-                <div style="margin-top: 0.75rem; line-height: 1.6; color: #374151;">
-                    ${memo.sMemo || '-'}
-                </div>
-                ${memo.is_important ? '<div style="margin-top: 0.5rem;"><span class="info-badge danger">⚠️ 중요</span></div>' : ''}
-            </div>
-        `).join('');
-    };
-
-    return `
-        <!-- 상태 정보 -->
-        <div class="detail-section">
-            <div class="badge-group">
-                ${getStatusBadge(data.recent_status)}
-                ${data.designation_type ? `<span class="info-badge info">${data.designation_type}</span>` : ''}
-                ${data.privacy_status ? `<span class="info-badge ${data.privacy_status === '전체 동의' ? 'success' : 'danger'}">${data.privacy_status}</span>` : ''}
-                ${data.is_urgent ? '<span class="info-badge danger">⚠️ 긴급</span>' : ''}
-            </div>
-        </div>
-
-        <!-- 기본 정보 -->
-        <div class="detail-section">
-            <h3>📋 기본 정보</h3>
-            <div class="detail-grid">
-                <div class="detail-item">
-                    <span class="detail-label">의뢰 번호</span>
-                    <span class="detail-value">#${data.no}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">고객명</span>
-                    <span class="detail-value">${data.sName || '-'}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">연락처</span>
-                    <span class="detail-value">${data.sPhone || '-'}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">공사 예정일</span>
-                    <span class="detail-value">${formatDate(data.dateSchedule)}</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- 공사 정보 -->
-        <div class="detail-section">
-            <h3>🏗️ 공사 정보</h3>
-            <div class="detail-item" style="margin-bottom: 1rem;">
-                <span class="detail-label">공사 지역</span>
-                <span class="detail-value">${data.sArea || '-'}</span>
-            </div>
-            ${data.sConstruction ? `
-                <div class="detail-item">
-                    <span class="detail-label">공사 내용</span>
-                    <div class="construction-text" style="margin-top: 0.5rem;">${data.sConstruction}</div>
-                </div>
-            ` : ''}
-            ${data.post_link ? `
-                <div class="detail-item" style="margin-top: 1rem;">
-                    <a href="${data.post_link}" target="_blank" class="btn-action-primary">
-                        카페 게시글 보기 🔗
-                    </a>
-                </div>
-            ` : ''}
-        </div>
-
-        <!-- 탭 메뉴 -->
-        <div class="tabs-container">
-            <div class="tabs">
-                <button class="tab-button active" onclick="switchTab(event, 'tab-assigns')">
-                    할당 내역 (${data.assigns ? data.assigns.length : 0})
-                </button>
-                <button class="tab-button" onclick="switchTab(event, 'tab-estimates')">
-                    견적서 (${data.estimates ? data.estimates.length : 0})
-                </button>
-                <button class="tab-button" onclick="switchTab(event, 'tab-memos')">
-                    메모 (${data.memos ? data.memos.length : 0})
-                </button>
-            </div>
-        </div>
-
-        <!-- 탭 컨텐츠 -->
-        <div id="tab-assigns" class="tab-content active">
-            ${generateAssignsHTML()}
-        </div>
-
-        <div id="tab-estimates" class="tab-content">
-            ${generateEstimatesHTML()}
-        </div>
-
-        <div id="tab-memos" class="tab-content">
-            ${generateMemosHTML()}
-        </div>
-
-        <!-- 액션 버튼 -->
-        <div class="action-buttons-group">
-            <button class="btn-action btn-action-primary" onclick="assignToCompany(${data.no})">
-                🏢 업체 할당
-            </button>
-            <button class="btn-action btn-action-primary" onclick="addMemo(${data.no})">
-                📝 메모 작성
-            </button>
-            <button class="btn-action btn-action-secondary" onclick="editOrder(${data.no})">
-                ✏️ 수정
-            </button>
-        </div>
-    `;
-}
-
-// 탭 전환 함수
-function switchTab(event, tabId) {
-    // 모든 탭 버튼에서 active 제거
-    document.querySelectorAll('.tab-button').forEach(btn => {
-        btn.classList.remove('active');
-    });
-
-    // 모든 탭 컨텐츠에서 active 제거
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-    });
-
-    // 클릭된 탭 버튼에 active 추가
-    event.target.classList.add('active');
-
-    // 해당 탭 컨텐츠에 active 추가
-    document.getElementById(tabId).classList.add('active');
-}
-
-
-// 의뢰 수정 함수 (임시)
-function editOrder(orderNo) {
-    alert(`의뢰 #${orderNo} 수정 기능은 다음 단계에서 구현됩니다.`);
-}
-
-// 상세보기 모달 표시
-function showDetailModal(orderNo) {
-    const modal = document.getElementById('orderModal');
-    const modalContent = document.getElementById('modalContent');
-
-    // 로딩 표시
-    modalContent.innerHTML = '<div class="loading-spinner">로딩 중...</div>';
-    modal.classList.add('active');
-
-    // 의뢰 상세 정보 가져오기
-    fetch(`/order/api/orders/${orderNo}/`)
-        .then(response => response.json())
-        .then(data => {
-            modalContent.innerHTML = generateDetailHTML(data);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            modalContent.innerHTML = '<div class="error-message">정보를 불러오는데 실패했습니다.</div>';
-        });
-}
-
-// 상세 정보 HTML 생성
-function generateDetailHTML(data) {
-    return `
-        <div class="detail-section">
-            <h3 class="section-title">📋 기본 정보</h3>
-            <div class="detail-grid">
-                <div class="detail-item">
-                    <span class="detail-label">의뢰번호:</span>
-                    <span class="detail-value">#${data.no}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">접수일시:</span>
-                    <span class="detail-value">${data.time || data.created_at || '-'}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">지정 타입:</span>
-                    <span class="detail-value">${data.designation_type || '지정없음'}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">지정 내용:</span>
-                    <span class="detail-value">${data.designation || '-'}</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="detail-section">
-            <h3 class="section-title">👤 고객 정보</h3>
-            <div class="detail-grid">
-                <div class="detail-item">
-                    <span class="detail-label">별명:</span>
-                    <span class="detail-value">${data.sNick || '-'}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">네이버ID:</span>
-                    <span class="detail-value">${data.sNaverID || '-'}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">이름:</span>
-                    <span class="detail-value">${data.sName || '-'}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">전화번호:</span>
-                    <span class="detail-value">${data.sPhone || '-'}</span>
-                </div>
-                <div class="detail-item" style="grid-column: span 2;">
-                    <span class="detail-label">게시글:</span>
-                    <span class="detail-value">
-                        ${data.post_link ? `<a href="${data.post_link}" target="_blank" style="color: #3b82f6;">링크 열기 🔗</a>` : '-'}
-                    </span>
-                </div>
-            </div>
-        </div>
-
-        <div class="detail-section">
-            <h3 class="section-title">🏗️ 공사 정보</h3>
-            <div class="detail-grid">
-                <div class="detail-item">
-                    <span class="detail-label">공사지역:</span>
-                    <span class="detail-value">${data.sArea || '-'}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">공사예정일:</span>
-                    <span class="detail-value">${data.dateSchedule || '-'}</span>
-                </div>
-                <div class="detail-item" style="grid-column: span 2;">
-                    <span class="detail-label">공사내용:</span>
-                    <div class="detail-value" style="white-space: pre-wrap; margin-top: 0.5rem;">
-                        ${data.sConstruction || '-'}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="detail-section">
-            <h3 class="section-title">📊 할당 정보</h3>
-            <div class="detail-grid">
-                <div class="detail-item">
-                    <span class="detail-label">할당업체:</span>
-                    <span class="detail-value">${data.assigned_company || '-'}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">최근상태:</span>
-                    <span class="detail-value">
-                        <span class="status-badge ${getStatusClass(data.recent_status)}">
-                            ${data.recent_status || '대기중'}
-                        </span>
-                    </span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">재의뢰 횟수:</span>
-                    <span class="detail-value">${data.re_request_count || 0}회</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">개인정보동의:</span>
-                    <span class="detail-value">
-                        ${data.bPrivacy1 ? '✅' : '❌'} 1차 / ${data.bPrivacy2 ? '✅' : '❌'} 2차
-                    </span>
-                </div>
-            </div>
-        </div>
-
-        <div class="detail-actions">
-            <button class="btn-action btn-action-primary" onclick="assignToCompany(${data.no})">
-                🏢 업체 할당
-            </button>
-            <button class="btn-action btn-action-primary" onclick="addMemo(${data.no})">
-                📝 메모 작성
-            </button>
-            <button class="btn-action btn-action-primary" onclick="copyOrder(${data.no}); document.getElementById('orderModal').classList.remove('active');">
-                📋 의뢰 복사
-            </button>
-            <button class="btn-action btn-action-secondary" onclick="editOrder(${data.no})">
-                ✏️ 수정
-            </button>
-        </div>
-    `;
-}
-
-// 상태별 CSS 클래스 반환
-function getStatusClass(status) {
-    const statusMap = {
-        '대기중': 'waiting',
-        '할당': 'assigned',
-        '반려': 'rejected',
-        '취소': 'cancelled',
-        '제외': 'cancelled',
-        '계약': 'completed'
-    };
-    return statusMap[status] || 'waiting';
-}
-
-// 의뢰 복사 함수
-function copyOrder(orderNo) {
-    if (!confirm('이 의뢰를 복사하시겠습니까?')) {
-        return;
-    }
-
-    fetch(`/order/api/orders/${orderNo}/copy/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        alert(`의뢰가 복사되었습니다! 새 의뢰번호: #${data.no}`);
-        location.reload();
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('의뢰 복사에 실패했습니다.');
-    });
-}
-
-// 견적서 보기 함수
-function showEstimates(orderNo) {
-    alert(`의뢰 #${orderNo}의 견적서 관리 기능은 다음 단계에서 구현됩니다.`);
-}
-
-// 메모 보기 함수
-function showMemos(orderNo) {
-    alert(`의뢰 #${orderNo}의 메모 관리 기능은 다음 단계에서 구현됩니다.`);
-}
-
-// 모달 닫기 이벤트
-document.getElementById('modalCloseBtn').addEventListener('click', function() {
-    document.getElementById('orderModal').classList.remove('active');
-});
-
-// 모달 외부 클릭시 닫기
-document.getElementById('orderModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        this.classList.remove('active');
-    }
-});
-
 // 30초마다 자동 새로고침 (첫 페이지만)
 {% if orders.number == 1 %}
 setInterval(function() {
@@ -876,7 +375,12 @@ setInterval(function() {
 {% endblock %}
 
 {% block extra_js %}
+<!-- 의존성 순서대로 로드 -->
+<script src="{% static 'order/js/api-config.js' %}"></script>
+<script src="{% static 'order/js/toast.js' %}"></script>
 <script src="{% static 'order/js/common.js' %}"></script>
 <script src="{% static 'order/js/order-detail.js' %}"></script>
+<script src="{% static 'order/js/order-assign.js' %}"></script>
 <script src="{% static 'order/js/order-memo.js' %}"></script>
+<script src="{% static 'order/js/order-list.js' %}"></script>
 {% endblock %}
