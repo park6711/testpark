@@ -286,52 +286,98 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def assign_companies(self, request):
-        """업체 할당"""
-        order_id = request.data.get('order_id')
+        """업체 할당 - 11.tsx 로직과 동일하게 구현"""
+        order_no = request.data.get('order_no')
         company_ids = request.data.get('company_ids', [])
-        service_ids = request.data.get('service_ids', [])
+        designation_type = request.data.get('designation_type', '지정없음')
+        group_purchase_id = request.data.get('group_purchase_id')
 
-        order = Order.objects.get(no=order_id)
+        if not order_no:
+            return Response({
+                'success': False,
+                'message': '의뢰 번호가 필요합니다.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        assigned = []
+        if not company_ids:
+            return Response({
+                'success': False,
+                'message': '할당할 업체를 선택해주세요.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        # 메인 업체 할당
-        for company_id in company_ids:
-            company = Company.objects.get(no=company_id)
+        try:
+            order = Order.objects.get(no=order_no)
+        except Order.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': '의뢰를 찾을 수 없습니다.'
+            }, status=status.HTTP_404_NOT_FOUND)
 
-            # 첫 번째 업체는 현재 order에 할당
-            if not order.assigned_company and len(assigned) == 0:
-                order.assigned_company = f"{company.sCompanyName}"
-                order.save()
-                assigned.append(order)
-            else:
-                # 추가 업체는 새 행 생성
-                new_order = Order.objects.create(
-                    designation=order.designation,
-                    designation_type=order.designation_type,
-                    sNick=order.sNick,
-                    sNaverID=order.sNaverID,
-                    sName=order.sName,
-                    sPhone=order.sPhone,
-                    post_link=order.post_link,
-                    sArea=order.sArea,
-                    dateSchedule=order.dateSchedule,
-                    sConstruction=order.sConstruction,
-                    assigned_company=f"{company.sCompanyName}",
-                    recent_status='대기중',
-                    re_request_count=order.re_request_count,
-                    bPrivacy1=order.bPrivacy1,
-                    bPrivacy2=order.bPrivacy2
-                )
-                assigned.append(new_order)
+        # 같은 게시글(post_link)의 이미 할당된 업체들 확인
+        existing_assignments = set()
+        if order.post_link:
+            existing_assignments = set(
+                Order.objects.filter(post_link=order.post_link)
+                .exclude(assigned_company='')
+                .values_list('assigned_company', flat=True)
+            )
 
-        # 부가서비스 할당 로직도 유사하게 구현
+        assigned_orders = []
+        first_item_assigned = False
+
+        # 선택된 업체들 처리
+        with transaction.atomic():
+            for company_id in company_ids:
+                try:
+                    company = Company.objects.get(no=company_id)
+                    company_name = f"{company.sCompanyName} {company.sAddress}" if company.sAddress else company.sCompanyName
+
+                    # 이미 할당된 업체는 스킵
+                    if company_name in existing_assignments:
+                        continue
+
+                    # 첫 번째 업체이고 현재 행에 할당된 업체가 없으면 현재 행 업데이트
+                    if not first_item_assigned and not order.assigned_company:
+                        order.assigned_company = company_name
+                        order.recent_status = '대기중'
+                        order.designation_type = designation_type
+                        order.save()
+
+                        assigned_orders.append(order)
+                        first_item_assigned = True
+                        existing_assignments.add(company_name)
+                    else:
+                        # 추가 업체는 새 행 생성 (의뢰 복사)
+                        new_order = Order.objects.create(
+                            designation=order.designation,
+                            designation_type=designation_type,
+                            sNick=order.sNick,
+                            sNaverID=order.sNaverID,
+                            sName=order.sName,
+                            sPhone=order.sPhone,
+                            sPost=order.sPost,
+                            post_link=order.post_link,
+                            sArea=order.sArea,
+                            dateSchedule=order.dateSchedule,
+                            sConstruction=order.sConstruction,
+                            assigned_company=company_name,
+                            recent_status='대기중',
+                            re_request_count=order.re_request_count,
+                            bPrivacy1=order.bPrivacy1,
+                            bPrivacy2=order.bPrivacy2,
+                            google_sheet_uuid=None  # 복사본은 UUID 없음
+                        )
+                        assigned_orders.append(new_order)
+                        existing_assignments.add(company_name)
+
+                except Company.DoesNotExist:
+                    continue
 
         return Response({
-            'status': 'success',
-            'assigned_count': len(assigned),
-            'message': f'{len(assigned)}개 업체/서비스가 할당되었습니다.'
-        })
+            'success': True,
+            'assigned_count': len(assigned_orders),
+            'message': f'{len(assigned_orders)}개 업체가 할당되었습니다.',
+            'assigned_order_ids': [o.no for o in assigned_orders]
+        }, status=status.HTTP_200_OK)
 
     def _send_message(self, order, message_content, recipient_type):
         """실제 문자 발송 로직 (구현 필요)"""
@@ -426,13 +472,14 @@ class CompanyViewSet(viewsets.ReadOnlyModelViewSet):
 
         for company in companies:
             data.append({
-                'id': company.no,
-                'name': company.sCompanyName,
-                'location': company.sAddress or '',
-                'grade': company.nGrade or 1,
-                'licenses': company.sBuildLicense or '',
-                'features': company.sStrength or '',
-                'isDesignated': False
+                'no': company.no,
+                'sCompanyName': company.sCompanyName,
+                'sAddress': company.sAddress or '',
+                'grade': company.nGrade or 4,
+                'license': company.sBuildLicense or '-',
+                'sArea': company.sArea or '',
+                'specialty': company.sStrength or '-',
+                'assignCount': 0  # TODO: 할당 횟수 계산
             })
 
         return Response(data)
