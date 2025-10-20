@@ -10,13 +10,18 @@
 ## ⚡ Quick Start (로컬 개발자용)
 
 ```bash
-# 🚀 자동 설정 (권장)
-./setup-local-dev.sh
+# 1. 저장소 클론
+git clone https://github.com/park6711/testpark.git
+cd testpark
 
-# 또는 Docker Compose 직접 실행
+# 2. Docker 컨테이너 시작
 docker-compose up -d
 
-# 접속: http://localhost:8000
+# 3. 실서버 백업 복원 (선택사항)
+./sync-db.sh  # 2번 선택하여 백업 파일 임포트
+
+# 4. 접속
+http://localhost:8000
 ```
 
 **🔗 실서버 관련 작업은 [DEPLOYMENT.md](DEPLOYMENT.md) 참조**
@@ -118,55 +123,12 @@ OrderUtils.getOrderDisplayName(order)
 
 ## 🚀 로컬 개발 환경 구축
 
-### Python 가상환경 설정
-
-```bash
-# 1. 저장소 클론
-git clone https://github.com/park6711/testpark.git
-cd testpark
-
-# 2. Python 가상환경 생성
-python -m venv venv
-
-# 3. 가상환경 활성화
-# Linux/Mac:
-source venv/bin/activate
-# Windows:
-venv\Scripts\activate
-
-# 4. 의존성 설치
-pip install -r requirements.txt
-```
-
-### Django 개발 서버 실행
-
-```bash
-# 1. 데이터베이스 마이그레이션
-python manage.py migrate
-
-# 2. 슈퍼유저 생성 (선택사항)
-python manage.py createsuperuser
-
-# 3. 개발 서버 시작
-python manage.py runserver
-
-# 4. 브라우저에서 접속
-# http://localhost:8000/
-```
-
-### Docker로 로컬 테스트
-
-```bash
-# Docker Compose로 실행 (개발용)
-docker-compose up -d
-
-# 또는 개별 빌드 및 실행
-docker build -t testpark-local .
-docker run -p 8001:8000 testpark-local
-
-# 로컬 Docker 테스트 접속
-curl http://localhost:8001/
-```
+### TODO(human): Docker 기반 개발 환경 설정을 작성해주세요
+# 아래 내용을 포함해서 작성:
+# 1. docker-compose.override.yml을 사용한 로컬 코드 마운트
+# 2. MariaDB 컨테이너 접속 방법
+# 3. sync-db.sh를 사용한 실서버 백업 복원
+# 4. Docker 컨테이너 로그 확인 방법
 
 ## 🔄 자동 배포 시스템
 
@@ -254,29 +216,34 @@ GET    /order/api/group-purchases/           # 공동구매 목록
 
 ### 데이터베이스 관리
 ```bash
-# 마이그레이션 파일 생성
-python manage.py makemigrations
+# MariaDB 컨테이너 직접 접속
+docker exec -it testpark-mariadb mariadb -u testpark -p'**jeje4211' testpark
 
-# 마이그레이션 적용
-python manage.py migrate
+# 또는 헬퍼 스크립트 사용
+./scripts/db-connect.sh
 
-# SQLite 데이터베이스 위치
-# db.sqlite3 (프로젝트 루트)
+# Django 마이그레이션 (컨테이너 내에서)
+docker exec testpark python manage.py makemigrations
+docker exec testpark python manage.py migrate
+
+# 데이터베이스 백업/복원
+./sync-db.sh  # 대화형 메뉴
 ```
 
 ### 테스트 및 디버깅
 ```bash
-# Django 셸 접속
-python manage.py shell
+# Django 셸 접속 (컨테이너 내)
+docker exec -it testpark python manage.py shell
 
-# 테스트 실행 (추가 예정)
-python manage.py test
+# 컨테이너 로그 확인
+docker-compose logs -f testpark
+docker-compose logs -f mariadb
+
+# 테스트 실행
+docker exec testpark python manage.py test
 
 # 정적 파일 수집 (배포 시)
-python manage.py collectstatic
-
-# 로그 확인 (개발 서버)
-python manage.py runserver --verbosity=2
+docker exec testpark python manage.py collectstatic
 ```
 
 ### 코드 스타일 및 품질
@@ -322,10 +289,10 @@ chore: 빌드 관련 작업
 ### 개발 로드맵
 - [ ] **테스트 코드 작성** - Unit/Integration 테스트
 - [ ] **API 문서화** - Django REST framework + Swagger
-- [ ] **데이터베이스 최적화** - PostgreSQL 연동
-- [ ] **프론트엔드 개선** - React/Vue.js 연동
+- [ ] **데이터베이스 최적화** - MariaDB 인덱싱 및 쿼리 최적화
 - [ ] **모니터링 시스템** - 로그 분석 및 알림
 - [ ] **성능 최적화** - 캐싱, CDN 적용
+- [ ] **백업 자동화** - 정기적인 DB 백업 시스템
 
 ### 기술 스택 확장
 - [ ] **Redis** - 세션 스토어 및 캐싱
@@ -342,19 +309,23 @@ chore: 빌드 관련 작업
 
 ### 로컬 개발 문제 해결
 ```bash
-# 가상환경 문제
-deactivate && source venv/bin/activate
+# Docker 컨테이너 상태 확인
+docker ps -a
+docker-compose ps
 
-# 패키지 의존성 문제
-pip install --upgrade pip
-pip install -r requirements.txt --force-reinstall
-
-# Django 설정 문제
-python manage.py check
-python manage.py check --deploy
+# 컨테이너 재시작
+docker-compose down && docker-compose up -d
 
 # 포트 충돌 문제
-python manage.py runserver 8001  # 다른 포트 사용
+lsof -i :8000  # 8000번 포트 사용 프로세스 확인
+docker-compose stop && docker-compose up -d
+
+# DB 연결 문제
+docker exec testpark-mariadb mariadb -u root -ptestpark-root -e "SELECT 1"
+
+# 볼륨 권한 문제
+docker-compose down -v  # 볼륨 삭제 후 재생성
+docker-compose up -d
 ```
 
 ## 🧪 자동 배포 테스트
