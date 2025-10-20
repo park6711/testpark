@@ -76,3 +76,8 @@ mysql-init/
 mariadb-init/
 *.sql
 .claude/settings.local.json
+
+# Database sync files (contains sensitive data)
+db-sync/
+*.sql
+*.sql.gz
