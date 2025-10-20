@@ -1,0 +1,27 @@
+# 로컬 개발 환경 설정 예제
+# 사용법:
+# 1. 이 파일을 docker-compose.override.yml로 복사
+#    cp docker-compose.override.yml.example docker-compose.override.yml
+# 2. docker-compose up -d 실행
+#
+# 주의: docker-compose.override.yml은 .gitignore에 포함되어 있어
+#      GitHub에 푸시되지 않습니다 (보안상 중요!)
+
+services:
+  # TestPark Django 앱 개발 설정
+  testpark:
+    volumes:
+      - .:/app  # 로컬 코드를 컨테이너에 마운트 (실시간 변경 반영)
+      - ./media:/app/media
+      - ./seongdal-a900e25ac63c.json:/app/seongdal-a900e25ac63c.json
+
+    # 개발 서버 사용 (자동 리로드 지원)
+    entrypoint: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+
+    environment:
+      - DEBUG=True  # 디버그 모드 활성화
+      - DEVELOPMENT=True  # 개발 환경 플래그
+
+    # 개발 시 유용한 추가 설정
+    stdin_open: true  # -i 옵션 (interactive)
+    tty: true  # -t 옵션 (tty)

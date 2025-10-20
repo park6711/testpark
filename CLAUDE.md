@@ -54,25 +54,32 @@ Docker를 사용한 로컬 개발 시 코드 변경이 반영되지 않는 문�
 ### 1. 코드 변경이 반영되지 않을 때 체크리스트
 
 **원인 분석:**
-1. **Docker 볼륨 마운트 확인** - docker-compose.yml에 `.:/app` 설정이 있는지 확인
+1. **Docker Override 파일 확인** - docker-compose.override.yml 파일이 있는지 확인
 2. **컨테이너가 이미지 내부 코드를 사용하는지 확인**
 3. **캐시된 정적 파일 문제인지 확인**
 
-**해결 방법:**
+**🔴 매우 중요한 보안 사항:**
 ```yaml
-# docker-compose.yml 필수 설정
-volumes:
-  - .:/app  # 로컬 코드를 컨테이너에 마운트 (중요!)
-  - ./media:/app/media
-entrypoint: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# ❌ 절대 하지 말아야 할 것: docker-compose.yml에 로컬 마운트 추가
+# 이렇게 하면 프로덕션 서버에서 서버 코드가 노출됩니다!
+# docker-compose.yml에는 절대 .:/app 마운트를 추가하지 마세요
+
+# ✅ 올바른 방법: docker-compose.override.yml 사용 (로컬 전용)
+# 이 파일은 .gitignore에 추가되어 GitHub에 올라가지 않습니다
+services:
+  testpark:
+    volumes:
+      - .:/app  # 로컬 코드 마운트
+    entrypoint: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 ```
 
 ### 2. Docker 작업 시 필수 확인 사항
 
 **로컬 개발 환경:**
-- ✅ 항상 `.:/app` 볼륨 마운트 확인
+- ✅ docker-compose.override.yml 파일 사용 (로컬 마운트용)
 - ✅ 코드 변경 후 브라우저 새로고침으로 확인
 - ✅ Django runserver 사용 (자동 리로드 지원)
+- ⚠️ override 파일이 없으면 로컬 코드 변경이 반영되지 않음!
 
 **프로덕션 환경:**
 - ❌ 로컬 코드 마운트 사용 금지 (보안 위험)
