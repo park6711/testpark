@@ -43,8 +43,10 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      - .:/app  # 로컬 코드 마운트 (개발용)
       - ./media:/app/media  # 업로드 파일 유지
       - ./seongdal-a900e25ac63c.json:/app/seongdal-a900e25ac63c.json  # 구글 시트 인증 파일
+    entrypoint: ["python", "manage.py", "runserver", "0.0.0.0:8000"]  # entrypoint 덮어쓰기
     env_file:
       - .env
     environment:
