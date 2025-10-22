@@ -42,6 +42,10 @@ dist/
 build/
 public/build/
 
+# Django static files (collectstatic output)
+staticfiles/
+static_root/
+
 # Python
 __pycache__/
 *.py[cod]
