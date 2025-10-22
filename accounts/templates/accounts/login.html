@@ -593,7 +593,11 @@
         </div>
         {% endif %}
 
-        <!-- 통합 네이버 로그인 버튼 -->
+        <!-- TODO(human): 업체/스탭 구분 로그인 버튼 구현
+             기존 통합 로그인 버튼을 업체/스탭 두 개의 버튼으로 교체
+             - 업체 로그인: {% url 'accounts:company_naver_login' %}
+             - 스탭 로그인: {% url 'accounts:staff_naver_login' %}
+        -->
         <a href="{% url 'accounts:unified_naver_login' %}" class="naver-login-btn">
             <div class="naver-icon">N</div>
             <span>네이버로 시작하기</span>
