@@ -6,10 +6,14 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#667eea">
+    <meta name="theme-color" content="#10b981">
     <link rel="manifest" href="/static/manifest.json">
-    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiBmaWxsPSIjNjY3ZWVhIi8+Cjx0ZXh0IHg9Ijk2IiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI0OCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSI+UDwvdGV4dD4KPC9zdmc+">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiBmaWxsPSIjMTBiOTgxIi8+Cjx0ZXh0IHg9Ijk2IiB5PSIxMDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI0OCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIwLjNlbSI+UDwvdGV4dD4KPC9zdmc+">
     <title>{% block title %}PMIS 2.0 스텝 관리{% endblock %}</title>
+
+    {% load static %}
+    {% block extra_css %}{% endblock %}
+
     <style>
         * {
             margin: 0;
@@ -116,7 +120,7 @@
 
         /* 상단 네비게이션 */
         .top-nav {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #10b981; /* 브랜드 메인 컬러 - 그라데이션 제거 */
             color: white;
             padding: 0;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -126,7 +130,7 @@
         }
 
         .nav-container {
-            max-width: 1200px;
+            /* max-width 제거하여 전체 화면 사용 */
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
@@ -176,7 +180,7 @@
         }
 
         .menu-container {
-            max-width: 1200px;
+            /* max-width 제거하여 전체 화면 사용 */
             margin: 0 auto;
             display: flex;
             padding: 0 20px;
@@ -282,13 +286,13 @@
             z-index: 999;
         }
 
-        /* 컨텐츠 영역 - 스크롤 가능 */
+        /* 컨텐츠 영역 - 스크롤 가능, 전체 화면 사용 */
         .content-wrapper {
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
-            max-width: 1200px;
-            margin: 0 auto;
+            /* max-width 제거하여 전체 화면 사용 */
+            margin: 0;
             padding: 20px;
             width: 100%;
             box-sizing: border-box;
@@ -414,29 +418,29 @@
                 */
             }
 
-            // 브라우저 컨텍스트 메뉴 비활성화
-            document.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                return false;
-            });
+            // 브라우저 컨텍스트 메뉴 활성화 (우클릭 허용)
+            // document.addEventListener('contextmenu', function(e) {
+            //     e.preventDefault();
+            //     return false;
+            // });
 
-            // F11 키 비활성화 (전체화면 방지)
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'F11') {
-                    e.preventDefault();
-                    return false;
-                }
-                // Ctrl+Shift+I (개발자 도구) 비활성화
-                if (e.ctrlKey && e.shiftKey && e.key === 'I') {
-                    e.preventDefault();
-                    return false;
-                }
-                // F12 (개발자 도구) 비활성화
-                if (e.key === 'F12') {
-                    e.preventDefault();
-                    return false;
-                }
-            });
+            // 개발자 도구 단축키 활성화
+            // document.addEventListener('keydown', function(e) {
+            //     if (e.key === 'F11') {
+            //         e.preventDefault();
+            //         return false;
+            //     }
+            //     // Ctrl+Shift+I (개발자 도구) 비활성화
+            //     if (e.ctrlKey && e.shiftKey && e.key === 'I') {
+            //         e.preventDefault();
+            //         return false;
+            //     }
+            //     // F12 (개발자 도구) 비활성화
+            //     if (e.key === 'F12') {
+            //         e.preventDefault();
+            //         return false;
+            //     }
+            // });
 
             // 페이지 로드 시 주소창 숨김
             window.addEventListener('load', function() {
@@ -484,20 +488,20 @@
                     });
             }
 
-            // 풀스크린 강제 설정 (초기 로드에서 2초 후)
-            setTimeout(function() {
-                // 모바일이나 태블릿에서 자동 풀스크린
-                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                    requestFullscreen();
-                } else if (document.body.scrollHeight > window.innerHeight) {
-                    requestFullscreen();
-                }
-            }, 2000);
+            // 자동 풀스크린 비활성화
+            // setTimeout(function() {
+            //     // 모바일이나 태블릿에서 자동 풀스크린
+            //     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            //         requestFullscreen();
+            //     } else if (document.body.scrollHeight > window.innerHeight) {
+            //         requestFullscreen();
+            //     }
+            // }, 2000);
 
-            // 브라우저 다시 시작 시 풀스크린 유지
-            window.addEventListener('focus', function() {
-                setTimeout(requestFullscreen, 100);
-            });
+            // 브라우저 다시 시작 시 풀스크린 유지 비활성화
+            // window.addEventListener('focus', function() {
+            //     setTimeout(requestFullscreen, 100);
+            // });
         })();
 
         // 전역 풀스크린 토글 기능
@@ -526,19 +530,19 @@
             }
         });
 
-        // ESC 키로 풀스크린 나가기 방지
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                e.preventDefault();
-                // 대신 홍보상자 표시
-                if (confirm('풀스크린 모드를 종료하시겠습니까?')) {
-                    if (document.exitFullscreen) {
-                        document.exitFullscreen();
-                    }
-                }
-                return false;
-            }
-        });
+        // ESC 키로 풀스크린 나가기 허용
+        // document.addEventListener('keydown', function(e) {
+        //     if (e.key === 'Escape') {
+        //         e.preventDefault();
+        //         // 대신 홍보상자 표시
+        //         if (confirm('풀스크린 모드를 종료하시겠습니까?')) {
+        //             if (document.exitFullscreen) {
+        //                 document.exitFullscreen();
+        //             }
+        //         }
+        //         return false;
+        //     }
+        // });
     </script>
 </head>
 <body>
@@ -598,9 +602,9 @@
 
             <!-- 2. 의뢰할당 -->
             <div class="menu-item">
-                <a href="{% url 'order:quote_list' %}" class="menu-link">의뢰할당</a>
+                <a href="{% url 'order:order_list' %}" class="menu-link">의뢰할당</a>
                 <div class="dropdown">
-                    <a href="{% url 'order:quote_list' %}" class="dropdown-item">의뢰 리스트</a>
+                    <a href="{% url 'order:order_list' %}" class="dropdown-item">의뢰 리스트</a>
                     <a href="{% url 'gonggu:gonggu_list' %}" class="dropdown-item">공동구매 리스트</a>
                     <a href="/companycondition/" class="dropdown-item">업체 상태</a>
                     <a href="#" class="dropdown-item">가능지역 현황판</a>
@@ -683,5 +687,7 @@
             }
         }, 5000);
     </script>
+
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

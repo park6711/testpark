@@ -114,6 +114,9 @@ jobs:
         # Get workflow run details
         WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
+        # 한국 시간으로 실패 시각 기록
+        KST_FAIL_TIME=$(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S')
+
         # Extract potential error info
         ERROR_STEP=""
         PROGRESS=""
@@ -128,7 +131,7 @@ jobs:
         curl -X POST "https://wh.jandi.com/connect-api/webhook/15016768/cb65bef68396631906dc71e751ff5784" \
           -H "Content-Type: application/json" \
           -d "{
-            \"body\": \"🚨 **TestPark 자동배포 실패**\\n\\n📍 **위치**: GitHub 서버\\n📊 **진행률**: ${PROGRESS}\\n❌ **상태**: 배포 중단됨\\n\\n🔍 **오류 정보**:\\n• 실패 단계: ${ERROR_STEP}\\n• 커밋: ${{ github.sha }}\\n• 브랜치: ${{ github.ref_name }}\\n\\n🛠️ **필요한 조치**:\\n1️⃣ 로그 확인: [GitHub Actions 로그](${WORKFLOW_URL})\\n2️⃣ 코드 수정 후 재푸시\\n3️⃣ 또는 수동 배포 실행\\n\\n⚠️ **실서버 배포가 중단되었습니다**\",
+            \"body\": \"🚨 **TestPark 자동배포 실패**\\n\\n📍 **위치**: GitHub 서버\\n📊 **진행률**: ${PROGRESS}\\n❌ **상태**: 배포 중단됨\\n\\n🔍 **오류 정보**:\\n• 실패 단계: ${ERROR_STEP}\\n• 커밋: ${{ github.sha }}\\n• 브랜치: ${{ github.ref_name }}\\n• 실패 시각: ${KST_FAIL_TIME} (KST)\\n\\n🛠️ **필요한 조치**:\\n1️⃣ 로그 확인: [GitHub Actions 로그](${WORKFLOW_URL})\\n2️⃣ 코드 수정 후 재푸시\\n3️⃣ 또는 수동 배포 실행\\n\\n⚠️ **실서버 배포가 중단되었습니다**\",
             \"connectColor\": \"#F44336\"
           }"
-        echo "❌ 빌드 중 오류가 발생했습니다: ${ERROR_STEP}"
+        echo "❌ 빌드 중 오류가 발생했습니다: ${ERROR_STEP} (${KST_FAIL_TIME} KST)"

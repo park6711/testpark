@@ -1,9 +1,14 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PMIS 2.0 로그인</title>
+    <title>(주)박목수의 열린 견적서 - PMIS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}">
     <style>
         * {
             margin: 0;
@@ -12,155 +17,257 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 배경 장식 요소 */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 20% 80%, rgba(46, 213, 115, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(46, 213, 115, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 40%, rgba(52, 211, 153, 0.03) 0%, transparent 50%);
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(-20px, -20px) rotate(1deg); }
+            66% { transform: translate(20px, -10px) rotate(-1deg); }
         }
 
         .login-container {
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-            padding: 60px 50px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+            padding: 50px 40px;
             text-align: center;
-            max-width: 450px;
+            max-width: 420px;
             width: 90%;
+            position: relative;
+            z-index: 1;
+            animation: slideUp 0.5s ease-out;
         }
 
-        .logo {
-            font-size: 48px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo-wrapper {
+            margin-bottom: 30px;
+        }
+
+        .logo-img {
+            width: 100px;
+            height: auto;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+            animation: logoBounce 1s ease-out;
+        }
+
+        @keyframes logoBounce {
+            0% { transform: scale(0.8) rotate(-5deg); opacity: 0; }
+            50% { transform: scale(1.05) rotate(2deg); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .company-name {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a202c;
+            margin: 20px 0 8px;
+            letter-spacing: -0.5px;
         }
 
         .subtitle {
-            color: #666;
-            font-size: 16px;
-            margin-bottom: 50px;
+            color: #718096;
+            font-size: 14px;
+            font-weight: 400;
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
 
         .naver-login-btn {
             background: #03C75A;
             color: white;
             border: none;
-            padding: 18px 40px;
-            border-radius: 50px;
-            font-size: 18px;
-            font-weight: bold;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
             cursor: pointer;
             text-decoration: none;
-            display: inline-block;
-            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             width: 100%;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(3, 199, 90, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .naver-login-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+
+        .naver-login-btn:hover::before {
+            width: 400px;
+            height: 400px;
         }
 
         .naver-login-btn:hover {
-            background: #02b151;
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(3, 199, 90, 0.3);
+            box-shadow: 0 8px 12px rgba(3, 199, 90, 0.3);
+            background: #02b151;
         }
 
         .naver-login-btn:active {
             transform: translateY(0);
         }
 
-        .staff-login-btn {
-            background: #0066CC;
-            color: white;
-            border: none;
-            padding: 18px 40px;
-            border-radius: 50px;
+        .naver-login-btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .naver-icon {
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #03C75A;
             font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            transition: all 0.3s ease;
-            width: 100%;
-            margin-bottom: 30px;
-        }
-
-        .staff-login-btn:hover {
-            background: #0052A3;
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 102, 204, 0.3);
-        }
-
-        .staff-login-btn:active {
-            transform: translateY(0);
+            position: relative;
+            z-index: 1;
         }
 
         .info-text {
-            font-size: 14px;
-            color: #888;
-            line-height: 1.6;
-            margin-bottom: 30px;
+            font-size: 13px;
+            color: #a0aec0;
+            line-height: 1.8;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
         }
 
-        .features {
-            text-align: left;
-            margin-top: 40px;
+        .info-text strong {
+            color: #4a5568;
+            font-weight: 500;
         }
 
-        .features h3 {
-            color: #333;
-            font-size: 18px;
-            margin-bottom: 15px;
-        }
-
-        .features ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .features li {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 8px;
-            padding-left: 20px;
-            position: relative;
-        }
-
-        .features li:before {
-            content: "✓";
-            color: #03C75A;
-            font-weight: bold;
-            position: absolute;
-            left: 0;
+        .divider {
+            width: 50px;
+            height: 3px;
+            background: linear-gradient(90deg, #34d399, #10b981);
+            margin: 30px auto;
+            border-radius: 2px;
         }
 
         .messages {
             margin-bottom: 20px;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .alert {
-            padding: 15px;
-            border-radius: 10px;
+            padding: 14px 18px;
+            border-radius: 12px;
             margin-bottom: 10px;
             font-size: 14px;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert::before {
+            content: '⚠️';
+            font-size: 18px;
         }
 
         .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .alert-success::before {
+            content: '✅';
         }
 
         .alert-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-error::before {
+            content: '❌';
         }
 
         .alert-info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
+            background-color: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        .alert-info::before {
+            content: 'ℹ️';
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 12px;
+            color: #a0aec0;
         }
 
         @media (max-width: 768px) {
@@ -169,100 +276,355 @@
                 margin: 20px;
             }
 
-            .logo {
-                font-size: 36px;
+            .company-name {
+                font-size: 20px;
             }
 
             .naver-login-btn {
-                font-size: 16px;
-                padding: 16px 30px;
+                font-size: 15px;
+                padding: 14px 28px;
             }
+
+            .logo-img {
+                width: 80px;
+            }
+        }
+
+        /* 계정 관리 스타일 */
+        .current-account-box, .recent-accounts-box {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 1px solid #86efac;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .account-header {
+            font-size: 12px;
+            color: #065f46;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .account-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .account-avatar {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
+        }
+
+        .account-details {
+            flex: 1;
+        }
+
+        .account-name {
+            font-weight: 600;
+            color: #064e3b;
+            font-size: 15px;
+        }
+
+        .account-email {
+            color: #065f46;
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        .account-type {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+
+        .switch-account-btn {
+            width: 100%;
+            background: white;
+            color: #10b981;
+            border: 2px solid #10b981;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .switch-account-btn:hover {
+            background: #10b981;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .recent-accounts-box {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        .accounts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .account-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .account-item:hover {
+            border-color: #10b981;
+            background: #f0fdf4;
+            transform: translateX(4px);
+        }
+
+        .account-avatar-small {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #cbd5e0 0%, #94a3b8 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .account-info-small {
+            flex: 1;
+        }
+
+        .account-name-small {
+            font-weight: 500;
+            color: #1f2937;
+            font-size: 14px;
+        }
+
+        .account-email-small {
+            color: #6b7280;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        .account-arrow {
+            color: #10b981;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* 에러 모달 개선 */
+        #errorModal {
+            display: block;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .error-modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 40px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            animation: modalSlideUp 0.3s ease-out;
+        }
+
+        @keyframes modalSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .error-modal-content h3 {
+            color: #dc2626;
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .error-modal-content p {
+            color: #4b5563;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .error-modal-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .error-modal-btn:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
         }
     </style>
 </head>
 <body>
     <div class="login-container">
-        <div class="logo">🏢 PMIS 2.0</div>
-        <div class="subtitle">안전한 네이버 소셜 로그인</div>
+        <div class="logo-wrapper">
+            <img src="{% static 'logo.png' %}" alt="(주)박목수의 열린 견적서" class="logo-img" onerror="this.src='/static/logo.png'">
+        </div>
+
+        <h1 class="company-name">(주)박목수의 열린 견적서</h1>
+        <div class="subtitle">PMIS</div>
+
+        <div class="divider"></div>
+
+        <!-- 현재 로그인된 계정 표시 -->
+        {% if current_account %}
+        <div class="current-account-box">
+            <div class="account-header">
+                <span class="account-label">🔐 현재 네이버 계정</span>
+            </div>
+            <div class="account-info">
+                <div class="account-avatar">{{ current_account.name|first|upper }}</div>
+                <div class="account-details">
+                    <div class="account-name">{{ current_account.name }}</div>
+                    <div class="account-email">{{ current_account.email }}</div>
+                    <div class="account-type">{{ current_account.type|default:"일반" }} 계정</div>
+                </div>
+            </div>
+            <button onclick="switchAccount()" class="switch-account-btn">
+                다른 계정으로 로그인
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- 최근 로그인한 계정 목록 -->
+        {% if recent_accounts and recent_accounts|length > 1 %}
+        <div class="recent-accounts-box">
+            <div class="account-header">
+                <span class="account-label">최근 사용한 계정</span>
+            </div>
+            <div class="accounts-list">
+                {% for account in recent_accounts %}
+                    {% if account.email != current_account.email %}
+                    <div class="account-item" onclick="quickLogin('{{ account.email }}')">
+                        <div class="account-avatar-small">{{ account.name|first|upper }}</div>
+                        <div class="account-info-small">
+                            <div class="account-name-small">{{ account.name }}</div>
+                            <div class="account-email-small">{{ account.email }}</div>
+                        </div>
+                        <div class="account-arrow">→</div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
 
         <!-- 메시지 표시 -->
         {% if messages %}
             <div class="messages">
                 {% for message in messages %}
                     <div class="alert alert-{{ message.tags }}">
-                        {{ message|linebreaks }}
+                        {{ message|safe }}
                     </div>
                 {% endfor %}
             </div>
         {% endif %}
 
-        <!-- 네이버 로그인 버튼 -->
-        <a href="{% url 'accounts:company_naver_login' %}" class="naver-login-btn">
-            🟢 네이버로 로그인
-        </a>
-
-        <!-- 스텝 로그인 버튼 -->
-        <a href="{% url 'accounts:staff_naver_login' %}" class="staff-login-btn">
-            👤 스텝 로그인
-        </a>
-
-        <!-- 다른 네이버 계정으로 로그인 링크 (통합) -->
-        <div style="text-align: center; margin: 30px 0;">
-            <div style="border-top: 1px solid #eee; padding-top: 20px; margin-bottom: 20px;">
-                <p style="color: #888; font-size: 13px; margin-bottom: 15px;">다른 네이버 계정으로 로그인하기</p>
-                <button onclick="switchNaverAccount()" style="
-                    color: #666; font-size: 14px; text-decoration: none;
-                    border: 1px solid #ddd; padding: 8px 20px; border-radius: 20px;
-                    display: inline-block; transition: all 0.3s ease;
-                    background: #f8f9fa; cursor: pointer;
-                " onmouseover="this.style.background='#e9ecef'; this.style.borderColor='#adb5bd';"
-                   onmouseout="this.style.background='#f8f9fa'; this.style.borderColor='#ddd';">
-                    🔄 계정 변경하기
+        <!-- 에러 메시지 팝업 -->
+        {% if error_message %}
+        <div id="errorModal">
+            <div class="error-modal-content">
+                <h3>🚫 로그인 실패</h3>
+                <p>{{ error_message }}</p>
+                <button onclick="document.getElementById('errorModal').style.display='none'" class="error-modal-btn">
+                    확인
                 </button>
             </div>
         </div>
+        {% endif %}
 
-        <!-- 임시 테스트 로그인 버튼들 -->
-        <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid #eee;">
-            <p style="color: #888; font-size: 14px; margin-bottom: 20px;">📋 개발용 테스트 로그인</p>
+        <!-- TODO(human): 업체/스탭 구분 로그인 버튼 구현
+             기존 통합 로그인 버튼을 업체/스탭 두 개의 버튼으로 교체
+             - 업체 로그인: {% url 'accounts:company_naver_login' %}
+             - 스탭 로그인: {% url 'accounts:staff_naver_login' %}
+        -->
+        <a href="{% url 'accounts:unified_naver_login' %}" class="naver-login-btn">
+            <div class="naver-icon">N</div>
+            <span>네이버로 시작하기</span>
+        </a>
 
-            <a href="{% url 'accounts:test_staff_login' %}" style="
-                background: #28a745; color: white; border: none; padding: 12px 30px;
-                border-radius: 50px; font-size: 14px; font-weight: bold; cursor: pointer;
-                text-decoration: none; display: inline-block; transition: all 0.3s ease;
-                width: 100%; margin-bottom: 10px; text-align: center;
-            ">
-                🔧 테스트 스텝 로그인
-            </a>
-
-            <a href="{% url 'accounts:test_company_login' %}" style="
-                background: #6c757d; color: white; border: none; padding: 12px 30px;
-                border-radius: 50px; font-size: 14px; font-weight: bold; cursor: pointer;
-                text-decoration: none; display: inline-block; transition: all 0.3s ease;
-                width: 100%; margin-bottom: 10px; text-align: center;
-            ">
-                🏢 테스트 업체 로그인
+        <!-- 다른 계정으로 로그인 옵션 (항상 표시) -->
+        {% if not current_account %}
+        <div style="text-align: center; margin-top: 15px;">
+            <a href="{% url 'accounts:unified_naver_login' %}?prompt=select_account"
+               style="color: #10b981; font-size: 14px; text-decoration: none; font-weight: 500;">
+                다른 네이버 계정으로 로그인 →
             </a>
         </div>
+        {% endif %}
 
         <div class="info-text">
-            <strong>등록된 네이버 계정</strong>으로만 로그인할 수 있습니다.<br>
-            계정 등록은 관리자에게 문의해주세요.
+            <strong>등록된 네이버 계정</strong>으로만 접속 가능합니다.<br>
+            신규 계정 등록은 관리자에게 문의하세요.
         </div>
 
-        <div class="features">
-            <h3>로그인 프로세스</h3>
-            <ul>
-                <li>네이버 계정으로 인증</li>
-                <li>잔디 메신저로 인증번호 발송</li>
-                <li>6자리 인증번호 입력</li>
-                <li>안전한 로그인 완료</li>
-            </ul>
+        <div class="footer">
+            © 2024 (주)박목수의 열린 견적서. All rights reserved.
         </div>
     </div>
 
     <script>
-        // 페이지 로드 시 메시지 자동 사라지기
+        // 메시지 자동 사라지기
         setTimeout(function() {
             const messages = document.querySelector('.messages');
             if (messages) {
@@ -274,106 +636,25 @@
             }
         }, 5000);
 
-        // 팝업창 닫힌 후 처리
-        function handlePopupClosed() {
-            console.log('🚪 팝업창 닫힘 - 버튼 상태 원복');
-            resetSwitchButton();
+        // 페이지 로드 시 애니메이션
+        window.addEventListener('load', function() {
+            document.querySelector('.login-container').style.opacity = '1';
+        });
+
+        // 다른 계정으로 전환
+        function switchAccount() {
+            // 프롬프트 매개변수 추가하여 강제로 계정 선택 화면 표시
+            const naverLoginUrl = "{% url 'accounts:unified_naver_login' %}";
+            // 쿠키 삭제하여 새 로그인 유도
+            document.cookie = 'current_naver_account=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            window.location.href = naverLoginUrl + '?prompt=select_account';
         }
 
-        // 계정 변경 버튼 상태 원복
-        function resetSwitchButton() {
-            const button = document.querySelector('button[onclick="switchNaverAccount()"]');
-            if (button) {
-                button.innerHTML = '🔄 계정 변경하기';
-                button.disabled = false;
-            }
-        }
-
-        // 네이버 계정 변경 함수
-        function switchNaverAccount() {
-            // 로딩 상태 표시
-            const button = document.querySelector('button[onclick="switchNaverAccount()"]');
-            const originalText = button.innerHTML;
-            button.innerHTML = '🔄 처리 중...';
-            button.disabled = true;
-
-            // 세션에 계정 변경 모드 설정
-            fetch('{% url "accounts:set_switch_mode" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify({})
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 새창에서 네이버 로그아웃 + 로그인 시작
-                    const popup = window.open(
-                        data.logout_url,
-                        'naverSwitch',
-                        'width=500,height=700,scrollbars=yes,resizable=yes,status=yes'
-                    );
-
-                    // 팝업에서 메시지 받기 (로그인 완료 신호)
-                    function handleMessage(event) {
-                        if (event.data === 'login_complete') {
-                            console.log('✅ 로그인 완료 신호 받음');
-                            window.removeEventListener('message', handleMessage);
-                            clearInterval(checkClosed);
-                            // 강제로 팝업 닫기 시도
-                            try {
-                                popup.close();
-                            } catch (e) {
-                                console.log('팝업 닫기 실패:', e);
-                            }
-                            // 팝업창 닫힌 후 처리
-                            handlePopupClosed();
-                        }
-                    }
-                    window.addEventListener('message', handleMessage);
-
-                    // 새창이 닫히면 페이지 새로고침 (더 자주 체크)
-                    const checkClosed = setInterval(function() {
-                        try {
-                            if (popup.closed) {
-                                console.log('🚪 팝업창 닫힘 감지');
-                                clearInterval(checkClosed);
-                                window.removeEventListener('message', handleMessage);
-                                handlePopupClosed();
-                            }
-                        } catch (e) {
-                            // 팝업창에 접근할 수 없으면 닫힌 것으로 간주
-                            console.log('🚪 팝업창 접근 불가 (닫힌 것으로 간주)');
-                            clearInterval(checkClosed);
-                            window.removeEventListener('message', handleMessage);
-                            handlePopupClosed();
-                        }
-                    }, 500); // 0.5초마다 체크
-
-                    // 10초 후 강제 새로고침
-                    setTimeout(function() {
-                        console.log('⏰ 10초 타임아웃 - 강제 새로고침');
-                        clearInterval(checkClosed);
-                        window.removeEventListener('message', handleMessage);
-                        if (!popup.closed) {
-                            try {
-                                popup.close();
-                            } catch (e) {}
-                        }
-                        // 10초 후에도 버튼 원복
-                        resetSwitchButton();
-                    }, 10000);
-                } else {
-                    alert('계정 변경 설정에 실패했습니다: ' + data.message);
-                    resetSwitchButton();
-                }
-            })
-            .catch(error => {
-                alert('오류가 발생했습니다: ' + error);
-                resetSwitchButton();
-            });
+        // 빠른 로그인 (추후 구현 예정)
+        function quickLogin(email) {
+            // 해당 계정으로 자동 로그인 시도
+            alert('빠른 로그인 기능은 준비 중입니다.\n네이버 로그인을 다시 진행해주세요.');
+            switchAccount();
         }
     </script>
 </body>
