@@ -1,7 +1,8 @@
-from django.shortcuts import render
-from django.http import HttpResponse
+from django.shortcuts import render, redirect
+from django.http import HttpResponse, JsonResponse, FileResponse
 from django.utils import timezone
 from django.conf import settings
+from django.db import connection
 import platform
 import os
 
@@ -58,3 +59,43 @@ def api_status(request):
         """,
         content_type='text/html; charset=utf-8'
     )
+
+def health_check(request):
+    """
+    헬스체크 엔드포인트 - Docker HEALTHCHECK에서 사용
+    데이터베이스 연결 상태를 확인하여 애플리케이션의 실제 가용성을 판단
+    """
+    try:
+        # 데이터베이스 연결 확인
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+
+        return JsonResponse({
+            'status': 'healthy',
+            'database': 'connected',
+            'timestamp': timezone.now().isoformat()
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'unhealthy',
+            'database': 'disconnected',
+            'error': str(e),
+            'timestamp': timezone.now().isoformat()
+        }, status=503)
+
+def favicon(request):
+    """
+    Favicon 제공 - 브라우저가 자동으로 /favicon.ico를 요청함
+    """
+    favicon_path = os.path.join(settings.BASE_DIR, 'static', 'favicon.svg')
+
+    if os.path.exists(favicon_path):
+        return FileResponse(open(favicon_path, 'rb'), content_type='image/svg+xml')
+    else:
+        # SVG를 직접 생성해서 반환
+        svg_content = '''<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <rect width="32" height="32" fill="#667eea"/>
+  <text x="16" y="22" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="white" text-anchor="middle">P</text>
+</svg>'''
+        return HttpResponse(svg_content, content_type='image/svg+xml')

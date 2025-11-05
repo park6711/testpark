@@ -33,17 +33,9 @@ DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 ALLOWED_HOSTS = ['*']  # Docker 환경에서 모든 호스트 허용
 
 # 프록시 설정 (Apache Reverse Proxy)
-# 개발/운영 환경에 따라 프록시 설정 적용
-if DEBUG:
-    # 로컬 개발 환경에서는 프록시 설정 비활성화
-    USE_X_FORWARDED_HOST = False
-    USE_X_FORWARDED_PORT = False
-    SECURE_PROXY_SSL_HEADER = None
-else:
-    # 운영 환경에서는 프록시 설정 활성화
-    USE_X_FORWARDED_HOST = True
-    USE_X_FORWARDED_PORT = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # CSRF 설정
 CSRF_TRUSTED_ORIGINS = [
@@ -56,12 +48,13 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
 ]
 
-# CSRF 기본 설정
+# CSRF 설정 추가
+CSRF_COOKIE_SECURE = False  # HTTP도 허용
+CSRF_COOKIE_SAMESITE = 'Lax'  # SameSite 정책 완화
 CSRF_USE_SESSIONS = False  # 쿠키 기반 CSRF 토큰 사용
 CSRF_COOKIE_HTTPONLY = False  # JavaScript에서 접근 가능
 CSRF_COOKIE_NAME = 'csrftoken'
 CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
-# CSRF_COOKIE_SECURE와 CSRF_COOKIE_SAMESITE은 아래 세션 설정 부분에서 환경별로 설정됨
 
 
 # Application definition
@@ -74,8 +67,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
-    'rest_framework',
-    'corsheaders',
     'demo',
     'accounts',
     'staff',
@@ -94,14 +85,13 @@ INSTALLED_APPS = [
     'template',
     'point',
     'companycondition',
-    'fixfee',
     'globalvars',
+    'fixfee',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Static 파일 서빙
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -134,45 +124,27 @@ WSGI_APPLICATION = 'testpark_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# MariaDB/MySQL 설정 (Docker 환경 및 로컬 환경 모두 지원)
-USE_MYSQL = os.environ.get('USE_MYSQL', 'True').lower() == 'true'
-USE_PRODUCTION_DB = os.environ.get('USE_PRODUCTION_DB', 'False').lower() == 'true'
+# MariaDB 사용 여부를 환경변수로 제어
+USE_MYSQL = os.getenv('USE_MYSQL', 'True').lower() in ('true', '1', 'yes')
 
 if USE_MYSQL:
-    if USE_PRODUCTION_DB:
-        # 운영 서버 DB 연결 (carpenterhosting.cafe24.com)
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.mysql',
-                'NAME': os.environ.get('PROD_DB_NAME', 'testpark'),
-                'USER': os.environ.get('PROD_DB_USER', 'testpark'),
-                'PASSWORD': os.environ.get('PROD_DB_PASSWORD', '**jeje4211'),
-                'HOST': os.environ.get('PROD_DB_HOST', 'carpenterhosting.cafe24.com'),
-                'PORT': os.environ.get('PROD_DB_PORT', '3306'),
-                'OPTIONS': {
-                    'charset': 'utf8mb4',
-                    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-                }
+    # MariaDB 설정 (Docker 컨테이너 또는 외부 DB)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv('DB_NAME', 'testpark'),
+            'USER': os.getenv('DB_USER', 'testpark'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'testpark123'),
+            'HOST': os.getenv('DB_HOST', 'mariadb'),  # Docker 네트워크 내에서는 'mariadb' 사용
+            'PORT': os.getenv('DB_PORT', '3306'),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             }
         }
-    else:
-        # 로컬 개발 환경 (Docker MariaDB)
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.mysql',
-                'NAME': os.environ.get('DB_NAME', 'testpark'),
-                'USER': os.environ.get('DB_USER', 'testpark'),
-                'PASSWORD': os.environ.get('DB_PASSWORD', '**jeje4211'),
-                'HOST': os.environ.get('DB_HOST', 'mariadb'),  # Docker 내부에서는 'mariadb', 로컬에서는 'localhost'
-                'PORT': os.environ.get('DB_PORT', '3306'),
-                'OPTIONS': {
-                    'charset': 'utf8mb4',
-                    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-                }
-            }
-        }
+    }
 else:
-    # SQLite (개발 환경 백업)
+    # SQLite 설정 (개발/테스트용)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -218,16 +190,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# 추가 정적 파일 디렉토리
+# Additional directories for static files
 STATICFILES_DIRS = [
-    BASE_DIR / 'static',  # React 빌드 파일 등
+    BASE_DIR / 'static',
 ]
-
-# WhiteNoise 설정 (Production에서 static 파일 서빙)
-# CompressedStaticFilesStorage: 해시 없이 압축만 사용 (개발 환경 권장)
-# CompressedManifestStaticFilesStorage: 해시 추가로 캐싱 최적화 (프로덕션 권장)
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
-WHITENOISE_AUTOREFRESH = True  # 개발 환경에서 파일 변경 감지
 
 # Media files (User uploads)
 MEDIA_URL = '/media/'
@@ -241,10 +207,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
-# 로그인 URL 설정
-LOGIN_URL = '/auth/login/'
-LOGIN_REDIRECT_URL = '/'
-
 # 네이버 소셜 로그인 설정
 NAVER_CLIENT_ID = os.getenv('NAVER_CLIENT_ID', '_mw6kojqJVXoWEBqYBKv')
 NAVER_CLIENT_SECRET = os.getenv('NAVER_CLIENT_SECRET', 'hHKrIfKoMA')
@@ -252,124 +214,3 @@ NAVER_REDIRECT_URI = os.getenv('NAVER_REDIRECT_URI', 'http://localhost:8000/auth
 
 # 잔디 웹훅 설정
 JANDI_WEBHOOK_URL = os.getenv('JANDI_WEBHOOK_URL', 'https://wh.jandi.com/connect-api/webhook/15016768/2ee8d5e97543e5fe885aba1f419a9265')
-
-# 세션 설정
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # 데이터베이스에 세션 저장
-SESSION_COOKIE_AGE = 3600 * 24 * 7  # 세션 유효기간 7일
-SESSION_COOKIE_HTTPONLY = True  # JavaScript에서 쿠키 접근 차단
-SESSION_SAVE_EVERY_REQUEST = True  # 모든 요청마다 세션 저장
-SESSION_COOKIE_NAME = 'testpark_sessionid'  # 세션 쿠키 이름
-
-# 개발/운영 환경에 따른 쿠키 보안 설정
-if DEBUG:
-    # 개발 환경 (HTTP 사용)
-    SESSION_COOKIE_SECURE = False
-    SESSION_COOKIE_SAMESITE = 'Lax'
-    CSRF_COOKIE_SECURE = False
-    CSRF_COOKIE_SAMESITE = 'Lax'
-else:
-    # 운영 환경 (HTTPS 사용)
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_SAMESITE = 'None'
-    CSRF_COOKIE_SECURE = True
-    CSRF_COOKIE_SAMESITE = 'None'
-
-# ================================================================================
-# 업체평가 전역변수 설정 (Global Variables for Company Evaluation)
-# ================================================================================
-
-# 현재 업체평가 회차
-G_N_EVALUATION_NO = 63  # 현재 업체평가 회차
-
-# A. 실적 관련 점수 계수
-G_F_EVALUATION_A1 = 15.0  # 계약률 점수 계수
-G_F_EVALUATION_A1_MAX = 200.0  # 계약률 점수 최대값
-G_F_EVALUATION_A2 = 20000.0  # 수수료 점수 계수
-G_F_EVALUATION_A3 = 40000.0  # 고정비 점수 계수
-G_F_EVALUATION_A4 = 200000.0  # 자재구매액 점수 계수
-
-# B. 고객후기 점수 계수
-G_F_EVALUATION_B = 30.0  # 후기 점수 계수 = 고객후기 갯수 X 30
-G_F_EVALUATION_B_MAX = 120.0  # 후기 점수 최대값
-
-# C. 고객불만 점수 계수
-G_F_EVALUATION_C = -150.0  # 고객불만점수 계수
-
-# D. 고객만족도 점수 계수
-G_F_EVALUATION_D = 0.5  # 고객만족도 점수 계수
-
-# E. 카페지식활동 점수 계수
-G_F_EVALUATION_E = 0.84  # 카페지식활동 점수
-G_F_EVALUATION_E_MAX = 130.0  # 카페지식활동 점수 최대값
-
-# F. 지식공유활동 점수 계수
-G_F_EVALUATION_F = 2.52  # 지식공유활동 점수 계수
-G_F_EVALUATION_F_MAX = 130.0  # 지식공유활동 점수 최대값
-
-# G. 세미나참석 점수 계수
-G_F_EVALUATION_G = 30.0  # 세미나참석 점수 계수
-G_F_EVALUATION_G_MAX = 30.0  # 세미나참석 점수 최대값
-
-# H. 멘토 점수 계수
-G_F_EVALUATION_H = 20.0  # 멘토 점수 계수
-
-# I. 이행보증참여 점수 계수
-G_F_EVALUATION_I = 30.0  # 이행보증참여 점수 계수
-
-# J. 안전캠페인 점수 계수
-G_F_EVALUATION_J = 10.0  # 안전캠페인 점수 계수
-G_F_EVALUATION_J_MAX = 20.0  # 안전캠페인 점수 최대값
-
-# 할당부족 관련 계수
-G_N_ASSIGN_LACK = 10  # 고정비업체 할당부족 개수 계수(최소일수)
-G_F_ASSIGN_LACK = 165000.0  # 고정비업체 할당부족 개수 계수
-
-# Google Sheets Webhook 설정
-GOOGLE_SHEETS_WEBHOOK_TOKEN = os.getenv('GOOGLE_SHEETS_WEBHOOK_TOKEN', 'testpark-google-sheets-webhook-2024')
-
-# Django REST Framework 설정
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-        'rest_framework.renderers.BrowsableAPIRenderer',
-    ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
-    # 개발 환경 최적화
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '1000/hour',
-        'user': '2000/hour'
-    },
-    # API 응답 최적화
-    'DATETIME_FORMAT': '%Y-%m-%d %H:%M:%S',
-    'DATE_FORMAT': '%Y-%m-%d',
-}
-
-# CORS 설정
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # React 개발 서버
-    "http://127.0.0.1:3000",
-    "http://localhost:8000",  # Django 서버
-    "http://127.0.0.1:8000",
-    "http://testpark-frontend:3000",  # Docker 컨테이너 간 통신
-    "http://testpark:8000",  # Docker 컨테이너 간 통신
-    "https://carpenterhosting.cafe24.com",
-    "http://carpenterhosting.cafe24.com",
-    "https://210.114.22.100",
-    "http://210.114.22.100",
-]
-
-CORS_ALLOW_CREDENTIALS = True
-
-CORS_ALLOW_ALL_ORIGINS = DEBUG  # 개발 환경에서만 모든 오리진 허용

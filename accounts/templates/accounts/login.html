@@ -98,10 +98,11 @@
 
         .subtitle {
             color: #718096;
-            font-size: 22px;
+            font-size: 14px;
             font-weight: 400;
             margin-bottom: 40px;
             letter-spacing: 2px;
+            text-transform: uppercase;
         }
 
         .naver-login-btn {
@@ -290,7 +291,7 @@
         }
 
         /* 계정 관리 스타일 */
-        .current-account-box {
+        .current-account-box, .recent-accounts-box {
             background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
             border: 1px solid #86efac;
             border-radius: 12px;
@@ -376,6 +377,69 @@
             box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
         }
 
+        .recent-accounts-box {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+
+        .accounts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .account-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .account-item:hover {
+            border-color: #10b981;
+            background: #f0fdf4;
+            transform: translateX(4px);
+        }
+
+        .account-avatar-small {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #cbd5e0 0%, #94a3b8 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .account-info-small {
+            flex: 1;
+        }
+
+        .account-name-small {
+            font-weight: 500;
+            color: #1f2937;
+            font-size: 14px;
+        }
+
+        .account-email-small {
+            color: #6b7280;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        .account-arrow {
+            color: #10b981;
+            font-size: 18px;
+            font-weight: bold;
+        }
 
         /* 에러 모달 개선 */
         #errorModal {
@@ -457,8 +521,8 @@
             <img src="{% static 'logo.png' %}" alt="(주)박목수의 열린 견적서" class="logo-img" onerror="this.src='/static/logo.png'">
         </div>
 
-        <h1 class="company-name">(주)박목수의열린견적서</h1>
-        <div class="subtitle">PMIS 2.0</div>
+        <h1 class="company-name">(주)박목수의 열린 견적서</h1>
+        <div class="subtitle">PMIS</div>
 
         <div class="divider"></div>
 
@@ -482,6 +546,28 @@
         </div>
         {% endif %}
 
+        <!-- 최근 로그인한 계정 목록 -->
+        {% if recent_accounts and recent_accounts|length > 1 %}
+        <div class="recent-accounts-box">
+            <div class="account-header">
+                <span class="account-label">최근 사용한 계정</span>
+            </div>
+            <div class="accounts-list">
+                {% for account in recent_accounts %}
+                    {% if account.email != current_account.email %}
+                    <div class="account-item" onclick="quickLogin('{{ account.email }}')">
+                        <div class="account-avatar-small">{{ account.name|first|upper }}</div>
+                        <div class="account-info-small">
+                            <div class="account-name-small">{{ account.name }}</div>
+                            <div class="account-email-small">{{ account.email }}</div>
+                        </div>
+                        <div class="account-arrow">→</div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
 
         <!-- 메시지 표시 -->
         {% if messages %}
@@ -507,16 +593,20 @@
         </div>
         {% endif %}
 
-        <!-- 통합 네이버 로그인 버튼 -->
+        <!-- TODO(human): 업체/스탭 구분 로그인 버튼 구현
+             기존 통합 로그인 버튼을 업체/스탭 두 개의 버튼으로 교체
+             - 업체 로그인: {% url 'accounts:company_naver_login' %}
+             - 스탭 로그인: {% url 'accounts:staff_naver_login' %}
+        -->
         <a href="{% url 'accounts:unified_naver_login' %}" class="naver-login-btn">
             <div class="naver-icon">N</div>
             <span>네이버로 시작하기</span>
         </a>
 
-        <!-- 다른 계정으로 로그인 옵션 (로그인 전에만 표시) -->
-        {% if not current_account and not request.session.staff_user and not request.session.member_user %}
+        <!-- 다른 계정으로 로그인 옵션 (항상 표시) -->
+        {% if not current_account %}
         <div style="text-align: center; margin-top: 15px;">
-            <a href="javascript:void(0)" onclick="switchAccount()"
+            <a href="{% url 'accounts:unified_naver_login' %}?prompt=select_account"
                style="color: #10b981; font-size: 14px; text-decoration: none; font-weight: 500;">
                 다른 네이버 계정으로 로그인 →
             </a>
@@ -528,6 +618,9 @@
             신규 계정 등록은 관리자에게 문의하세요.
         </div>
 
+        <div class="footer">
+            © 2024 (주)박목수의 열린 견적서. All rights reserved.
+        </div>
     </div>
 
     <script>
@@ -546,124 +639,23 @@
         // 페이지 로드 시 애니메이션
         window.addEventListener('load', function() {
             document.querySelector('.login-container').style.opacity = '1';
-
-            // 계정 전환 검증: 의도한 계정으로 로그인했는지 확인
-            const intendedAccount = sessionStorage.getItem('intended_account');
-            if (intendedAccount) {
-                const currentAccount = '{{ current_account.email|default:"" }}';
-                console.log('[계정전환 검증] 의도한 계정:', intendedAccount, '현재 계정:', currentAccount);
-
-                // 검증 완료 후 세션스토리지 정리
-                sessionStorage.removeItem('intended_account');
-
-                // 의도한 계정과 다른 경우 경고 (디버깅용)
-                if (currentAccount && currentAccount !== intendedAccount) {
-                    console.warn('[계정전환 검증] 의도한 계정과 다른 계정으로 로그인됨');
-                }
-            }
         });
 
         // 다른 계정으로 전환
         function switchAccount() {
-            // 로컬 세션 정리
+            // 프롬프트 매개변수 추가하여 강제로 계정 선택 화면 표시
+            const naverLoginUrl = "{% url 'accounts:unified_naver_login' %}";
+            // 쿠키 삭제하여 새 로그인 유도
             document.cookie = 'current_naver_account=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-
-            // 로딩 오버레이 표시
-            showLoadingOverlay('네이버 로그아웃 후 계정을 전환합니다...');
-
-            // 먼저 로컬 세션 로그아웃
-            fetch("{% url 'accounts:logout' %}", {
-                method: 'GET',
-                credentials: 'same-origin'
-            }).then(function() {
-                // 네이버 로그아웃 페이지로 이동 (콜백으로 네이버 로그인 페이지 지정)
-                const returnUrl = encodeURIComponent(window.location.origin + "{% url 'accounts:unified_naver_login' %}?prompt=logout");
-                window.location.href = "https://nid.naver.com/nidlogin.logout?returl=" + returnUrl;
-            });
+            window.location.href = naverLoginUrl + '?prompt=select_account';
         }
 
-        // 로딩 오버레이 표시 함수
-        function showLoadingOverlay(message) {
-            const overlay = document.createElement('div');
-            overlay.id = 'loadingOverlay';
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.7);
-                backdrop-filter: blur(4px);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 9999;
-                animation: fadeIn 0.3s ease-out;
-            `;
-
-            const content = document.createElement('div');
-            content.style.cssText = `
-                background: white;
-                padding: 40px 50px;
-                border-radius: 20px;
-                text-align: center;
-                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-                animation: slideUp 0.3s ease-out;
-            `;
-
-            const spinner = document.createElement('div');
-            spinner.style.cssText = `
-                width: 50px;
-                height: 50px;
-                border: 4px solid #f3f3f3;
-                border-top: 4px solid #10b981;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-                margin: 0 auto 20px;
-            `;
-
-            const text = document.createElement('p');
-            text.textContent = message;
-            text.style.cssText = `
-                color: #1a202c;
-                font-size: 16px;
-                font-weight: 500;
-                margin: 0;
-            `;
-
-            content.appendChild(spinner);
-            content.appendChild(text);
-            overlay.appendChild(content);
-            document.body.appendChild(overlay);
-
-            // CSS 애니메이션 추가
-            if (!document.getElementById('loadingStyles')) {
-                const style = document.createElement('style');
-                style.id = 'loadingStyles';
-                style.textContent = `
-                    @keyframes fadeIn {
-                        from { opacity: 0; }
-                        to { opacity: 1; }
-                    }
-                    @keyframes slideUp {
-                        from {
-                            opacity: 0;
-                            transform: translateY(30px);
-                        }
-                        to {
-                            opacity: 1;
-                            transform: translateY(0);
-                        }
-                    }
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                `;
-                document.head.appendChild(style);
-            }
+        // 빠른 로그인 (추후 구현 예정)
+        function quickLogin(email) {
+            // 해당 계정으로 자동 로그인 시도
+            alert('빠른 로그인 기능은 준비 중입니다.\n네이버 로그인을 다시 진행해주세요.');
+            switchAccount();
         }
-
     </script>
 </body>
 </html>

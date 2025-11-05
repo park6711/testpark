@@ -147,6 +147,7 @@ class Assign(models.Model):
 
     # 기본 정보
     no = models.AutoField(primary_key=True, verbose_name='할당ID')
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, null=True, blank=True, verbose_name='UUID')
     noOrder = models.IntegerField(verbose_name='의뢰ID')
     time = models.DateTimeField(auto_now_add=True, verbose_name='타임스탬프')
     noCompany = models.IntegerField(verbose_name='업체ID')

@@ -5,29 +5,33 @@
 
 echo "🔧 TestPark 수동 배포 시작..."
 
-# 1. 기존 이미지 사용 (이미 빌드되어 있는 경우)
-echo "📦 기존 이미지 확인..."
-docker images | grep testpark
+# 배포 요청자 정보 입력 받기
+read -p "👤 배포 요청자 이름을 입력하세요 (기본값: $(whoami)): " DEPLOY_USER
+DEPLOY_USER=${DEPLOY_USER:-$(whoami)}
 
-# 2. 기존 이미지에 태그 추가
-echo "🏷️ 태그 추가..."
-docker tag 7171man/testpark:latest 7171man/testpark:manual-$(date +%Y%m%d-%H%M%S)
+echo ""
+echo "📋 배포 정보:"
+echo "  - 요청자: $DEPLOY_USER"
+echo "  - 시각: $(date '+%Y-%m-%d %H:%M:%S')"
+echo ""
 
-# 3. Docker Hub에 푸시 (인증이 되어있다면)
-echo "📤 Docker Hub에 푸시 시도..."
-docker push 7171man/testpark:manual-$(date +%Y%m%d-%H%M%S) || {
-    echo "❌ Docker Hub 푸시 실패"
-    echo "💡 대안: 서버에서 직접 빌드"
-}
+# 확인 메시지
+read -p "⚠️  수동 배포를 진행하시겠습니까? (y/N): " CONFIRM
+if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
+    echo "❌ 배포가 취소되었습니다."
+    exit 0
+fi
 
-# 4. 서버에 배포 트리거
-echo "🌐 서버에 배포 요청..."
-curl -X POST "https://carpenterhosting.cafe24.com/deploy-from-github" \
+echo ""
+echo "🌐 서버에 수동 배포 요청..."
+curl -X POST "https://carpenterhosting.cafe24.com/deploy" \
   -H "Content-Type: application/json" \
-  -d '{
-    "project": "testpark",
-    "image": "7171man/testpark:latest",
-    "trigger": "manual_deploy"
-  }'
+  -d "{
+    \"user\": \"$DEPLOY_USER\",
+    \"timestamp\": \"$(date '+%Y-%m-%d %H:%M:%S')\"
+  }"
 
+echo ""
 echo "✅ 수동 배포 요청 완료!"
+echo "📊 배포 진행 상황은 잔디(Jandi)에서 확인하세요."
+echo "🔍 배포 로그: https://carpenterhosting.cafe24.com/deploy-logs"

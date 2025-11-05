@@ -38,9 +38,7 @@ services:
 
   # TestPark 메인 애플리케이션
   testpark:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: 7171man/testpark:latest  # Docker Hub에서 최신 이미지 사용
     container_name: testpark
     ports:
       - "8000:8000"
@@ -50,12 +48,14 @@ services:
     env_file:
       - .env
     environment:
+      # Django 디버그 모드
+      - DEBUG=True
       # MariaDB 연결 설정
       - USE_MYSQL=True
       - DB_HOST=mariadb  # Docker 네트워크 내부 호스트명
       - DB_NAME=testpark
       - DB_USER=testpark
-      - DB_PASSWORD=**jeje4211
+      - DB_PASSWORD=testpark123
       - DB_PORT=3306
       # 네이버 로그인 및 프록시 설정
       - ALLOWED_HOSTS=carpenterhosting.cafe24.com,210.114.22.100,localhost,127.0.0.1

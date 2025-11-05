@@ -1,203 +1,13 @@
 {% extends 'staff/base.html' %}
+{% load static %}
 
 {% block title %}의뢰 리스트{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'order/css/order_list.css' %}">
+{% endblock %}
+
 {% block content %}
-<style>
-    .order-container {
-        padding: 20px;
-        max-width: 1600px;
-        margin: 0 auto;
-    }
-
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #dee2e6;
-    }
-
-    .page-title {
-        font-size: 28px;
-        font-weight: bold;
-        color: #2c3e50;
-    }
-
-    .filter-section {
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-
-    .filter-form {
-        display: flex;
-        gap: 15px;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-
-    .filter-form input,
-    .filter-form select {
-        padding: 8px 12px;
-        border: 1px solid #ced4da;
-        border-radius: 5px;
-        font-size: 14px;
-    }
-
-    .filter-form button {
-        padding: 8px 20px;
-        background: #667eea;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: bold;
-    }
-
-    .filter-form button:hover {
-        background: #5a67d8;
-    }
-
-    .order-table {
-        background: white;
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .order-table table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .order-table th {
-        background: #f8f9fa;
-        padding: 12px;
-        text-align: left;
-        font-weight: 600;
-        color: #495057;
-        border-bottom: 2px solid #dee2e6;
-    }
-
-    .order-table td {
-        padding: 12px;
-        border-bottom: 1px solid #dee2e6;
-    }
-
-    .order-table tr:hover {
-        background: #f8f9fa;
-    }
-
-    .status-badge {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: bold;
-    }
-
-    .status-badge.waiting {
-        background: #ffc107;
-        color: #333;
-    }
-
-    .status-badge.assigned {
-        background: #28a745;
-        color: white;
-    }
-
-    .status-badge.rejected {
-        background: #dc3545;
-        color: white;
-    }
-
-    .status-badge.cancelled {
-        background: #6c757d;
-        color: white;
-    }
-
-    .action-buttons {
-        display: flex;
-        gap: 5px;
-    }
-
-    .btn-view {
-        padding: 4px 8px;
-        background: #007bff;
-        color: white;
-        border: none;
-        border-radius: 3px;
-        cursor: pointer;
-        font-size: 12px;
-    }
-
-    .btn-view:hover {
-        background: #0056b3;
-    }
-
-    .pagination {
-        display: flex;
-        justify-content: center;
-        margin-top: 20px;
-        gap: 5px;
-    }
-
-    .pagination a,
-    .pagination span {
-        padding: 8px 12px;
-        border: 1px solid #dee2e6;
-        text-decoration: none;
-        color: #495057;
-        border-radius: 3px;
-    }
-
-    .pagination .current {
-        background: #667eea;
-        color: white;
-        border-color: #667eea;
-    }
-
-    .pagination a:hover {
-        background: #f8f9fa;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 60px;
-        color: #6c757d;
-    }
-
-    .stats-row {
-        display: flex;
-        gap: 20px;
-        margin-bottom: 20px;
-    }
-
-    .stat-card {
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        flex: 1;
-    }
-
-    .stat-card h4 {
-        color: #6c757d;
-        font-size: 14px;
-        margin-bottom: 10px;
-    }
-
-    .stat-card .value {
-        font-size: 32px;
-        font-weight: bold;
-        color: #2c3e50;
-    }
-</style>
-
 <div class="order-container">
     <!-- 페이지 헤더 -->
     <div class="page-header">
@@ -221,80 +31,129 @@
     </div>
 
     <!-- 필터 섹션 -->
-    <div class="filter-section">
+    <div class="filter-section" role="search" aria-label="의뢰 검색 필터">
         <form method="get" class="filter-form">
-            <input type="text" name="search" placeholder="고객명, 연락처, 지역 검색" value="{{ search }}">
+            <label for="search-input" class="sr-only">고객명, 연락처, 지역 검색</label>
+            <input type="text" id="search-input" name="search" placeholder="고객명, 연락처, 지역 검색" value="{{ search }}" aria-label="검색어 입력">
 
-            <select name="status">
+            <label for="status-select" class="sr-only">상태 선택</label>
+            <select name="status" id="status-select" aria-label="의뢰 상태 필터">
                 <option value="">전체 상태</option>
                 {% for value, label in status_choices %}
                     <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
             </select>
 
-            <input type="date" name="date_from" value="{{ date_from }}" placeholder="시작일">
-            <input type="date" name="date_to" value="{{ date_to }}" placeholder="종료일">
+            <label for="date-from" class="sr-only">시작일</label>
+            <input type="date" id="date-from" name="date_from" value="{{ date_from }}" placeholder="시작일" aria-label="시작일 선택">
+            <label for="date-to" class="sr-only">종료일</label>
+            <input type="date" id="date-to" name="date_to" value="{{ date_to }}" placeholder="종료일" aria-label="종료일 선택">
 
-            <button type="submit">🔍 검색</button>
-            <a href="{% url 'order:order_list' %}" style="padding: 8px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px;">초기화</a>
+            <button type="submit" aria-label="검색 실행">🔍 검색</button>
+            <a href="{% url 'order:order_list' %}" role="button" aria-label="필터 초기화" style="padding: 8px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px;">초기화</a>
         </form>
     </div>
 
     <!-- 의뢰 테이블 -->
-    <div class="order-table">
+    <div class="order-table" role="region" aria-label="의뢰 목록 테이블">
         {% if orders %}
-        <table>
+        <table role="table" aria-label="의뢰 정보">
             <thead>
                 <tr>
-                    <th>번호</th>
-                    <th>접수일시</th>
-                    <th>고객명</th>
-                    <th>연락처</th>
-                    <th>공사지역</th>
-                    <th>공사예정일</th>
-                    <th>지정</th>
-                    <th>상태</th>
-                    <th>할당업체</th>
-                    <th>동의</th>
-                    <th>관리</th>
+                    <th style="width: 40px;" scope="col">
+                        <input type="checkbox" id="selectAll" onchange="handleSelectAll(this)" aria-label="전체 선택">
+                    </th>
+                    <th style="width: 110px;" scope="col">접수일시</th>
+                    <th style="width: 100px;" scope="col">지정</th>
+                    <th style="width: 80px;" scope="col">별명</th>
+                    <th style="width: 90px;" scope="col">네이버ID</th>
+                    <th style="width: 80px;" scope="col">이름</th>
+                    <th style="width: 110px;" scope="col">전화</th>
+                    <th style="width: 70px;" scope="col">게시글</th>
+                    <th style="width: 130px;" scope="col">공사지역</th>
+                    <th style="width: 95px;" scope="col">예정일</th>
+                    <th style="width: 150px;" scope="col">공사내용</th>
+                    <th style="width: 120px;" scope="col">할당업체</th>
+                    <th style="width: 90px;" scope="col">상태</th>
+                    <th style="width: 50px;" scope="col">재의뢰</th>
+                    <th style="width: 50px;" scope="col">견적</th>
+                    <th style="width: 50px;" scope="col">메모</th>
+                    <th style="width: 110px; position: sticky; right: 0; background: white; box-shadow: -2px 0 4px rgba(0,0,0,0.1); z-index: 10;" scope="col">액션</th>
                 </tr>
             </thead>
             <tbody>
                 {% for order in orders %}
-                <tr>
-                    <td>{{ order.no }}</td>
-                    <td>{{ order.created_at|date:"m/d H:i" }}</td>
+                <tr class="order-row" data-order-id="{{ order.no }}">
+                    <td style="text-align: center;">
+                        <input type="checkbox" class="row-checkbox" value="{{ order.no }}" aria-label="의뢰 번호 {{ order.no }} 선택">
+                    </td>
+                    <td style="font-size: 0.875rem;">{{ order.created_at|date:"Y-m-d H:i" }}</td>
+                    <td style="font-size: 0.75rem; max-width: 160px; word-break: break-word;">{{ order.designation|default:"-" }}</td>
+                    <td>{{ order.sNick|default:"-" }}</td>
+                    <td>{{ order.sNaverID|default:"-" }}</td>
                     <td>{{ order.sName|default:"-" }}</td>
                     <td>{{ order.sPhone|default:"-" }}</td>
-                    <td>{{ order.sArea|truncatechars:20 }}</td>
                     <td>
+                        {% if order.post_link %}
+                            <a href="{{ order.post_link }}" target="_blank" rel="noopener noreferrer" style="color: #10b981;" title="{{ order.post_link }}" aria-label="의뢰 번호 {{ order.no }}의 게시글 열기">
+                                {{ order.post_link|slice:"-6:" }}
+                            </a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 0.875rem; max-width: 180px; word-break: break-word;">{{ order.sArea|default:"-" }}</td>
+                    <td style="text-align: center;">
                         {% if order.dateSchedule %}
-                            {{ order.dateSchedule|date:"m/d" }}
+                            <time datetime="{{ order.dateSchedule|date:'Y-m-d' }}">{{ order.dateSchedule|date:"Y-m-d" }}</time>
                         {% else %}
                             <span style="color: #999;">미정</span>
                         {% endif %}
                     </td>
-                    <td>{{ order.designation_type }}</td>
-                    <td>
+                    <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ order.sConstruction|truncatechars:30 }}
+                    </td>
+                    <td>{{ order.assigned_company|default:"-" }}</td>
+                    <td style="text-align: center;">
                         <span class="status-badge
                             {% if order.recent_status == '대기중' %}waiting
                             {% elif order.recent_status == '할당' %}assigned
                             {% elif order.recent_status == '반려' %}rejected
-                            {% else %}cancelled{% endif %}">
+                            {% else %}cancelled{% endif %}"
+                            role="status"
+                            aria-label="현재 상태: {{ order.recent_status }}">
                             {{ order.recent_status }}
                         </span>
                     </td>
-                    <td>{{ order.assigned_company|default:"-" }}</td>
-                    <td>
-                        {% if order.bPrivacy1 and order.bPrivacy2 %}
-                            <span style="color: green;">✓</span>
+                    <td style="text-align: center;">{{ order.re_request_count }}</td>
+                    <td style="text-align: center;">
+                        {% if order.first_assign %}
+                            <button class="btn-small" onclick="showEstimates({{ order.no }}, {{ order.first_assign.no }})" aria-label="의뢰 번호 {{ order.no }}의 견적 보기">견적</button>
                         {% else %}
-                            <span style="color: red;">✗</span>
+                            <button class="btn-small" disabled title="할당이 없습니다">견적</button>
                         {% endif %}
                     </td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-view" onclick="viewOrder({{ order.no }})">보기</button>
+                    <td style="text-align: center;">
+                        {% if order.first_assign %}
+                            <button class="btn-small" onclick="showMemos({{ order.no }}, {{ order.first_assign.no }})" aria-label="의뢰 번호 {{ order.no }}의 메모 보기">메모</button>
+                        {% else %}
+                            <button class="btn-small" disabled title="할당이 없습니다">메모</button>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center; position: sticky; right: 0; background: white; box-shadow: -2px 0 4px rgba(0,0,0,0.1);">
+                        <div style="display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;" role="group" aria-label="의뢰 번호 {{ order.no }} 액션">
+                            <button class="btn-small" onclick="showDetailModal({{ order.no }})" aria-label="의뢰 번호 {{ order.no }} 상세보기">
+                                <span aria-hidden="true">👁️</span>
+                                <span class="sr-only">상세보기</span>
+                            </button>
+                            <button class="btn-small" onclick="copyOrder({{ order.no }})" aria-label="의뢰 번호 {{ order.no }} 복사">
+                                <span aria-hidden="true">📋</span>
+                                <span class="sr-only">복사</span>
+                            </button>
+                            <button class="btn-small" onclick="assignToCompany({{ order.no }})" aria-label="의뢰 번호 {{ order.no }}에 업체 할당">
+                                <span aria-hidden="true">👥</span>
+                                <span class="sr-only">업체할당</span>
+                            </button>
                         </div>
                     </td>
                 </tr>
@@ -333,10 +192,373 @@
     {% endif %}
 </div>
 
+<!-- 상세보기 모달 -->
+<div class="modal-overlay" id="orderModal" role="dialog" aria-modal="true" aria-labelledby="orderModalTitle">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2 id="orderModalTitle">📋 의뢰 상세 정보</h2>
+            <button class="modal-close" id="modalCloseBtn" aria-label="모달 닫기">&times;</button>
+        </div>
+        <div class="modal-body" id="modalContent" role="document">
+            <div class="loading-spinner" role="status" aria-live="polite" aria-label="로딩 중"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 업체 할당 모달 -->
+<div class="assign-modal-overlay" id="assignModal" role="dialog" aria-modal="true" aria-labelledby="assignModalTitle">
+    <div class="assign-modal-container">
+        <div class="assign-modal-header">
+            <h2 id="assignModalTitle">🏢 업체 할당</h2>
+            <button class="modal-close" id="assignModalCloseBtn" aria-label="모달 닫기">&times;</button>
+        </div>
+        <div class="assign-modal-body" id="assignModalContent">
+            <!-- 의뢰 정보 요약 -->
+            <div class="section-box">
+                <div class="info-grid" id="assignOrderInfo">
+                    <!-- JavaScript로 동적 생성 -->
+                </div>
+            </div>
+
+            <!-- 지정 타입 선택 -->
+            <div class="section-box">
+                <h4 class="section-title" id="designationTypeLabel">지정 타입</h4>
+                <div class="radio-group" role="radiogroup" aria-labelledby="designationTypeLabel">
+                    <label class="radio-label">
+                        <input type="radio" name="designationType" id="designation-none" value="지정없음" checked aria-label="지정없음 선택">
+                        <span>지정없음</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="designationType" id="designation-company" value="업체지정" aria-label="업체지정 선택">
+                        <span>업체지정</span>
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" name="designationType" id="designation-gp" value="공동구매" aria-label="공동구매 선택">
+                        <span>공동구매</span>
+                    </label>
+                    <label for="gpSelect" class="sr-only">공동구매 선택</label>
+                    <select id="gpSelect" name="gpSelect" class="select-box" aria-label="공동구매 선택" style="display: none; margin-left: 1rem;">
+                        <option value="">공동구매 선택</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 공동구매 정보 (동적 표시) -->
+            <div class="section-box" id="gpInfoSection" style="display: none; background: #f0fdf4;">
+                <h4 class="section-title" style="color: #065f46;">공동구매 정보</h4>
+                <table class="gp-table" id="gpInfoTable">
+                    <!-- JavaScript로 동적 생성 -->
+                </table>
+                <div id="gpWarning" style="display: none;" class="warning-box">
+                    <!-- JavaScript로 동적 생성 -->
+                </div>
+            </div>
+
+            <!-- 지역구 및 공사구분 선택 -->
+            <div class="section-box">
+                <h4 class="section-title">필터</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div>
+                        <label for="regionFilter" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">지역구 선택</label>
+                        <select id="regionFilter" name="regionFilter" class="select-box" aria-label="지역구 필터" style="max-width: 100%;">
+                            <option value="">전체</option>
+                            <option value="서울">서울</option>
+                            <option value="경기">경기</option>
+                            <option value="인천">인천</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="constructionTypeFilter" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">공사구분 선택</label>
+                        <select id="constructionTypeFilter" name="constructionTypeFilter" class="select-box" aria-label="공사구분 필터" style="max-width: 100%;">
+                            <option value="">전체</option>
+                            <option value="아파트">아파트</option>
+                            <option value="주택">주택</option>
+                            <option value="상가">상가</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label for="companySearch" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">업체명 검색</label>
+                    <input type="text" id="companySearch" name="companySearch" class="search-input" placeholder="업체명으로 검색..." aria-label="업체명 검색">
+                </div>
+            </div>
+
+            <!-- 할당 가능 업체 목록 -->
+            <div class="section-box">
+                <h4 class="section-title">할당 가능 업체 (복수 선택 가능)</h4>
+                <div style="overflow-x: auto;">
+                    <table class="company-table" id="companyTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">선택</th>
+                                <th>업체명</th>
+                                <th>평가등급</th>
+                                <th>할당수</th>
+                                <th>업체면허</th>
+                                <th>지역구분</th>
+                                <th>특장점</th>
+                            </tr>
+                        </thead>
+                        <tbody id="companyTableBody">
+                            <!-- JavaScript로 동적 생성 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 액션 버튼 -->
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeAssignModal()">닫기</button>
+                <button class="btn-assign" id="assignBtn" disabled>
+                    선택업체 할당 (<span id="selectedCount">0</span>개)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 메모 작성 모달 -->
+<div class="assign-modal-overlay" id="memoModal" role="dialog" aria-modal="true" aria-labelledby="memoModalTitle">
+    <div class="assign-modal-container" style="max-width: 600px;">
+        <div class="assign-modal-header">
+            <h2 id="memoModalTitle">📝 메모 작성</h2>
+            <button class="modal-close" id="memoModalCloseBtn" aria-label="모달 닫기">&times;</button>
+        </div>
+        <div class="assign-modal-body">
+            <!-- 의뢰 정보 -->
+            <div class="section-box">
+                <div class="info-grid" id="memoOrderInfo">
+                    <!-- JavaScript로 동적 생성 -->
+                </div>
+            </div>
+
+            <!-- 메모 입력 -->
+            <div class="section-box">
+                <label for="memoContent" class="section-title">메모 내용</label>
+                <textarea id="memoContent"
+                          name="memoContent"
+                          placeholder="메모 내용을 입력하세요..."
+                          rows="6"
+                          aria-label="메모 내용 입력"
+                          aria-required="true"
+                          style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 0.5rem; font-size: 14px; resize: vertical; font-family: 'Noto Sans KR', sans-serif;"></textarea>
+            </div>
+
+            <!-- 작성자 입력 -->
+            <div class="section-box">
+                <label for="memoAuthor" class="section-title">작성자</label>
+                <input type="text"
+                       id="memoAuthor"
+                       name="memoAuthor"
+                       value="{{ current_staff.sName }}"
+                       placeholder="작성자 이름"
+                       aria-label="작성자 이름"
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 0.5rem; font-size: 14px;">
+            </div>
+
+            <!-- 기존 메모 목록 -->
+            <div class="section-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h4 class="section-title" style="margin: 0;">기존 메모 <span id="memoCount" style="color: #6b7280; font-size: 0.9rem;">(0개)</span></h4>
+
+                    <!-- 스코프 토글 버튼 -->
+                    <div class="scope-toggle" style="display: flex; gap: 0.5rem; background: #f3f4f6; padding: 0.25rem; border-radius: 0.5rem;">
+                        <button id="scopeMemoAssignBtn" class="scope-btn active" onclick="changeScopeMemo('assign')"
+                                style="padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; background: transparent; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">
+                            현재 할당만
+                        </button>
+                        <button id="scopeMemoOrderBtn" class="scope-btn" onclick="changeScopeMemo('order')"
+                                style="padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; background: transparent; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">
+                            전체 의뢰
+                        </button>
+                    </div>
+                </div>
+                <div id="memoList" style="max-height: 300px; overflow-y: auto;">
+                    <!-- JavaScript로 동적 생성 -->
+                </div>
+            </div>
+
+            <style>
+            /* 메모 카드 스타일 */
+            .memo-card {
+                padding: 12px;
+                border: 1px solid #e5e7eb;
+                border-radius: 0.5rem;
+                margin-bottom: 8px;
+                background: white;
+            }
+
+            .memo-card.other-assign {
+                background: #f9fafb;
+                border-left: 3px solid #9ca3af;
+            }
+
+            .memo-header {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 6px;
+            }
+
+            .memo-info {
+                display: flex;
+                align-items: center;
+                font-weight: 600;
+                color: #374151;
+            }
+
+            .memo-date {
+                font-size: 0.875rem;
+                color: #6b7280;
+            }
+
+            .memo-body {
+                color: #4b5563;
+            }
+
+            .memo-content {
+                white-space: pre-wrap;
+            }
+            </style>
+        </div>
+        <div class="assign-modal-footer">
+            <button class="btn-secondary" onclick="closeMemoModal()">취소</button>
+            <button class="btn-primary" id="saveMemoBtn">💾 저장</button>
+        </div>
+    </div>
+</div>
+
+<!-- 견적서 관리 모달 -->
+<div class="assign-modal-overlay" id="estimateModal" role="dialog" aria-modal="true" aria-labelledby="estimateModalTitle">
+    <div class="assign-modal-container" style="max-width: 800px;">
+        <div class="assign-modal-header">
+            <h2 id="estimateModalTitle">💰 견적서 관리</h2>
+            <button class="modal-close" id="estimateModalCloseBtn" aria-label="모달 닫기">&times;</button>
+        </div>
+        <div class="assign-modal-body">
+            <!-- 의뢰 정보 요약 -->
+            <div class="section-box">
+                <h4 class="section-title">의뢰 정보</h4>
+                <div class="info-grid" id="estimateOrderInfo">
+                    <!-- JavaScript로 동적 생성 -->
+                </div>
+            </div>
+
+            <!-- 견적서 추가 양식 -->
+            <div class="section-box">
+                <h4 class="section-title">새 견적서 등록</h4>
+                <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <label for="estimatePost" class="sr-only">견적서 게시글 링크</label>
+                        <input type="url"
+                               id="estimatePost"
+                               name="estimatePost"
+                               placeholder="견적서 게시글 URL을 입력하세요 (예: https://cafe.naver.com/...)"
+                               aria-label="견적서 게시글 링크"
+                               aria-required="true"
+                               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 0.5rem; font-size: 14px;">
+                    </div>
+                    <button class="btn-primary" id="addEstimateBtn" style="white-space: nowrap; padding: 10px 20px;">
+                        ➕ 추가
+                    </button>
+                </div>
+                <p style="margin-top: 0.5rem; font-size: 0.875rem; color: #6b7280;">
+                    💡 팁: 네이버 카페 게시글 URL을 입력하세요.
+                </p>
+            </div>
+
+            <!-- 기존 견적서 목록 -->
+            <div class="section-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h4 class="section-title" style="margin: 0;">등록된 견적서 <span id="estimateCount" style="color: #6b7280; font-size: 0.9rem;">(0개)</span></h4>
+
+                    <!-- 스코프 토글 버튼 -->
+                    <div class="scope-toggle" style="display: flex; gap: 0.5rem; background: #f3f4f6; padding: 0.25rem; border-radius: 0.5rem;">
+                        <button id="scopeAssignBtn" class="scope-btn active" onclick="changeScopeEstimate('assign')"
+                                style="padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; background: transparent; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">
+                            현재 할당만
+                        </button>
+                        <button id="scopeOrderBtn" class="scope-btn" onclick="changeScopeEstimate('order')"
+                                style="padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; background: transparent; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">
+                            전체 의뢰
+                        </button>
+                    </div>
+                </div>
+                <div id="estimateList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- JavaScript로 동적 생성 -->
+                    <div class="loading-spinner" style="padding: 2rem;"></div>
+                </div>
+            </div>
+
+            <style>
+            /* 스코프 토글 버튼 스타일 */
+            .scope-btn.active {
+                background: white !important;
+                color: #3b82f6 !important;
+                font-weight: 600;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+
+            .scope-btn:hover {
+                background: rgba(255, 255, 255, 0.5);
+            }
+
+            /* 다른 할당 견적 카드 스타일 */
+            .estimate-card.other-assign {
+                background: #f9fafb;
+                border-left: 3px solid #9ca3af;
+            }
+
+            .info-badge.primary {
+                background: #dbeafe;
+                color: #1e40af;
+            }
+
+            .info-badge.info {
+                background: #e5e7eb;
+                color: #4b5563;
+            }
+            </style>
+        </div>
+        <div class="assign-modal-footer">
+            <button class="btn-secondary" onclick="closeEstimateModal()">닫기</button>
+        </div>
+    </div>
+</div>
+
 <script>
-function viewOrder(orderNo) {
-    // 의뢰 상세 보기 모달 또는 페이지 이동
-    alert('의뢰 #' + orderNo + ' 상세 보기');
-}
+// 30초마다 자동 새로고침 (첫 페이지만)
+{% if orders.number == 1 %}
+setInterval(function() {
+    // 현재 URL의 쿼리 파라미터 유지하면서 새로고침
+    window.location.reload();
+}, 30000);
+{% endif %}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<!-- 전역 공통 라이브러리 (프로젝트 전체) - Django 표준 구조 -->
+<script src="{% static 'js/constants.js' %}"></script>
+<script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/main.js' %}"></script>
+
+<!-- Order 앱 의존성 순서대로 로드 - Django 표준 구조 -->
+<script src="{% static 'order/js/constants.js' %}"></script>
+<script src="{% static 'order/js/utils.js' %}"></script>
+<script src="{% static 'order/js/api-config.js' %}"></script>
+<script src="{% static 'order/js/toast.js' %}"></script>
+<script src="{% static 'order/js/order-global-adapter.js' %}"></script>
+<script src="{% static 'order/js/order-detail.js' %}"></script>
+<script src="{% static 'order/js/order-assign.js' %}"></script>
+<script src="{% static 'order/js/order-memo.js' %}"></script>
+<script src="{% static 'order/js/order-estimate.js' %}"></script>
+<script src="{% static 'order/js/order-list.js' %}"></script>
+
+<!-- 전역 함수 노출 (하위 호환성) -->
+<script>
+    // Order 앱의 액션 함수들을 전역으로 노출
+    if (window.TestPark && window.TestPark.exposeGlobal) {
+        TestPark.exposeGlobal('order', 'actions');
+    }
 </script>
 {% endblock %}

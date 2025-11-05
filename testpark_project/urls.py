@@ -21,7 +21,6 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('accounts.api_urls')),  # API 경로 추가
     path('auth/', include('accounts.urls')),
     path('staff/', include('staff.urls')),
     path('member/', include('member.urls')),
@@ -31,16 +30,18 @@ urlpatterns = [
     path('stop/', include('stop.urls')),
     path('impossibleterm/', include('impossibleterm.urls')),
     path('possiblearea/', include('possiblearea.urls')),
-    path('order/', include('order.urls')),
     path('gonggu/', include('gonggu.urls')),
     path('contract/', include('contract.urls')),
     path('evaluation/', include('evaluation.urls')),
     path('template/', include('template.urls')),
     path('point/', include('point.urls')),
     path('companycondition/', include('companycondition.urls')),
-    path('globalvars/', include('globalvars.urls')),
-    path('fixfee/', include('fixfee.urls')),
-    path('', include('demo.urls')),
+    path('demo/', include('demo.urls')),
+
+    # 의뢰리스트를 메인 페이지로 설정
+    path('order/', include('order.urls')),
+    path('의뢰리스트/', include(('order.urls', 'order'), namespace='order-kr')),
+    path('', include(('order.urls', 'order'), namespace='order-main')),
 ]
 
 # Static and Media files serving in development
