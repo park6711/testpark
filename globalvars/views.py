@@ -8,6 +8,10 @@ import importlib
 
 def globalvar_list(request):
     """전역변수 목록 보기 및 수정"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        messages.warning(request, '로그인이 필요한 서비스입니다.')
+        return redirect('/auth/login/?next=/globalvars/')
 
     # 현재 스텝 정보 가져오기
     current_staff = None
@@ -82,6 +86,10 @@ def globalvar_list(request):
 @require_http_methods(["POST"])
 def globalvar_update(request):
     """전역변수 수정"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        messages.warning(request, '로그인이 필요한 서비스입니다.')
+        return redirect('/auth/login/?next=/globalvars/')
 
     for key in request.POST:
         if key.startswith('value_'):

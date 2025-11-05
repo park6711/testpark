@@ -1,0 +1,1159 @@
+{% extends "staff/base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% if mode == 'edit' %}감액 보고 수정{% else %}공사금액 감액 보고{% endif %} - PMIS 2.0{% endblock %}
+{% block page_title %}{% if mode == 'edit' %}감액 보고 수정{% else %}공사금액 감액 보고{% endif %}{% endblock %}
+{% block page_subtitle %}{% if mode == 'edit' %}계약보고서 #{{ report.no }} 수정{% else %}계약보고서 공사금액 감액 처리{% endif %}{% endblock %}
+
+{% block content %}
+<style>
+    .detail-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 30px;
+        margin-top: 20px;
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .main-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #2d3748;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 3px solid #dc3545;
+        text-align: center;
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 20px;
+        margin-top: 30px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-col {
+        flex: 1;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+    }
+
+    .required-field::after {
+        content: " *";
+        color: #f56565;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: border-color 0.15s ease-in-out;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+
+    .readonly-field {
+        background-color: #f7fafc !important;
+        cursor: not-allowed;
+    }
+
+    .amount-display {
+        padding: 10px 15px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        font-size: 16px;
+        font-weight: bold;
+        color: #dc3545;
+    }
+
+    .btn-calculate {
+        padding: 6px 12px;
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+    }
+
+    .btn-calculate:hover {
+        background-color: #5a6268;
+    }
+
+    .btn-point {
+        padding: 6px 12px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+    }
+
+    .btn-point:hover {
+        background-color: #218838;
+    }
+
+    .btn-point:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+    }
+
+    .info-text {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+
+    .btn-submit {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 30px;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-right: 10px;
+    }
+
+    .btn-submit:hover {
+        background-color: #0056b3;
+    }
+
+    .btn-cancel {
+        background-color: #6c757d;
+        color: white;
+        padding: 10px 30px;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    .btn-cancel:hover {
+        background-color: #5a6268;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 5px;
+    }
+
+    .money-input {
+        text-align: right;
+    }
+</style>
+
+<div class="detail-container">
+    <form id="decreaseForm" method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="main-title">{% if mode == 'edit' %}감액 보고 수정{% else %}공사금액 감액 보고{% endif %}</div>
+
+        <!-- 기본 정보 섹션 -->
+        <div class="section-title">기본 정보</div>
+
+        {% if mode == 'edit' %}
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">No</label>
+                <input type="text" class="form-control readonly-field" value="{{ report.no }}" readonly>
+            </div>
+            <div class="form-col">
+                <label class="form-label">이전보고 No</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="noPre" name="noPre" class="form-control"
+                           value="{{ report.noPre }}"
+                           onchange="fetchParentReportData(this.value)" style="flex: 1;">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="goToPreviousReport()"
+                            id="goPrevBtn" style="white-space: nowrap;">
+                        바로가기
+                    </button>
+                </div>
+            </div>
+            <div class="form-col">
+                <label class="form-label">타임스탬프</label>
+                <input type="text" class="form-control readonly-field"
+                       value="{% if report.timeStamp %}{{ report.timeStamp|date:'Y-m-d H:i:s' }}{% else %}미등록{% endif %}" readonly>
+            </div>
+        </div>
+        {% else %}
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">이전보고 No</label>
+                <input type="text" class="form-control readonly-field" value="{{ report.noPre }}" readonly>
+                <input type="hidden" name="noPre" value="{{ report.noPre }}">
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">업체명(구글)</label>
+                <input type="text" name="sCompanyName" id="sCompanyName" class="form-control" value="{{ report.sCompanyName }}">
+            </div>
+            <div class="form-col">
+                <label class="form-label">업체명</label>
+                <input type="text" id="company_name_display" class="form-control readonly-field" value="{{ company_name }}" readonly>
+                <input type="hidden" name="noCompany" id="noCompany" value="{{ report.noCompany }}">
+                <!-- noPre 변경 시 업데이트되는 hidden 필드들 -->
+                <input type="hidden" name="sName" id="sName" value="{{ report.sName }}">
+                <input type="hidden" name="sPhone" id="sPhone" value="{{ report.sPhone }}">
+                <input type="hidden" name="sPost" id="sPost" value="{{ report.sPost }}">
+                <input type="hidden" name="noAssign" id="noAssign" value="{{ report.noAssign }}">
+                <input type="hidden" name="sArea" id="sArea" value="{{ report.sArea }}">
+                <input type="hidden" name="sTaxCompany" id="sTaxCompany" value="{{ report.sTaxCompany }}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">게시글 링크</label>
+                <input type="text" id="sPost_display" class="form-control readonly-field" value="{{ report.sPost }}" readonly>
+            </div>
+            <div class="form-col">
+                <label class="form-label">의뢰 ID</label>
+                <input type="text" class="form-control readonly-field" value="{{ report.noOrder|default:'' }}" readonly>
+                <input type="hidden" name="noOrder" value="{{ report.noOrder|default:'' }}">
+            </div>
+            <div class="form-col">
+                <label class="form-label">할당 ID</label>
+                <input type="text" id="noAssign_display" class="form-control readonly-field" value="{{ report.noAssign|default:'' }}" readonly>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">보고구분</label>
+                <input type="text" id="nType_display" class="form-control readonly-field" value="감액(환불X)" readonly>
+                <input type="hidden" name="nType" id="nType" value="4">
+            </div>
+            <div class="form-col">
+                <label class="form-label">공사 유형</label>
+                <input type="text" id="nConType_display" class="form-control readonly-field" value="{{ report.get_nConType_display }}" readonly>
+                <input type="hidden" name="nConType" id="nConType" value="{{ report.nConType }}">
+            </div>
+        </div>
+
+        <!-- 고객 정보 섹션 -->
+        <div class="section-title">고객 정보</div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">고객 이름</label>
+                <input type="text" id="sName_display" class="form-control readonly-field" value="{{ report.sName }}" readonly>
+            </div>
+            <div class="form-col">
+                <label class="form-label">고객 핸드폰</label>
+                <input type="text" id="sPhone_display" class="form-control readonly-field" value="{{ report.sPhone }}" readonly>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">공사 지역</label>
+                <input type="text" id="sArea_display" class="form-control readonly-field" value="{{ report.sArea }}" readonly>
+            </div>
+        </div>
+
+        <!-- 일정 정보 섹션 -->
+        <div class="section-title">일정 정보</div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">감액공사 계약일</label>
+                <input type="date" name="dateContract" id="dateContract" class="form-control"
+                       value="{{ report.dateContract|date:'Y-m-d' }}">
+            </div>
+            <div class="form-col">
+                <label class="form-label">공사 완료예정일</label>
+                <input type="date" name="dateSchedule" id="dateSchedule" class="form-control"
+                       value="{{ report.dateSchedule|date:'Y-m-d' }}">
+            </div>
+        </div>
+
+        <!-- 금액 정보 섹션 -->
+        <div class="section-title">금액 정보</div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">이전 보고 공사금액</label>
+                <div class="amount-display">{{ report.nPreConMoney|intcomma }} 원 (VAT 별도)</div>
+                <input type="hidden" id="nPreConMoney" name="nPreConMoney" value="{{ report.nPreConMoney }}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">이번 보고 감액금액(구글)</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="text" name="sConMoney" id="sConMoney" class="form-control"
+                           value="{{ report.sConMoney|default:'' }}"
+                           placeholder="구글 시트에서 복사한 금액">
+                    <span>원</span>
+                </div>
+            </div>
+            <div class="form-col">
+                <label class="form-label required-field">이번 보고 감액금액</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="text" id="nConMoney_display" class="form-control money-input"
+                           value="{% if report.nConMoney %}{{ report.nConMoney|intcomma }}{% else %}0{% endif %}">
+                    <input type="hidden" name="nConMoney" id="nConMoney"
+                           value="{{ report.nConMoney|default:0 }}">
+                    <span>원 (VAT 별도)</span>
+                    <button type="button" class="btn-calculate" onclick="convertToVatExcluded()">
+                        부가세 별도로 자동 변환
+                    </button>
+                </div>
+                <div class="info-text">반드시 VAT 별도로 -값으로 입력해주세요.</div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">최종 공사 금액</label>
+                <div class="amount-display" id="totalConMoney_display">0 원 (VAT 별도)</div>
+                <input type="hidden" id="nTotalConMoney" value="0">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">최종 기준 (예상) 수수료</label>
+                <div class="amount-display" id="totalFee_display">0 원 (VAT 포함)</div>
+                <input type="hidden" id="nTotalFee" value="0">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">이전 보고 수수료</label>
+                <div class="amount-display">{{ report.nPreFee|intcomma }} 원 (VAT 포함)</div>
+                <input type="hidden" id="nPreFee" name="nPreFee" value="{{ report.nPreFee }}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">(예상) 환불액</label>
+                <div class="amount-display" id="nFee_display">0 원 (VAT 포함)</div>
+                <input type="hidden" name="nFee" id="nFee" value="0">
+                <input type="hidden" name="nDemand" id="nDemand" value="0">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="applyFullRefund" onchange="applyFullRefundAmount()">
+                    <label for="applyFullRefund">예상 환불액 전부 적용</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label required-field">(적용) 환불액</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="text" id="nDeposit_display" class="form-control money-input"
+                           value="{% if report.nDeposit %}{{ report.nDeposit|intcomma }}{% else %}0{% endif %}">
+                    <input type="hidden" name="nDeposit" id="nDeposit"
+                           value="{{ report.nDeposit|default:0 }}">
+                    <span>원 (VAT 포함)</span>
+                    <button type="button" class="btn-point" id="refundPointBtn" onclick="processRefundPoint()" style="display: none;">
+                        환불액 포인트 적립
+                    </button>
+                </div>
+                <div class="info-text">반드시 -값으로 입력해야 합니다.</div>
+            </div>
+            <div class="form-col">
+                <label class="form-label">환불일</label>
+                <input type="date" name="dateDeposit" id="dateDeposit" class="form-control"
+                       value="{% if report.dateDeposit %}{{ report.dateDeposit|date:'Y-m-d' }}{% endif %}"
+                       onchange="updateTypeByDeposit()">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">환불방식</label>
+                <select name="nRefund" id="nRefund" class="form-control">
+                    {% for value, text in REFUND_TYPE_CHOICES %}
+                    <option value="{{ value }}" {% if report.nRefund == value %}selected{% endif %}>{{ text }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-col">
+                <label class="form-label">환불계좌</label>
+                <select name="sAccount" id="sAccount" class="form-control">
+                    <option value="">선택하세요</option>
+                    {% for account in accounts %}
+                    <option value="{{ account }}"
+                            {% if account == report.sAccount %}selected{% endif %}>
+                        {{ account }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- 첨부파일 및 메모 섹션 -->
+        <div class="section-title">첨부파일 및 메모</div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">증빙서류(구글)</label>
+                <input type="text" name="sFile" class="form-control" value="{{ report.sFile|default:'' }}" placeholder="구글 드라이브 링크">
+            </div>
+            <div class="form-col">
+                <label class="form-label">증빙서류</label>
+
+                <!-- 기존 단일 파일 표시 (호환성) -->
+                {% if report.file %}
+                <div class="mb-2">
+                    <a href="{{ report.file.url }}" target="_blank" class="btn btn-sm btn-secondary">
+                        📎 기존 파일 보기
+                    </a>
+                </div>
+                {% endif %}
+
+                <!-- 다중 파일 목록 표시 -->
+                {% if report.pk and report.report_files.all %}
+                <div class="uploaded-files mb-3">
+                    <h6 class="text-muted">업로드된 파일:</h6>
+                    <div class="file-list">
+                        {% for file in report.report_files.all %}
+                        <div class="file-item d-flex align-items-center mb-2" data-file-id="{{ file.no }}">
+                            <a href="{{ file.file.url }}" target="_blank" class="flex-grow-1">
+                                📄 {{ file.original_name }}
+                                <small class="text-muted">({{ file.file_size|filesizeformat }})</small>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger ml-2 delete-file-btn"
+                                    data-file-id="{{ file.no }}" data-file-name="{{ file.original_name }}">
+                                삭제
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- 다중 파일 업로드 입력 -->
+                <input type="file" name="files" class="form-control" multiple>
+                <small class="form-text text-muted">여러 파일을 선택할 수 있습니다. (Ctrl/Cmd + 클릭)</small>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">업체에서 남긴 말씀</label>
+                <textarea name="sCompanyMemo" class="form-control" rows="3">{{ report.sCompanyMemo|default:'' }}</textarea>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">스텝 메모</label>
+                <textarea name="sStaffMemo" class="form-control" rows="3">{{ report.sStaffMemo|default:'' }}</textarea>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-col">
+                <label class="form-label">보고자</label>
+                <input type="text" class="form-control readonly-field" value="{{ current_staff.sNick }}" readonly>
+                <input type="hidden" name="sWorker" value="{{ current_staff.sNick }}">
+            </div>
+        </div>
+
+        <!-- 버튼 섹션 -->
+        <div style="text-align: center; margin-top: 30px;">
+            <button type="submit" class="btn-submit">{% if mode == 'edit' %}수정{% else %}제출{% endif %}</button>
+            <button type="button" class="btn-cancel" onclick="window.location.href='{% url 'contract:companyreport_list' %}'">취소</button>
+        </div>
+    </form>
+</div>
+
+<script>
+// 글로벌 변수
+let currentCompanyNo = '{{ report.noCompany }}';
+let currentWorker = '{{ current_staff.sNick }}';
+
+// 숫자에 천단위 콤마 추가
+function formatNumberWithCommas(num) {
+    const number = parseInt(num.toString().replace(/[^-0-9]/g, '')) || 0;
+    const isNegative = number < 0;
+    const absNumber = Math.abs(number);
+    const formatted = absNumber.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return isNegative ? '-' + formatted : formatted;
+}
+
+// 콤마 제거
+function removeCommas(str) {
+    return str.toString().replace(/[^-0-9]/g, '');
+}
+
+// 금액 입력 필드 초기화
+function initMoneyInputs() {
+    const moneyInputs = document.querySelectorAll('.money-input');
+
+    moneyInputs.forEach(input => {
+        input.addEventListener('input', function(e) {
+            const hiddenFieldId = e.target.id.replace('_display', '');
+            const hiddenField = document.getElementById(hiddenFieldId);
+
+            console.log('=== Input 이벤트 ===');
+            console.log('입력값:', e.target.value);
+
+            const cleanValue = removeCommas(e.target.value);
+            console.log('정제 후:', cleanValue);
+
+            // 사용자가 '-'만 입력한 경우 그대로 유지
+            if (cleanValue === '-') {
+                console.log('마이너스만 입력됨 - 유지');
+                e.target.value = '-';
+                if (hiddenField) {
+                    hiddenField.value = '0';
+                }
+                // 버튼 상태 업데이트만 하고 계산은 건너뜀
+                if (hiddenFieldId === 'nDeposit') {
+                    setTimeout(updateRefundButton, 50);
+                }
+                return;
+            }
+
+            // 빈 문자열 처리
+            if (cleanValue === '') {
+                console.log('빈값 입력됨');
+                e.target.value = '';
+                if (hiddenField) {
+                    hiddenField.value = '0';
+                }
+                calculateTotalAmounts();
+                return;
+            }
+
+            const formattedValue = formatNumberWithCommas(cleanValue);
+            console.log('포맷 후:', formattedValue);
+
+            e.target.value = formattedValue;
+            if (hiddenField) {
+                hiddenField.value = cleanValue;
+            }
+
+            // 실시간 계산
+            calculateTotalAmounts();
+
+            // nDeposit 필드인 경우 버튼 상태 업데이트
+            if (hiddenFieldId === 'nDeposit') {
+                setTimeout(updateRefundButton, 50);
+            }
+        });
+    });
+}
+
+// 총 금액 계산
+function calculateTotalAmounts() {
+    const nPreConMoney = parseInt(document.getElementById('nPreConMoney').value) || 0;
+    const nConMoney = parseInt(document.getElementById('nConMoney').value) || 0;
+
+    // 최종 공사 금액 = 이전 금액 + 감액 금액 (감액은 마이너스)
+    const totalConMoney = nPreConMoney + nConMoney;
+    document.getElementById('nTotalConMoney').value = totalConMoney;
+    document.getElementById('totalConMoney_display').textContent = formatNumberWithCommas(totalConMoney) + ' 원 (VAT 별도)';
+
+    // 최종 수수료 계산
+    calculateTotalFee(totalConMoney);
+}
+
+// 수수료 계산
+function calculateTotalFee(totalConMoney) {
+    const nConType = parseInt('{{ report.nConType }}');
+    let fee = 0;
+
+    // 공사유형별 수수료 계산 (detail 화면과 동일한 로직)
+    switch(nConType) {
+        case 0: // 카페건 인테리어
+            if (totalConMoney <= 50000000) {
+                // 5천만원 이하: 5.5%
+                fee = Math.round(totalConMoney * 0.055);
+            } else {
+                // 5천만원 초과: 5천만원까지 5.5% + 초과분 3.3%
+                fee = Math.round(50000000 * 0.055 + (totalConMoney - 50000000) * 0.033);
+            }
+            break;
+
+        case 1: // 카페건 신축
+            // 일률 3.3%
+            fee = Math.round(totalConMoney * 0.033);
+            break;
+
+        case 2: // 소개건 인테리어
+            // 일률 3.3%
+            fee = Math.round(totalConMoney * 0.033);
+            break;
+
+        case 3: // 소개건 신축
+            // 일률 2.2%
+            fee = Math.round(totalConMoney * 0.022);
+            break;
+
+        case 4: // 대출건
+            // 일률 1.1%
+            fee = Math.round(totalConMoney * 0.011);
+            break;
+
+        default:
+            // 기본값: 3.3%
+            fee = Math.round(totalConMoney * 0.033);
+            break;
+    }
+
+    // 수수료는 이미 VAT 포함된 금액
+    document.getElementById('nTotalFee').value = fee;
+    document.getElementById('totalFee_display').textContent = formatNumberWithCommas(fee) + ' 원 (VAT 포함)';
+
+    // 환불액 계산
+    calculateRefundAmount(fee);
+}
+
+// 환불액 계산
+function calculateRefundAmount(totalFee) {
+    const nPreFee = parseInt(document.getElementById('nPreFee').value) || 0;
+    const refundAmount = totalFee - nPreFee; // 음수가 될 것임
+
+    document.getElementById('nFee').value = refundAmount;
+    document.getElementById('nDemand').value = refundAmount;
+    document.getElementById('nFee_display').textContent = formatNumberWithCommas(refundAmount) + ' 원 (VAT 포함)';
+}
+
+// 부가세 별도로 변환
+function convertToVatExcluded() {
+    const displayField = document.getElementById('nConMoney_display');
+    const hiddenField = document.getElementById('nConMoney');
+    const currentValue = parseInt(removeCommas(displayField.value)) || 0;
+
+    const excludedValue = Math.round(currentValue / 1.1);
+    displayField.value = formatNumberWithCommas(excludedValue);
+    hiddenField.value = excludedValue;
+
+    calculateTotalAmounts();
+}
+
+// 예상 환불액 전부 적용
+function applyFullRefundAmount() {
+    const checkbox = document.getElementById('applyFullRefund');
+    if (checkbox.checked) {
+        const refundAmount = document.getElementById('nFee').value;
+        document.getElementById('nDeposit_display').value = formatNumberWithCommas(refundAmount);
+        document.getElementById('nDeposit').value = refundAmount;
+
+        // nDeposit 값이 변경되었으므로 버튼 상태 업데이트
+        console.log('예상 환불액 전부 적용 - nDeposit 값 변경:', refundAmount);
+        updateRefundButton();
+    }
+}
+
+// 환불일에 따른 nType 업데이트
+function updateTypeByDeposit() {
+    const dateDeposit = document.getElementById('dateDeposit').value;
+    const nTypeDisplay = document.getElementById('nType_display');
+    const nType = document.getElementById('nType');
+
+    if (dateDeposit) {
+        nType.value = '5'; // 감액(환불O)
+        nTypeDisplay.value = '감액(환불O)';
+    } else {
+        nType.value = '4'; // 감액(환불X)
+        nTypeDisplay.value = '감액(환불X)';
+    }
+}
+
+// 환불 포인트 버튼 표시 제어
+function updateRefundButton() {
+    const nRefund = document.getElementById('nRefund').value;
+    const nDeposit = parseInt(document.getElementById('nDeposit').value) || 0;
+    const refundBtn = document.getElementById('refundPointBtn');
+
+    // 디버깅 로그
+    console.log('=== updateRefundButton 호출 ===');
+    console.log('nRefund 값:', nRefund, '타입:', typeof nRefund);
+    console.log('nDeposit 값:', nDeposit, '타입:', typeof nDeposit);
+    console.log('nDeposit < 0 체크:', nDeposit < 0);
+    console.log('조건 체크:', nRefund === '1', '&&', nDeposit < 0);
+
+    // nRefund가 1(포인트)이고 nDeposit이 음수인 경우에만 버튼 표시
+    if (nRefund === '1' && nDeposit < 0) {
+        console.log('✅ 버튼 표시');
+        refundBtn.style.display = 'inline-block';
+        // 이미 적립 완료된 경우가 아니면 활성화
+        if (refundBtn.textContent !== '포인트 적립 완료') {
+            refundBtn.disabled = false;
+        }
+    } else {
+        console.log('❌ 버튼 숨김');
+        refundBtn.style.display = 'none';
+    }
+}
+
+// 환불액 포인트 적립
+function processRefundPoint() {
+    const nRefund = document.getElementById('nRefund').value;
+    if (nRefund !== '1') {
+        alert('포인트 환불 방식이 선택되지 않았습니다.');
+        return;
+    }
+
+    const nDeposit = document.getElementById('nDeposit').value;
+    if (parseInt(nDeposit) >= 0) {
+        alert('환불액은 음수여야 합니다.');
+        return;
+    }
+
+    if (!confirm('환불액을 포인트로 적립하시겠습니까?\n적립 후에는 취소할 수 없습니다.')) {
+        return;
+    }
+
+    const csrfToken = getCookie('csrftoken');
+
+    // API 호출하여 즉시 포인트 생성
+    fetch('/contract/api/create-refund-point/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            company_no: currentCompanyNo,
+            refund_amount: parseInt(nDeposit),
+            pre_report_no: {{ report.noPre }}
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 오늘 날짜로 환불일 설정
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateDeposit').value = today;
+            updateTypeByDeposit();
+
+            // 버튼 비활성화
+            document.getElementById('refundPointBtn').disabled = true;
+            document.getElementById('refundPointBtn').textContent = '포인트 적립 완료';
+
+            alert(data.message + '\n잔액: ' + formatNumberWithCommas(data.remain_point) + ' 포인트');
+        } else {
+            alert('포인트 적립 실패: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('포인트 적립 중 오류가 발생했습니다.');
+    });
+}
+
+// 파일 삭제
+function deleteReportFile(fileId) {
+    const csrfToken = getCookie('csrftoken');
+
+    fetch(`/contract/api/report-file/${fileId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const fileItem = document.querySelector(`[data-file-id="${fileId}"]`);
+            if (fileItem) {
+                fileItem.remove();
+            }
+
+            const fileList = document.querySelector('.file-list');
+            if (fileList && fileList.children.length === 0) {
+                const uploadedFilesSection = document.querySelector('.uploaded-files');
+                if (uploadedFilesSection) {
+                    uploadedFilesSection.remove();
+                }
+            }
+
+            alert(data.message);
+        } else {
+            alert('파일 삭제 실패: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('파일 삭제 중 오류가 발생했습니다.');
+    });
+}
+
+// CSRF 토큰 가져오기
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// 이전 보고서로 바로가기
+function goToPreviousReport() {
+    const noPre = document.getElementById('noPre').value;
+
+    if (!noPre) {
+        alert('이전보고 No가 없습니다.');
+        return;
+    }
+
+    console.log('이전 보고서로 이동:', noPre);
+
+    // API 호출하여 보고서 타입 확인
+    fetch(`/contract/api/companyreport/${noPre}/data/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.data) {
+            const reportData = data.data;
+
+            // nType에 따라 적절한 수정 화면으로 이동
+            if (reportData.nType !== undefined) {
+                const nType = reportData.nType;
+                let editUrl = '';
+
+                if (nType === 0 || nType === 1) {
+                    // 계약
+                    editUrl = `/contract/companyreport/${noPre}/edit/`;
+                } else if (nType === 2 || nType === 3) {
+                    // 증액
+                    editUrl = `/contract/companyreport/${noPre}/increase/`;
+                } else if (nType === 4 || nType === 5) {
+                    // 감액
+                    editUrl = `/contract/companyreport/${noPre}/decrease/`;
+                } else if (nType === 6 || nType === 7) {
+                    // 취소
+                    editUrl = `/contract/companyreport/${noPre}/cancel/`;
+                } else {
+                    // 기타 - 기본 편집 화면
+                    editUrl = `/contract/companyreport/${noPre}/edit/`;
+                }
+
+                // 새 창에서 열기 (현재 편집 중인 내용 보존)
+                window.open(editUrl, '_blank');
+            } else {
+                // nType 정보가 없으면 기본 상세 화면으로
+                window.open(`/contract/companyreport/${noPre}/detail/`, '_blank');
+            }
+        } else {
+            alert('이전 보고서 정보를 가져올 수 없습니다.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // 에러 발생시 기본 상세 화면으로 이동
+        window.open(`/contract/companyreport/${noPre}/detail/`, '_blank');
+    });
+}
+
+// noPre 변경 시 이전 보고서 데이터 가져오기
+function fetchParentReportData(noPre) {
+    console.log('fetchParentReportData called with noPre:', noPre);
+    if (!noPre) return;
+
+    // 현재 보고서 번호 가져오기 (수정 모드일 때만 존재)
+    {% if mode == 'edit' %}
+    const currentNo = {{ report.no }};
+
+    // 자기 자신을 이전 보고로 설정하는지 확인
+    if (parseInt(noPre) === currentNo) {
+        alert('이전보고 No는 현재 보고서 번호와 같을 수 없습니다.');
+        document.getElementById('noPre').value = '';
+        return;
+    }
+    {% endif %}
+
+    const csrfToken = getCookie('csrftoken');
+    const apiUrl = `/contract/api/companyreport/${noPre}/data/`;
+
+    fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('API Response data:', data);
+        if (data.success) {
+            const reportData = data.data;
+
+            // noNext가 이미 있는지 확인 (다른 보고서에 이미 연결됨)
+            // 단, noNext가 현재 보고서 번호와 같다면 기존 연결이므로 허용
+            {% if mode == 'edit' %}
+            if (reportData.noNext && reportData.noNext !== currentNo) {
+                alert(`이전보고 #${noPre}는 이미 다른 보고서(#${reportData.noNext})에 연결되어 있습니다.`);
+                document.getElementById('noPre').value = '';
+                return;
+            }
+            {% else %}
+            // 신규 생성 모드에서는 noNext가 있으면 무조건 차단
+            if (reportData.noNext) {
+                alert(`이전보고 #${noPre}는 이미 다른 보고서(#${reportData.noNext})에 연결되어 있습니다.`);
+                document.getElementById('noPre').value = '';
+                return;
+            }
+            {% endif %}
+
+            // nType 검증 - 감액은 계약(0 또는 1) 타입의 보고서만 이전보고로 선택 가능
+            if (reportData.nType !== undefined && reportData.nType !== 0 && reportData.nType !== 1) {
+                const typeLabels = {
+                    2: '증액(입금X)', 3: '증액(입금O)',
+                    4: '감액(환불X)', 5: '감액(환불O)',
+                    6: '취소(환불X)', 7: '취소(환불O)'
+                };
+                const typeLabel = typeLabels[reportData.nType] || `타입 ${reportData.nType}`;
+                alert(`이전보고 #${noPre}는 ${typeLabel} 보고서입니다.\n감액 보고의 이전보고는 계약 타입(계약(입금X) 또는 계약(입금O))만 선택할 수 있습니다.`);
+                document.getElementById('noPre').value = '';
+                return;
+            }
+
+            // 필드 업데이트 - 각 필드를 안전하게 업데이트
+            const updateField = (id, value) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.value = value || '';
+                    // Hidden 필드인지 확인
+                    const fieldType = element.type === 'hidden' ? '(hidden)' : '';
+                    console.log(`Updated ${id} ${fieldType} with value:`, value);
+                } else {
+                    console.warn(`Element with ID '${id}' not found`);
+                }
+            };
+
+            // noCompany 필드 업데이트
+            updateField('noCompany', reportData.noCompany);
+
+            // 업체명 표시 필드 업데이트 (readonly)
+            const companyNameDisplay = document.getElementById('company_name_display');
+            if (companyNameDisplay && reportData.companyName) {
+                companyNameDisplay.value = reportData.companyName;
+                console.log('Updated company_name_display with:', reportData.companyName);
+            }
+
+            // sCompanyName은 업데이트하지 않음 (사용자가 직접 수정 가능하도록 유지)
+            console.log('sCompanyName 필드는 기존 값 유지 (사용자 수정 가능)');
+
+            // Hidden 필드 업데이트
+            updateField('sName', reportData.sName);
+            updateField('sPhone', reportData.sPhone);
+            updateField('sPost', reportData.sPost);
+            updateField('noAssign', reportData.noAssign);
+            updateField('sArea', reportData.sArea);
+            updateField('sTaxCompany', reportData.sTaxCompany);
+
+            // Display 필드도 업데이트 (화면에 표시되는 readonly 필드)
+            updateField('sName_display', reportData.sName);
+            updateField('sPhone_display', reportData.sPhone);
+            updateField('sPost_display', reportData.sPost);
+            updateField('noAssign_display', reportData.noAssign);
+            updateField('sArea_display', reportData.sArea);
+
+            // nConType 필드 업데이트 (hidden과 display 모두)
+            const nConTypeHidden = document.getElementById('nConType');
+            if (nConTypeHidden) {
+                nConTypeHidden.value = String(reportData.nConType || 0);
+                console.log('Updated nConType (hidden) with value:', reportData.nConType);
+
+                // display 필드도 업데이트 (한글 표시)
+                const nConTypeDisplay = document.getElementById('nConType_display');
+                if (nConTypeDisplay) {
+                    const conTypeLabels = {
+                        0: '[카페건]인테리어/리모델링/기타',
+                        1: '[카테건]신축/증축/개축',
+                        2: '[소개건]인테리어/리모델링/기타',
+                        3: '[소개건]신축/증축/개축'
+                    };
+                    nConTypeDisplay.value = conTypeLabels[reportData.nConType] || '';
+                    console.log('Updated nConType_display with label:', conTypeLabels[reportData.nConType]);
+                }
+            }
+
+            // 환불계좌 드롭다운 옵션을 License 정보로 업데이트
+            const sAccountSelect = document.getElementById('sAccount');
+            if (sAccountSelect && reportData.licenses) {
+                // 기존 옵션 모두 제거 (첫 번째 '선택하세요' 제외)
+                while (sAccountSelect.options.length > 1) {
+                    sAccountSelect.remove(1);
+                }
+
+                // License 정보로 새 옵션 추가
+                const addedAccounts = new Set(); // 중복 방지
+                reportData.licenses.forEach(license => {
+                    if (license.sAccount && !addedAccounts.has(license.sAccount)) {
+                        const option = document.createElement('option');
+                        option.value = license.sAccount;
+                        option.textContent = license.sAccount;
+                        sAccountSelect.appendChild(option);
+                        addedAccounts.add(license.sAccount);
+                    }
+                });
+
+                // 이전에 선택된 값이 있으면 선택
+                if (reportData.sAccount) {
+                    sAccountSelect.value = reportData.sAccount;
+                    console.log('Updated sAccount with licenses and selected:', reportData.sAccount);
+                }
+            }
+
+            // nRefund select 필드 업데이트 (환불방식)
+            const nRefundSelect = document.getElementById('nRefund');
+            if (nRefundSelect) {
+                nRefundSelect.value = String(reportData.nRefund || 0);
+                console.log('Updated nRefund select with value:', reportData.nRefund);
+            }
+
+            // 이전 보고의 nConMoney를 현재의 nPreConMoney로 설정
+            const nPreConMoneyInput = document.getElementById('nPreConMoney');
+            if (nPreConMoneyInput) {
+                nPreConMoneyInput.value = reportData.nConMoney || 0;
+                console.log('Updated nPreConMoney with value:', reportData.nConMoney);
+
+                // 표시 div 업데이트
+                const displayDiv = nPreConMoneyInput.previousElementSibling;
+                if (displayDiv && displayDiv.classList.contains('amount-display')) {
+                    displayDiv.textContent = formatNumberWithCommas(reportData.nConMoney || 0) + ' 원 (VAT 별도)';
+                }
+            }
+
+            // 이전 보고의 nFee를 현재의 nPreFee로 설정
+            const nPreFeeInput = document.getElementById('nPreFee');
+            if (nPreFeeInput) {
+                nPreFeeInput.value = reportData.nFee || 0;
+                console.log('Updated nPreFee with value:', reportData.nFee);
+
+                // 표시 div 업데이트
+                const displayDiv = nPreFeeInput.previousElementSibling;
+                if (displayDiv && displayDiv.classList.contains('amount-display')) {
+                    displayDiv.textContent = formatNumberWithCommas(reportData.nFee || 0) + ' 원 (VAT 포함)';
+                }
+            }
+
+            // 금액이 변경되었으므로 재계산 실행
+            if (typeof calculateTotalAmounts === 'function') {
+                calculateTotalAmounts();
+                console.log('Recalculated all amounts after loading previous report data');
+            }
+
+            console.log('이전 보고 데이터 로드 완료:', reportData);
+        } else {
+            alert('이전 보고 데이터를 가져올 수 없습니다: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Fetch Error Details:', error);
+        alert('데이터를 가져오는 중 오류가 발생했습니다.\n콘솔을 확인해주세요.');
+    });
+}
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    initMoneyInputs();
+    calculateTotalAmounts();
+    updateRefundButton();
+    updateTypeByDeposit(); // 페이지 로드 시 입금일에 따라 nType 설정
+
+    // nRefund 변경 감지 - 실시간으로 버튼 상태 업데이트
+    const nRefundSelect = document.getElementById('nRefund');
+    if (nRefundSelect) {
+        nRefundSelect.addEventListener('change', function() {
+            console.log('nRefund 변경됨:', this.value);
+            updateRefundButton();
+        });
+    }
+
+    // 파일 삭제 버튼 이벤트
+    document.querySelectorAll('.delete-file-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const fileId = this.dataset.fileId;
+            const fileName = this.dataset.fileName;
+
+            if (confirm(`"${fileName}" 파일을 삭제하시겠습니까?`)) {
+                deleteReportFile(fileId);
+            }
+        });
+    });
+
+    // 폼 제출 시 값 동기화
+    document.getElementById('decreaseForm').addEventListener('submit', function(e) {
+        // 모든 display 필드의 값을 hidden 필드로 복사
+        const fields = [
+            { display: 'nConMoney_display', hidden: 'nConMoney' },
+            { display: 'nDeposit_display', hidden: 'nDeposit' }
+        ];
+
+        fields.forEach(field => {
+            const displayEl = document.getElementById(field.display);
+            const hiddenEl = document.getElementById(field.hidden);
+
+            if (displayEl && hiddenEl) {
+                const cleanValue = removeCommas(displayEl.value);
+                hiddenEl.value = cleanValue || '0';
+            }
+        });
+
+        // 제출 전 값 확인 (디버깅)
+        console.log('=== 폼 제출 시 값 확인 ===');
+        console.log('nDeposit:', document.getElementById('nDeposit').value);
+        console.log('dateDeposit:', document.getElementById('dateDeposit').value);
+        console.log('nType:', document.getElementById('nType').value);
+    });
+});
+</script>
+{% endblock %}

@@ -21,19 +21,17 @@ class CompanyReportAdmin(admin.ModelAdmin):
         'dateContract',
         'dateSchedule',
         'get_schedule_status_badge',
-        'is_paid',
-        'time',
+        'timeStamp',
         'sWorker'
     ]
 
     list_filter = [
         'nType',
-        'noConType',
-        'bVat',
+        'nConType',
         'nRefund',
         'dateContract',
         'dateSchedule',
-        'time',
+        'timeStamp',
         'sWorker'
     ]
 
@@ -50,7 +48,7 @@ class CompanyReportAdmin(admin.ModelAdmin):
 
     readonly_fields = [
         'no',
-        'time',
+        'timeStamp',
         'created_at',
         'updated_at',
         'get_company_name',
@@ -64,19 +62,19 @@ class CompanyReportAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('기본 정보', {
-            'fields': ('no', 'time', 'noCompany', 'sWorker')
+            'fields': ('no', 'timeStamp', 'noCompany', 'sWorker')
         }),
         ('보고 정보', {
             'fields': ('nType', 'noPre', 'noNext')
         }),
         ('공사 정보', {
-            'fields': ('noConType', 'sPost', 'noAssign', 'sArea', 'dateContract', 'dateSchedule')
+            'fields': ('nConType', 'sPost', 'noAssign', 'sArea', 'dateContract', 'dateSchedule')
         }),
         ('고객 정보', {
             'fields': ('sName', 'sPhone')
         }),
         ('계약 정보', {
-            'fields': ('nConMoney', 'bVat', 'get_contract_duration_display')
+            'fields': ('nConMoney', 'get_contract_duration_display')
         }),
         ('수수료 및 정산', {
             'fields': ('nFee', 'nAppPoint', 'nDemand', 'get_profit_margin_display', 'get_money_summary_display')
@@ -192,15 +190,15 @@ class CompanyReportAdmin(admin.ModelAdmin):
         writer = csv.writer(response)
         writer.writerow([
             '보고ID', '보고일시', '업체ID', '보고구분', '공사유형', '고객명', '고객전화',
-            '공사주소', '계약일', '완료예정일', '계약금액', 'VAT포함', '수수료', '청구액',
+            '공사주소', '계약일', '완료예정일', '계약금액', '수수료', '청구액',
             '입금일', '입금액', '과/미입금', '수익률', '보고자', '메모'
         ])
 
         for obj in queryset:
             writer.writerow([
-                obj.no, obj.time, obj.noCompany, obj.get_nType_display(),
-                obj.get_noConType_display(), obj.sName, obj.sPhone, obj.sArea,
-                obj.dateContract, obj.dateSchedule, obj.nConMoney, obj.get_vat_display(),
+                obj.no, obj.timeStamp, obj.noCompany, obj.get_nType_display(),
+                obj.get_nConType_display(), obj.sName, obj.sPhone, obj.sArea,
+                obj.dateContract, obj.dateSchedule, obj.nConMoney,
                 obj.nFee, obj.nDemand, obj.dateDeposit, obj.nDeposit, obj.nExcess,
                 f"{obj.get_profit_margin()}%", obj.sWorker, obj.sStaffMemo
             ])

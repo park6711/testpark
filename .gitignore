@@ -71,3 +71,9 @@ test_*.html
 mysql-init/
 mariadb-init/
 *.sql
+
+# Docker 로컬 개발 설정 (프로덕션에 올라가면 안됨!)
+docker-compose.override.yml
+docker-compose.override.yaml
+
+

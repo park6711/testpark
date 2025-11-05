@@ -1,0 +1,1762 @@
+{% extends "staff/base.html" %}
+{% load humanize %}
+
+{% block title %}계약보고 리스트 - PMIS 2.0{% endblock %}
+
+{% block page_title %}계약보고 리스트{% endblock %}
+{% block page_subtitle %}업체 계약보고 데이터 관리{% endblock %}
+
+{% block content %}
+<style>
+    /* 컨테이너 스타일 */
+    .companyreport-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    /* 헤더 영역 */
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .title-area h2 {
+        color: #333;
+        font-size: 24px;
+        font-weight: bold;
+        margin: 0;
+    }
+
+    /* 버튼 영역 */
+    .button-group {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-external {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 16px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .btn-external:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        color: white;
+    }
+
+    .btn-sheets {
+        background: linear-gradient(135deg, #0f9d58 0%, #0a6f3f 100%);
+    }
+
+    /* 필터 영역 */
+    .filter-section {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+
+    .filter-row {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .filter-label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+    }
+
+    /* 체크박스 스타일 */
+    .checkbox-group {
+        display: flex;
+        gap: 15px;
+    }
+
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .checkbox-item input[type="checkbox"] {
+        margin-right: 5px;
+    }
+
+    .checkbox-item label {
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+    }
+
+    /* 검색 영역 */
+    .search-group {
+        display: flex;
+        gap: 10px;
+        flex: 1;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .btn-search {
+        padding: 8px 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-search:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    }
+
+    /* 테이블 스타일 */
+    .table-wrapper {
+        overflow-x: auto;
+        margin: 20px 0;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1500px; /* 최소 너비 설정 */
+    }
+
+    .data-table th {
+        background: #f8f9fa;
+        padding: 12px 8px;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+        font-size: 13px;
+        white-space: nowrap;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .data-table td {
+        padding: 10px 8px;
+        border-bottom: 1px solid #dee2e6;
+        font-size: 13px;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+
+    .data-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .data-table tbody tr.clickable {
+        cursor: pointer;
+    }
+
+    .data-table tbody tr.clickable:hover {
+        background: #e8f4f8;
+    }
+
+    /* 텍스트 자르기 및 툴팁 */
+    .text-truncate {
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    .wide-text {
+        max-width: 200px;
+    }
+
+    .tooltip-container {
+        position: relative;
+    }
+
+    .tooltip-text {
+        visibility: hidden;
+        background-color: #333;
+        color: #fff;
+        text-align: left;
+        border-radius: 6px;
+        padding: 8px 12px;
+        position: absolute;
+        z-index: 1000;
+        bottom: 125%;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: normal;
+        width: 250px;
+        max-width: 300px;
+        font-size: 12px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .tooltip-container:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    /* 링크 스타일 */
+    .link-btn {
+        color: #007bff;
+        text-decoration: none;
+        font-size: 16px;
+    }
+
+    .link-btn:hover {
+        color: #0056b3;
+    }
+
+    /* 액션 버튼 */
+    .action-buttons {
+        display: flex;
+        gap: 3px;
+        flex-wrap: wrap;
+    }
+
+    .action-btn {
+        padding: 3px 6px;
+        border: none;
+        border-radius: 3px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .btn-view {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .btn-edit {
+        background: #28a745;
+        color: white;
+    }
+
+    .btn-delete {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-increase {
+        background: #ffc107;
+        color: #333;
+    }
+
+    .btn-decrease {
+        background: #fd7e14;
+        color: white;
+    }
+
+    .btn-cancel {
+        background: #6c757d;
+        color: white;
+    }
+
+    .action-btn:hover {
+        transform: scale(1.05);
+    }
+
+    /* 상태 배지 */
+    .type-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .type-0, .type-2, .type-4, .type-6 {
+        background: #ffeaa7;
+        color: #2d3436;
+    }
+
+    .type-1, .type-3, .type-5, .type-7 {
+        background: #81ecec;
+        color: #2d3436;
+    }
+
+    .type-8 {
+        background: #fab1a0;
+        color: #2d3436;
+    }
+
+    .contype-badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    .contype-0, .contype-2 {
+        background: #a29bfe;
+        color: white;
+    }
+
+    .contype-1, .contype-3 {
+        background: #6c5ce7;
+        color: white;
+    }
+
+    /* 금액 표시 */
+    .money-text {
+        text-align: right;
+        font-weight: 500;
+        font-family: 'Courier New', monospace;
+    }
+
+    .positive-money {
+        color: #28a745;
+    }
+
+    .negative-money {
+        color: #dc3545;
+    }
+
+    /* 정렬 가능한 헤더 스타일 */
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        padding-right: 20px;
+    }
+
+    .sortable:hover {
+        background: #e9ecef;
+    }
+
+    .sortable::after {
+        content: "↕";
+        position: absolute;
+        right: 8px;
+        color: #adb5bd;
+        font-size: 12px;
+    }
+
+    .sortable.asc::after {
+        content: "↑";
+        color: #667eea;
+    }
+
+    .sortable.desc::after {
+        content: "↓";
+        color: #667eea;
+    }
+
+    /* 페이징 */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 5px;
+        margin-top: 20px;
+    }
+
+    .pagination a,
+    .pagination span {
+        padding: 8px 12px;
+        border: 1px solid #dee2e6;
+        color: #007bff;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .pagination a:hover {
+        background: #007bff;
+        color: white;
+    }
+
+    .pagination .current {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+
+    /* 통계 정보 */
+    .stats-info {
+        text-align: center;
+        padding: 10px;
+        color: #6c757d;
+        font-size: 14px;
+    }
+
+    /* 모달 스타일 (기본 모달) */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        animation: fadeIn 0.3s;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 600px;
+        max-height: 80vh;
+        width: 90%;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        margin-bottom: 20px;
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-body {
+        color: #666;
+        font-size: 16px;
+        line-height: 1.5;
+        margin-bottom: 25px;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .modal-btn-cancel {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .modal-btn-cancel:hover {
+        background: #dee2e6;
+    }
+
+    .modal-btn-danger {
+        background: linear-gradient(135deg, #f93b1d 0%, #ea2c62 100%);
+        color: white;
+    }
+
+    .modal-btn-danger:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(234, 44, 98, 0.4);
+    }
+
+    .modal-btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .modal-btn-primary:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    /* 폼 스타일 */
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+    }
+
+    .form-row {
+        display: flex;
+        gap: 15px;
+    }
+
+    .form-col {
+        flex: 1;
+    }
+
+    .form-col-auto {
+        flex: none;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* 업체 선택 드롭박스 스타일 */
+    .company-selector {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .company-dropdown {
+        padding: 4px 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 12px;
+        background: #f8f9fa;
+        cursor: pointer;
+        min-width: 120px;
+    }
+
+    .company-dropdown:focus {
+        outline: none;
+        border-color: #667eea;
+        background: white;
+    }
+
+    .text-muted {
+        font-size: 10px;
+        color: #6c757d;
+    }
+
+    /* 검색 가능한 드롭박스 */
+    .company-search-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .company-search-input {
+        padding: 4px 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 12px;
+        min-width: 120px;
+        background: #f8f9fa;
+    }
+
+    .company-search-input:focus {
+        outline: none;
+        border-color: #667eea;
+        background: white;
+    }
+
+    .company-dropdown-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 4px 4px;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
+
+    .company-dropdown-item {
+        padding: 6px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #f1f1f1;
+    }
+
+    .company-dropdown-item:hover {
+        background: #f8f9fa;
+    }
+
+    .company-dropdown-item.highlighted {
+        background: #667eea;
+        color: white;
+    }
+
+    /* 반응형 스타일 */
+    @media (max-width: 768px) {
+        .header-section {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 15px;
+        }
+
+        .filter-row {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .checkbox-group {
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+    }
+
+    /* 보고구분 드롭다운 스타일 */
+    .type-dropdown-container {
+        position: relative;
+        width: 100%;
+    }
+
+    .type-select {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: white;
+        font-size: 12px;
+        color: #333;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .type-select:hover {
+        border-color: #667eea;
+        box-shadow: 0 1px 4px rgba(102, 126, 234, 0.2);
+    }
+
+    .type-select:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+    }
+
+    /* 업체명(구글) 입력 필드 스타일 */
+    .company-name-input {
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: white;
+        font-size: 12px;
+        color: #333;
+        transition: all 0.2s ease;
+    }
+
+    .company-name-input:hover {
+        border-color: #667eea;
+        box-shadow: 0 1px 4px rgba(102, 126, 234, 0.2);
+    }
+
+    .company-name-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+    }
+
+    /* No 열의 폭 설정 */
+    .data-table th:first-child,
+    .data-table td:first-child {
+        width: 60px;
+        min-width: 60px;
+    }
+
+    /* 보고일시 열의 폭 설정 (두 번째 열) */
+    .data-table th:nth-child(2),
+    .data-table td:nth-child(2) {
+        width: 70px;
+        min-width: 70px;
+    }
+
+    /* 업체명과 업체명(구글) 열의 폭을 동일하게 설정 */
+    .data-table th:nth-child(3),
+    .data-table td:nth-child(3),
+    .data-table th:nth-child(4),
+    .data-table td:nth-child(4) {
+        width: 120px;
+        min-width: 120px;
+    }
+
+    /* 보고구분 열의 폭 설정 (다섯 번째 열) */
+    .data-table th:nth-child(5),
+    .data-table td:nth-child(5) {
+        width: 110px;
+        min-width: 110px;
+    }
+</style>
+
+<!-- 계약보고 컨테이너 -->
+<div class="companyreport-container">
+    <!-- 헤더 영역 -->
+    <div class="header-section">
+        <div class="title-area">
+            <h2>계약보고 리스트</h2>
+        </div>
+        <div class="button-group">
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLSdNoz0FZlkz7kYZpMFTjcpKIJwaG0e8dvZBv2WTVnDgSGIJuA/viewform"
+               target="_blank"
+               class="btn-external">
+                계약보고 접수 →
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/1D2sQQ1nmsu9U5RcgVn9OzDgie862Zc2C5xS2cMrwO_0/edit?gid=1614212521#gid=1614212521"
+               target="_blank"
+               class="btn-external btn-sheets">
+                구글시트 →
+            </a>
+        </div>
+    </div>
+
+    <!-- 필터 영역 -->
+    <div class="filter-section">
+        <!-- 활동상태, 보고구분, 공사유형 필터 -->
+        <div class="filter-row">
+            <div class="filter-group">
+                <span class="filter-label">업체 활동상태:</span>
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="condition-0" name="condition" value="0"
+                               {% if 0 in condition_filters %}checked{% endif %}>
+                        <label for="condition-0">준비중</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="condition-1" name="condition" value="1"
+                               {% if 1 in condition_filters %}checked{% endif %}>
+                        <label for="condition-1">정상</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="condition-2" name="condition" value="2"
+                               {% if 2 in condition_filters %}checked{% endif %}>
+                        <label for="condition-2">일시정지</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="condition-3" name="condition" value="3"
+                               {% if 3 in condition_filters %}checked{% endif %}>
+                        <label for="condition-3">탈퇴</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <div class="filter-group">
+                <span class="filter-label">보고구분:</span>
+                <div class="checkbox-group">
+                    {% for key, label in TYPE_CHOICES %}
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="type-{{ key }}" name="type" value="{{ key }}"
+                               {% if key in type_filters %}checked{% endif %}>
+                        <label for="type-{{ key }}">{{ label }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <div class="filter-group">
+                <span class="filter-label">공사유형:</span>
+                <div class="checkbox-group">
+                    {% for key, label in CONSTRUCTION_TYPE_CHOICES %}
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="contype-{{ key }}" name="contype" value="{{ key }}"
+                               {% if key in contype_filters %}checked{% endif %}>
+                        <label for="contype-{{ key }}">{{ label }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 검색 영역 -->
+        <div class="filter-row">
+            <div class="filter-group search-group">
+                <input type="text"
+                       id="search-input"
+                       class="search-input"
+                       placeholder="통합 검색 (업체명, 고객명, 지역, 메모 등)"
+                       value="{{ search_query }}">
+                <button class="btn-search" onclick="applyFilters()">검색</button>
+                <button class="btn-search" onclick="resetFilters()" style="background: #6c757d;">초기화</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 계약보고 테이블 -->
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th class="sortable {% if sort_by == 'no' %}asc{% elif sort_by == '-no' %}desc{% endif %}"
+                        onclick="sortTable('no')">No</th>
+                    <th class="sortable {% if sort_by == 'timeStamp' %}asc{% elif sort_by == '-timeStamp' %}desc{% endif %}"
+                        onclick="sortTable('timeStamp')">보고일시</th>
+                    <th>업체명</th>
+                    <th>업체명(구글)</th>
+                    <th>보고구분</th>
+                    <th>게시글</th>
+                    <th>고객이름</th>
+                    <th>고객핸드폰</th>
+                    <th>공사지역</th>
+                    <th>공사금액(Vat별도)</th>
+                    <th>수수료(Vat포함)</th>
+                    <th>남긴 말씀</th>
+                    <th>메모</th>
+                    <th>작업</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in companyreports %}
+                <tr data-report-no="{{ report.no }}" data-ntype="{{ report.nType }}" ondblclick="handleDoubleClick({{ report.no }}, {{ report.nType }})" class="{% if current_staff and current_staff.nContractAuthority > 0 %}clickable{% endif %}">
+                    <td>{{ report.no }}</td>
+                    <td>
+                        {% if report.timeStamp %}
+                            {{ report.timeStamp|date:"ymd" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="company-selector">
+                            <!-- 항상 검색 가능한 업체 선택 드롭박스 표시 -->
+                            <div class="company-search-container" data-report-id="{{ report.no }}">
+                                <input type="text"
+                                       class="company-search-input"
+                                       placeholder="업체명 입력..."
+                                       value="{% if report.company %}{{ report.company.sName2 }}{% endif %}"
+                                       data-report-id="{{ report.no }}"
+                                       data-current-company-id="{% if report.company %}{{ report.company.no }}{% else %}0{% endif %}"
+                                       autocomplete="off">
+                                <div class="company-dropdown-list">
+                                    {% for company in all_companies %}
+                                    <div class="company-dropdown-item"
+                                         data-company-id="{{ company.no }}"
+                                         data-company-name="{{ company.sName2 }}">
+                                        {{ company.sName2 }}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <input type="text"
+                               class="company-name-input"
+                               data-report-id="{{ report.no }}"
+                               value="{{ report.sCompanyName|default:'' }}"
+                               placeholder="업체명 입력"
+                               onblur="updateCompanyName(this)">
+                    </td>
+                    <td>
+                        <div class="type-dropdown-container">
+                            <select class="type-select" data-report-id="{{ report.no }}" data-current-type="{{ report.nType }}">
+                                {% for value, label in TYPE_CHOICES %}
+                                <option value="{{ value }}" {% if value == report.nType %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </td>
+                    <td>
+                        {% if report.sPost %}
+                            <a href="{{ report.sPost }}" target="_blank" class="link-btn" style="text-decoration: none;">
+                                ...{{ report.sPost|slice:"-7:" }}
+                            </a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="tooltip-container">
+                            <span class="text-truncate">{{ report.sName|default:"-" }}</span>
+                            {% if report.sName|length > 10 %}
+                            <span class="tooltip-text">{{ report.sName }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>{{ report.sPhone|default:"-" }}</td>
+                    <td>
+                        <div class="tooltip-container">
+                            <span class="text-truncate">{{ report.sArea|default:"-"|truncatechars:12 }}</span>
+                            {% if report.sArea|length > 10 %}
+                            <span class="tooltip-text">{{ report.sArea }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="money-text">
+                        {% if report.nConMoney %}
+                            {{ report.nConMoney|floatformat:0|intcomma }}원
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="money-text">
+                        {% if report.nFee %}
+                            {{ report.nFee|floatformat:0|intcomma }}원
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="tooltip-container">
+                            <span class="text-truncate">{{ report.sCompanyMemo|default:"-"|truncatechars:12 }}</span>
+                            {% if report.sCompanyMemo|length > 10 %}
+                            <span class="tooltip-text">{{ report.sCompanyMemo }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="tooltip-container">
+                            <span class="text-truncate">{{ report.sStaffMemo|default:"-"|truncatechars:12 }}</span>
+                            {% if report.sStaffMemo|length > 10 %}
+                            <span class="tooltip-text">{{ report.sStaffMemo }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            {% if has_write_permission %}
+                                <!-- 쓰기권한이 있는 경우 -->
+                                {% if report.nType == 0 %}
+                                    <!-- 계약(입금X) -->
+                                    <button class="action-btn btn-edit" onclick="goToDetail({{ report.no }}, 'edit')">수정</button>
+                                    {% if not report.noNext or report.noNext == 0 %}
+                                        <button class="action-btn btn-delete" onclick="openDeleteModal({{ report.no }})">삭제</button>
+                                        <button class="action-btn btn-increase" onclick="goToIncrease({{ report.no }}, {{ report.noNext|default:0 }})">증액</button>
+                                        <button class="action-btn btn-decrease" onclick="goToDecrease({{ report.no }}, {{ report.noNext|default:0 }})">감액</button>
+                                        <button class="action-btn btn-cancel" onclick="goToCancel({{ report.no }}, {{ report.noNext|default:0 }})">취소</button>
+                                    {% endif %}
+                                {% elif report.nType == 1 %}
+                                    <!-- 계약(입금O) -->
+                                    <button class="action-btn btn-edit" onclick="goToDetail({{ report.no }}, 'edit')">수정</button>
+                                    {% if not report.noNext or report.noNext == 0 %}
+                                        <button class="action-btn btn-delete" onclick="openDeleteModal({{ report.no }})">삭제</button>
+                                        <button class="action-btn btn-increase" onclick="goToIncrease({{ report.no }}, {{ report.noNext|default:0 }})">증액</button>
+                                        <button class="action-btn btn-decrease" onclick="goToDecrease({{ report.no }}, {{ report.noNext|default:0 }})">감액</button>
+                                        <button class="action-btn btn-cancel" onclick="goToCancel({{ report.no }}, {{ report.noNext|default:0 }})">취소</button>
+                                    {% endif %}
+                                {% elif report.nType == 2 or report.nType == 3 %}
+                                    <!-- 증액 -->
+                                    <button class="action-btn btn-edit" onclick="goToDetail({{ report.no }}, 'edit', {{ report.nType }})">수정</button>
+                                    {% if not report.noNext or report.noNext == 0 %}
+                                        <button class="action-btn btn-delete" onclick="openDeleteModal({{ report.no }})">삭제</button>
+                                    {% endif %}
+                                {% elif report.nType == 4 or report.nType == 5 %}
+                                    <!-- 감액 -->
+                                    <button class="action-btn btn-edit" onclick="goToDecrease({{ report.no }})">수정</button>
+                                    {% if not report.noNext or report.noNext == 0 %}
+                                        <button class="action-btn btn-delete" onclick="openDeleteModal({{ report.no }})">삭제</button>
+                                    {% endif %}
+                                {% elif report.nType == 6 or report.nType == 7 %}
+                                    <!-- 취소 -->
+                                    <button class="action-btn btn-edit" onclick="goToCancel({{ report.no }})">수정</button>
+                                    {% if not report.noNext or report.noNext == 0 %}
+                                        <button class="action-btn btn-delete" onclick="openDeleteModal({{ report.no }})">삭제</button>
+                                    {% endif %}
+                                {% endif %}
+                            {% else %}
+                                <!-- 읽기권한만 있는 경우 -->
+                                <button class="action-btn btn-view" onclick="goToDetail({{ report.no }}, 'view')">보기</button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="17" style="text-align: center; padding: 40px;">
+                        데이터가 없습니다.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 페이징 -->
+    {% if companyreports.has_other_pages %}
+    <div class="pagination">
+        {% if companyreports.has_previous %}
+            <a href="javascript:void(0)" onclick="goToPage(1)">처음</a>
+            <a href="javascript:void(0)" onclick="goToPage({{ companyreports.previous_page_number }})">이전</a>
+        {% endif %}
+
+        <span class="current">
+            {{ companyreports.number }} / {{ companyreports.paginator.num_pages }}
+        </span>
+
+        {% if companyreports.has_next %}
+            <a href="javascript:void(0)" onclick="goToPage({{ companyreports.next_page_number }})">다음</a>
+            <a href="javascript:void(0)" onclick="goToPage({{ companyreports.paginator.num_pages }})">마지막</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- 통계 정보 -->
+    <div class="stats-info">
+        총 {{ total_count }}건
+    </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div id="deleteModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <span style="color: #dc3545;">⚠️</span> 보고 삭제 확인
+            </h3>
+        </div>
+        <div class="modal-body">
+            <p><strong>보고 #<span id="deleteReportNo"></span></strong>를 삭제하시겠습니까?</p>
+            <p style="color: #dc3545; margin-top: 15px;">
+                <strong>주의:</strong> 이 작업은 되돌릴 수 없습니다.
+            </p>
+            <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 15px;">
+                <p style="margin: 5px 0;"><strong>삭제될 정보:</strong></p>
+                <ul style="margin: 10px 0 5px 20px; color: #666;">
+                    <li>계약 정보 및 관련 데이터</li>
+                    <li>업체/고객 연결 정보</li>
+                    <li>첨부 파일 및 메모</li>
+                </ul>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()">취소</button>
+            <button class="modal-btn modal-btn-danger" onclick="confirmDelete()">삭제</button>
+        </div>
+    </div>
+</div>
+
+<!-- 메시지 모달 -->
+<div id="messageModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="messageTitle">알림</h3>
+        </div>
+        <div class="modal-body" id="messageBody">
+            메시지 내용
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-primary" onclick="closeMessageModal()">확인</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// 현재 Staff의 권한 정보
+const contractAuthority = {% if current_staff %}{{ current_staff.nContractAuthority }}{% else %}0{% endif %};
+
+// 더블클릭 핸들러
+function handleDoubleClick(reportNo, nType) {
+    if (contractAuthority === 0) {
+        return;
+    } else if (contractAuthority === 1) {
+        // 읽기 권한만 있는 경우 상세보기
+        window.location.href = `/contract/companyreport/${reportNo}/detail/?mode=view`;
+    } else if (contractAuthority === 2) {
+        // 편집 권한이 있는 경우 nType에 따라 적절한 수정 화면으로 이동
+        if (nType === 0 || nType === 1) {
+            // 계약(입금X), 계약(입금O) - 일반 수정 화면
+            window.location.href = `/contract/companyreport/${reportNo}/detail/?mode=edit`;
+        } else if (nType === 2 || nType === 3) {
+            // 증액(입금X), 증액(입금O) - 증액 수정 화면
+            window.location.href = `/contract/companyreport/${reportNo}/increase/`;
+        } else if (nType === 4 || nType === 5) {
+            // 감액(입금X), 감액(입금O) - 감액 수정 화면
+            window.location.href = `/contract/companyreport/${reportNo}/decrease/`;
+        } else if (nType === 6 || nType === 7) {
+            // 취소(입금X), 취소(입금O) - 취소 수정 화면
+            window.location.href = `/contract/companyreport/${reportNo}/cancel/`;
+        } else {
+            // 기본값 - 상세보기
+            window.location.href = `/contract/companyreport/${reportNo}/detail/?mode=edit`;
+        }
+    }
+}
+
+// 테이블 정렬 함수
+function sortTable(field) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentSort = urlParams.get('sort') || '-no';
+
+    let newSort;
+    if (currentSort === field) {
+        newSort = '-' + field;
+    } else if (currentSort === '-' + field) {
+        newSort = field;
+    } else {
+        newSort = '-' + field;
+    }
+
+    urlParams.set('sort', newSort);
+    urlParams.delete('page');
+    window.location.search = urlParams.toString();
+}
+
+// 필터 적용
+function applyFilters() {
+    const urlParams = new URLSearchParams();
+
+    // 활동상태 체크박스 값 수집
+    document.querySelectorAll('input[name="condition"]:checked').forEach(checkbox => {
+        urlParams.append('condition', checkbox.value);
+    });
+
+    // 보고구분 체크박스 값 수집
+    document.querySelectorAll('input[name="type"]:checked').forEach(checkbox => {
+        urlParams.append('type', checkbox.value);
+    });
+
+    // 공사유형 체크박스 값 수집
+    document.querySelectorAll('input[name="contype"]:checked').forEach(checkbox => {
+        urlParams.append('contype', checkbox.value);
+    });
+
+    // 검색어
+    const searchValue = document.getElementById('search-input').value;
+    if (searchValue) {
+        urlParams.set('search', searchValue);
+    }
+
+    // 페이지 리로드
+    window.location.href = window.location.pathname + '?' + urlParams.toString();
+}
+
+// 페이지 이동 함수 - 현재 필터 상태 유지
+function goToPage(pageNumber) {
+    const currentUrl = new URL(window.location);
+    const urlParams = new URLSearchParams(currentUrl.search);
+
+    // page 파라미터만 업데이트하고 나머지는 유지
+    urlParams.set('page', pageNumber);
+
+    // URL 업데이트 및 페이지 리로드
+    window.location.href = '?' + urlParams.toString();
+}
+
+// 필터 초기화
+function resetFilters() {
+    // 모든 체크박스 해제
+    document.querySelectorAll('input[name="condition"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.querySelectorAll('input[name="type"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.querySelectorAll('input[name="contype"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+
+    // 검색 입력 초기화
+    document.getElementById('search-input').value = '';
+
+    // 기본 활동상태(정상, 일시정지)로 설정
+    document.getElementById('condition-1').checked = true;
+    document.getElementById('condition-2').checked = true;
+
+    // 필터 적용
+    applyFilters();
+}
+
+// CSRF 토큰 가져오기
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// 업체 배정 함수
+function assignCompany(reportNo, companyNo) {
+    if (!companyNo) {
+        return Promise.resolve(false);
+    }
+
+    const csrfToken = getCookie('csrftoken');
+
+    return fetch('/contract/assign-company/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({
+            report_no: reportNo,
+            company_no: companyNo
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('업체 배정 성공:', data.message);
+            return true;
+        } else {
+            console.log('업체 배정 실패:', data.error);
+            return false;
+        }
+    })
+    .catch(error => {
+        console.error('업체 배정 오류:', error);
+        return false;
+    });
+}
+
+// 보고구분(nType) 변경 함수
+function updateReportType(reportId, newType) {
+    const csrfToken = getCookie('csrftoken');
+
+    fetch('/contract/update-report-type/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({
+            report_id: reportId,
+            new_type: newType
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 성공시 페이지 새로고침하여 변경사항 반영
+            window.location.reload();
+        } else {
+            // 실패시 조용히 원래 값으로 복원
+            console.log('보고구분 변경 실패:', data.error);
+            const select = document.querySelector(`.type-select[data-report-id="${reportId}"]`);
+            if (select) {
+                select.value = select.dataset.currentType;
+            }
+        }
+    })
+    .catch(error => {
+        // 오류시 조용히 원래 값으로 복원
+        console.error('보고구분 변경 오류:', error);
+        const select = document.querySelector(`.type-select[data-report-id="${reportId}"]`);
+        if (select) {
+            select.value = select.dataset.currentType;
+        }
+    });
+}
+
+// 업체명(구글) 업데이트 함수
+function updateCompanyName(inputElement) {
+    const reportId = inputElement.dataset.reportId;
+    const newValue = inputElement.value.trim();
+    const originalValue = inputElement.defaultValue;
+
+    // 값이 변경되지 않았으면 아무것도 하지 않음
+    if (newValue === originalValue) {
+        return;
+    }
+
+    const csrfToken = getCookie('csrftoken');
+
+    fetch('/contract/update-company-name/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({
+            report_id: reportId,
+            company_name: newValue
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 성공시 defaultValue 업데이트하여 다음 비교를 위해 저장
+            inputElement.defaultValue = newValue;
+            console.log(`업체명(구글) 업데이트 성공: 보고서 #${reportId}`);
+        } else {
+            // 실패시 원래 값으로 복원
+            alert('업체명 업데이트 실패: ' + (data.error || '알 수 없는 오류'));
+            inputElement.value = originalValue;
+        }
+    })
+    .catch(error => {
+        // 오류시 원래 값으로 복원
+        console.error('업체명 업데이트 오류:', error);
+        alert('업체명 업데이트 중 오류가 발생했습니다.');
+        inputElement.value = originalValue;
+    });
+}
+
+// 액션 함수들 - 페이지 이동 방식
+function goToDetail(reportNo, mode, nType) {
+    // nType이 2 또는 3(증액)인 경우 increase 화면으로, 그 외는 상세 페이지로
+    if (nType === 2 || nType === 3) {
+        window.location.href = `/contract/companyreport/${reportNo}/increase/`;
+    } else {
+        window.location.href = `/contract/companyreport/${reportNo}/detail/?mode=${mode}`;
+    }
+}
+
+function goToIncrease(reportNo, noNext) {
+    // noNext가 있으면 경고 메시지 표시
+    if (noNext && noNext > 0) {
+        alert('이미 후속 보고서가 존재합니다. 증액/감액/취소는 1회만 가능합니다.');
+        return;
+    }
+    // 증액 페이지로 이동
+    window.location.href = `/contract/companyreport/${reportNo}/increase/`;
+}
+
+function goToDecrease(reportNo, noNext) {
+    // noNext가 있으면 경고 메시지 표시
+    if (noNext && noNext > 0) {
+        alert('이미 후속 보고서가 존재합니다. 증액/감액/취소는 1회만 가능합니다.');
+        return;
+    }
+    // 감액 페이지로 이동
+    window.location.href = `/contract/companyreport/${reportNo}/decrease/`;
+}
+
+function goToCancel(reportNo, noNext) {
+    // noNext가 있으면 경고 메시지 표시
+    if (noNext && noNext > 0) {
+        alert('이미 후속 보고서가 존재합니다. 증액/감액/취소는 1회만 가능합니다.');
+        return;
+    }
+    // 취소 페이지로 이동
+    window.location.href = `/contract/companyreport/${reportNo}/cancel/`;
+}
+
+// 모달 함수들
+function openEditModal(reportNo, typeName) {
+    // 편집 모달 대신 상세 페이지로 이동 (편집 모드)
+    goToDetail(reportNo, 'edit');
+}
+
+function openViewModal(reportNo) {
+    // 보기 모달 대신 상세 페이지로 이동 (보기 모드)
+    goToDetail(reportNo, 'view');
+}
+
+// 삭제 모달 관련 변수
+let currentDeleteReportNo = null;
+
+function openDeleteModal(reportNo) {
+    // 삭제 모달 표시
+    currentDeleteReportNo = reportNo;
+    document.getElementById('deleteReportNo').textContent = reportNo;
+    document.getElementById('deleteModal').classList.add('active');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('active');
+    currentDeleteReportNo = null;
+}
+
+function confirmDelete() {
+    if (currentDeleteReportNo) {
+        deleteReport(currentDeleteReportNo);
+        closeDeleteModal();
+    }
+}
+
+function openIncreaseModal(reportNo) {
+    // 증액 페이지로 이동
+    goToIncrease(reportNo);
+}
+
+function openDecreaseModal(reportNo) {
+    // 감액 페이지로 이동
+    goToDecrease(reportNo);
+}
+
+function openCancelModal(reportNo) {
+    // 취소 페이지로 이동
+    goToCancel(reportNo);
+}
+
+// 보고 삭제 함수
+function deleteReport(reportNo) {
+    const csrfToken = getCookie('csrftoken');
+
+    fetch(`/contract/companyreport/${reportNo}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(data.error || '삭제 실패');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // 삭제 성공 시 페이지 새로고침
+            showMessage('삭제 완료', '보고가 성공적으로 삭제되었습니다.', () => {
+                window.location.reload();
+            });
+        } else {
+            showMessage('삭제 실패', `삭제할 수 없습니다: ${data.error || '알 수 없는 오류'}`);
+        }
+    })
+    .catch(error => {
+        console.error('삭제 오류:', error);
+        showMessage('오류', error.message || '삭제 중 오류가 발생했습니다.');
+    });
+}
+
+// 메시지 모달 함수
+function showMessage(title, message, callback) {
+    document.getElementById('messageTitle').textContent = title;
+    document.getElementById('messageBody').textContent = message;
+    document.getElementById('messageModal').classList.add('active');
+
+    // 콜백 저장
+    window.messageModalCallback = callback;
+}
+
+function closeMessageModal() {
+    document.getElementById('messageModal').classList.remove('active');
+
+    // 콜백 실행
+    if (window.messageModalCallback) {
+        window.messageModalCallback();
+        window.messageModalCallback = null;
+    }
+}
+
+// 업체 검색 드롭박스 관리 클래스
+class CompanySearchDropdown {
+    constructor(container) {
+        this.container = container;
+        this.input = container.querySelector('.company-search-input');
+        this.dropdown = container.querySelector('.company-dropdown-list');
+        this.items = Array.from(container.querySelectorAll('.company-dropdown-item'));
+        this.filteredItems = [...this.items];
+        this.selectedIndex = -1;
+        this.reportId = container.dataset.reportId;
+
+        this.init();
+    }
+
+    init() {
+        // 입력 이벤트 바인딩
+        this.input.addEventListener('input', (e) => this.handleInput(e));
+        this.input.addEventListener('focus', () => this.showDropdown());
+        this.input.addEventListener('blur', (e) => this.handleBlur(e));
+        this.input.addEventListener('keydown', (e) => this.handleKeydown(e));
+
+        // 드롭박스 아이템 클릭 이벤트
+        this.items.forEach(item => {
+            item.addEventListener('mousedown', (e) => this.selectItem(item));
+        });
+    }
+
+    handleInput(e) {
+        const query = e.target.value.toLowerCase();
+        this.filterItems(query);
+        this.showDropdown();
+        this.selectedIndex = -1;
+    }
+
+    filterItems(query) {
+        this.filteredItems = this.items.filter(item => {
+            const companyName = item.dataset.companyName.toLowerCase();
+            const isMatch = companyName.includes(query);
+            item.style.display = isMatch ? 'block' : 'none';
+            return isMatch;
+        });
+
+        // 하이라이트 제거
+        this.items.forEach(item => item.classList.remove('highlighted'));
+    }
+
+    showDropdown() {
+        this.dropdown.style.display = 'block';
+    }
+
+    hideDropdown() {
+        this.dropdown.style.display = 'none';
+        this.selectedIndex = -1;
+        this.items.forEach(item => item.classList.remove('highlighted'));
+    }
+
+    handleBlur(e) {
+        // 드롭박스 아이템 클릭하는 경우 blur 무시
+        setTimeout(() => {
+            this.hideDropdown();
+        }, 150);
+    }
+
+    handleKeydown(e) {
+        if (!this.dropdown.style.display || this.dropdown.style.display === 'none') {
+            return;
+        }
+
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                this.moveSelection(1);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                this.moveSelection(-1);
+                break;
+            case 'Enter':
+                e.preventDefault();
+                if (this.selectedIndex >= 0 && this.selectedIndex < this.filteredItems.length) {
+                    this.selectItem(this.filteredItems[this.selectedIndex]);
+                }
+                break;
+            case 'Escape':
+                this.hideDropdown();
+                this.input.blur();
+                break;
+        }
+    }
+
+    moveSelection(direction) {
+        // 이전 하이라이트 제거
+        if (this.selectedIndex >= 0 && this.selectedIndex < this.filteredItems.length) {
+            this.filteredItems[this.selectedIndex].classList.remove('highlighted');
+        }
+
+        // 새 인덱스 계산
+        this.selectedIndex += direction;
+
+        if (this.selectedIndex < 0) {
+            this.selectedIndex = this.filteredItems.length - 1;
+        } else if (this.selectedIndex >= this.filteredItems.length) {
+            this.selectedIndex = 0;
+        }
+
+        // 새 하이라이트 적용
+        if (this.selectedIndex >= 0 && this.selectedIndex < this.filteredItems.length) {
+            const selectedItem = this.filteredItems[this.selectedIndex];
+            selectedItem.classList.add('highlighted');
+
+            // 스크롤하여 선택된 아이템이 보이도록 함
+            selectedItem.scrollIntoView({
+                block: 'nearest',
+                inline: 'nearest'
+            });
+        }
+    }
+
+    selectItem(item) {
+        const companyId = item.dataset.companyId;
+        const companyName = item.dataset.companyName;
+
+        // 입력값 설정
+        this.input.value = companyName;
+
+        // 드롭박스 숨기기
+        this.hideDropdown();
+
+        // 업체 배정 함수 호출 후 결과에 따라 처리
+        assignCompany(this.reportId, companyId)
+            .then(success => {
+                if (success) {
+                    // 성공시 데이터 속성 업데이트
+                    this.input.dataset.currentCompanyId = companyId;
+                    // 성공 시 시각적 피드백 추가
+                    this.input.style.borderColor = '#28a745';
+                    this.input.style.backgroundColor = '#f0fff4';
+                    setTimeout(() => {
+                        this.input.style.borderColor = '';
+                        this.input.style.backgroundColor = '';
+                    }, 2000);
+
+                    // 페이지 새로고침하여 변경사항 완전 반영
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    // 실패시 입력값 초기화
+                    const previousValue = this.input.dataset.currentCompanyId ?
+                        this.items.find(item => item.dataset.companyId === this.input.dataset.currentCompanyId)?.dataset.companyName || '' :
+                        '';
+                    this.input.value = previousValue;
+                    // 실패 시 시각적 피드백 추가
+                    this.input.style.borderColor = '#dc3545';
+                    this.input.style.backgroundColor = '#fff5f5';
+                    setTimeout(() => {
+                        this.input.style.borderColor = '';
+                        this.input.style.backgroundColor = '';
+                    }, 2000);
+                }
+            })
+            .catch(error => {
+                // 오류시 이전 값으로 복원
+                console.error('업체 선택 오류:', error);
+                const previousValue = this.input.dataset.currentCompanyId ?
+                    this.items.find(item => item.dataset.companyId === this.input.dataset.currentCompanyId)?.dataset.companyName || '' :
+                    '';
+                this.input.value = previousValue;
+                // 오류 시 시각적 피드백 추가
+                this.input.style.borderColor = '#dc3545';
+                this.input.style.backgroundColor = '#fff5f5';
+                setTimeout(() => {
+                    this.input.style.borderColor = '';
+                    this.input.style.backgroundColor = '';
+                }, 2000);
+            });
+    }
+}
+
+// DOM 로드 완료 시 이벤트 바인딩
+document.addEventListener('DOMContentLoaded', function() {
+    // 입력 필드, 버튼, 링크 등에서 더블클릭 이벤트 전파 방지
+    document.querySelectorAll('input, button, a, select, textarea').forEach(element => {
+        element.addEventListener('dblclick', function(e) {
+            e.stopPropagation();
+        });
+    });
+
+    // 체크박스 변경 시 자동 필터 적용
+    document.querySelectorAll('input[name="condition"], input[name="type"], input[name="contype"]').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            applyFilters();
+        });
+    });
+
+    // 검색 입력창에서 엔터키 처리
+    document.getElementById('search-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            applyFilters();
+        }
+    });
+
+    // 업체 검색 드롭박스 초기화
+    document.querySelectorAll('.company-search-container').forEach(container => {
+        new CompanySearchDropdown(container);
+    });
+
+    // 보고구분(nType) 변경 기능
+    document.querySelectorAll('.type-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const reportId = this.dataset.reportId;
+            const newType = this.value;
+            const currentType = this.dataset.currentType;
+
+            if (newType === currentType) {
+                return;
+            }
+
+            updateReportType(reportId, newType);
+        });
+    });
+
+    // 모달 외부 클릭 시 닫기
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                // 삭제 모달
+                if (this.id === 'deleteModal') {
+                    closeDeleteModal();
+                }
+                // 메시지 모달
+                else if (this.id === 'messageModal') {
+                    closeMessageModal();
+                }
+            }
+        });
+    });
+
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            // 활성화된 모달 찾아서 닫기
+            const activeModal = document.querySelector('.modal-overlay.active');
+            if (activeModal) {
+                if (activeModal.id === 'deleteModal') {
+                    closeDeleteModal();
+                } else if (activeModal.id === 'messageModal') {
+                    closeMessageModal();
+                }
+            }
+        }
+    });
+});
+</script>
+
+{% endblock %}

@@ -8,37 +8,31 @@ from contract.models import CompanyReport
 
 class Point(models.Model):
     TYPE_CHOICES = [
-        (0, '기타'),
-        (1, '취소환불액'),
+        (0, '수수료 납부'),
+        (1, '수수료 환불'),
         (2, '과/미입금'),
         (3, '페이백 적립'),
         (4, '닷컴포인트 전환'),
-        (5, '포인트 소멸'),
     ]
 
     no = models.AutoField(primary_key=True, verbose_name='포인트내역ID')
-    noCompany = models.ForeignKey(
-        Company,
-        on_delete=models.SET_NULL,  # Company 삭제 시 NULL로 설정
-        null=True,  # NULL 허용
+    noCompany = models.IntegerField(
+        null=True,
         blank=True,
         verbose_name='업체ID',
-        related_name='point_records',
-        db_column='noCompany'  # 기존 컬럼명 유지
+        db_column='noCompany'
     )
     time = models.DateTimeField(default=timezone.now, verbose_name='타임스탬프')
     nType = models.IntegerField(choices=TYPE_CHOICES, default=0, verbose_name='구분')
-    noCompanyReport = models.ForeignKey(
-        CompanyReport,
-        on_delete=models.SET_NULL,
+    noCompanyReport = models.IntegerField(
         null=True,
         blank=True,
-        verbose_name='업체계약보고ID',
-        related_name='point_records'
+        verbose_name='계약보고ID',
+        db_column='noCompanyReport'
     )
     sWorker = models.CharField(max_length=50, blank=True, verbose_name='작업자')
     nPrePoint = models.IntegerField(default=0, verbose_name='이전 포인트')
-    nUsePoint = models.IntegerField(default=0, verbose_name='사용 포인트')
+    nUsePoint = models.IntegerField(default=0, verbose_name='적용 포인트')
     nRemainPoint = models.IntegerField(default=0, verbose_name='잔액 포인트')
     sMemo = models.TextField(blank=True, verbose_name='메모')
 
@@ -49,18 +43,24 @@ class Point(models.Model):
         ordering = ['-time', '-no']
 
     def __str__(self):
-        company_name = self.noCompany.sName2 if self.noCompany else '삭제된 업체'
+        if self.noCompany:
+            try:
+                company = Company.objects.get(no=self.noCompany)
+                company_name = company.sName2
+            except Company.DoesNotExist:
+                company_name = f'업체ID {self.noCompany}'
+        else:
+            company_name = '삭제된 업체'
         return f"포인트 {self.no} - {company_name} ({self.get_nType_display()})"
 
     def get_type_display_with_icon(self):
         """포인트 타입을 아이콘과 함께 표시"""
         icons = {
-            0: '🔄',  # 기타
-            1: '💰',  # 취소환불액
+            0: '💳',  # 수수료 납부
+            1: '💰',  # 수수료 환불
             2: '⚖️',  # 과/미입금
             3: '📈',  # 페이백 적립
             4: '🔄',  # 닷컴포인트 전환
-            5: '❌',  # 포인트 소멸
         }
         icon = icons.get(self.nType, '🔄')
         return format_html(
@@ -73,12 +73,11 @@ class Point(models.Model):
     def get_type_display_with_color(self):
         """포인트 타입을 색상과 함께 표시"""
         colors = {
-            0: '#6c757d',  # 기타 - 회색
-            1: '#28a745',  # 취소환불액 - 초록
+            0: '#dc3545',  # 수수료 납부 - 빨강
+            1: '#28a745',  # 수수료 환불 - 초록
             2: '#ffc107',  # 과/미입금 - 노랑
             3: '#007bff',  # 페이백 적립 - 파랑
             4: '#17a2b8',  # 닷컴포인트 전환 - 청록
-            5: '#dc3545',  # 포인트 소멸 - 빨강
         }
         return {
             'type': self.get_nType_display(),
@@ -109,12 +108,22 @@ class Point(models.Model):
 
     def get_company_name(self):
         """업체명 반환"""
-        return self.noCompany.sName1 if self.noCompany else 'N/A'
+        if self.noCompany:
+            try:
+                company = Company.objects.get(no=self.noCompany)
+                return company.sName1
+            except Company.DoesNotExist:
+                return f'업체ID {self.noCompany}'
+        return 'N/A'
 
     def get_company_report_info(self):
         """업체계약보고 정보 반환"""
         if self.noCompanyReport:
-            return f"계약보고 {self.noCompanyReport.no} - {self.noCompanyReport.get_nType_display()}"
+            try:
+                report = CompanyReport.objects.get(no=self.noCompanyReport)
+                return f"계약보고 {report.no} - {report.get_nType_display()}"
+            except CompanyReport.DoesNotExist:
+                return f"계약보고 ID {self.noCompanyReport}"
         return 'N/A'
 
     def get_point_summary(self):
@@ -151,15 +160,15 @@ class Point(models.Model):
         return f"{self.sMemo[:length]}..."
 
     @classmethod
-    def get_company_current_points(cls, company):
+    def get_company_current_points(cls, company_no):
         """업체의 현재 포인트 조회"""
-        latest_record = cls.objects.filter(noCompany=company).first()
+        latest_record = cls.objects.filter(noCompany=company_no).first()
         return latest_record.nRemainPoint if latest_record else 0
 
     @classmethod
-    def get_company_point_history(cls, company, limit=10):
+    def get_company_point_history(cls, company_no, limit=10):
         """업체의 포인트 히스토리 조회"""
-        return cls.objects.filter(noCompany=company)[:limit]
+        return cls.objects.filter(noCompany=company_no)[:limit]
 
     @classmethod
     def get_type_statistics(cls):

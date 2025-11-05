@@ -1,0 +1,2077 @@
+{% extends "staff/base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}
+    {% if action == 'create' %}신규 계약보고{% elif action == 'increase' %}증액 보고{% elif action == 'decrease' %}감액 보고{% elif action == 'cancel' %}취소 보고{% else %}계약보고 상세{% endif %}
+{% endblock %}
+
+{% block page_title %}
+{% if mode == 'edit' %}
+    {% if action == 'create' %}신규 계약보고{% elif action == 'increase' %}증액 보고{% elif action == 'decrease' %}감액 보고{% elif action == 'cancel' %}취소 보고{% else %}계약보고 수정{% endif %}
+{% else %}
+    계약보고 상세보기
+{% endif %}
+{% endblock %}
+
+{% block page_subtitle %}
+계약보고 #{% if report %}{{ report.no }}{% else %}신규{% endif %}
+{% endblock %}
+
+{% block content %}
+<style>
+    /* 고객계약보고 수정 화면과 동일한 스타일 적용 */
+    .detail-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 30px;
+        margin-top: 20px;
+        max-width: 1200px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .main-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #2d3748;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 3px solid #667eea;
+        text-align: center;
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-col {
+        flex: 1;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: border-color 0.15s ease-in-out;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+
+    .form-control[readonly] {
+        background-color: #e9ecef;
+        cursor: not-allowed;
+    }
+
+    .form-control-plaintext {
+        padding: 8px 12px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        font-size: 14px;
+        color: #495057;
+    }
+
+    select.form-control {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right .75rem center;
+        background-size: 16px 12px;
+        padding-right: 2.25rem;
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #0f9d58 0%, #0a6f3f 100%);
+        color: white;
+    }
+
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(15, 157, 88, 0.4);
+    }
+
+    .btn-warning {
+        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+        color: #333;
+    }
+
+    .btn-warning:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+    }
+
+    .btn-calculate {
+        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 5px;
+        font-size: 12px;
+        cursor: pointer;
+        margin-left: 10px;
+    }
+
+    .btn-calculate:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 8px rgba(72, 187, 120, 0.4);
+    }
+
+    .link-display {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .link-display:hover {
+        text-decoration: underline;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .badge-success {
+        background: #28a745;
+        color: white;
+    }
+
+    .badge-warning {
+        background: #ffc107;
+        color: #333;
+    }
+
+    .badge-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .amount-display {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #2d3748;
+    }
+
+    .info-box {
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+
+    .file-upload-area {
+        border: 2px dashed #cbd5e0;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .file-upload-area:hover {
+        border-color: #667eea;
+        background: #f7fafc;
+    }
+
+    /* 반응형 디자인 */
+    @media (max-width: 768px) {
+        .form-row {
+            flex-direction: column;
+        }
+
+        .btn-group {
+            flex-wrap: wrap;
+        }
+
+        .detail-container {
+            padding: 20px;
+        }
+    }
+
+    /* 커스텀 모달 스타일 */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        animation: fadeIn 0.3s;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        animation: slideUp 0.3s;
+    }
+
+    .modal-header {
+        margin-bottom: 20px;
+    }
+
+    .modal-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #333;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-body {
+        color: #666;
+        font-size: 16px;
+        line-height: 1.5;
+        margin-bottom: 25px;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .modal-btn-cancel {
+        background: #e9ecef;
+        color: #495057;
+    }
+
+    .modal-btn-cancel:hover {
+        background: #dee2e6;
+    }
+
+    .modal-btn-danger {
+        background: linear-gradient(135deg, #f93b1d 0%, #ea2c62 100%);
+        color: white;
+    }
+
+    .modal-btn-danger:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(234, 44, 98, 0.4);
+    }
+
+    .modal-btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .modal-btn-primary:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .point-info {
+        background: #f7fafc;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* sPost 입력 필드 너비 증가 - flex를 활용한 비율 조정 */
+    .spost-input-wrapper {
+        flex: 1.25; /* 기본 flex: 1에서 25% 증가 */
+        min-width: 0; /* flex item이 내용보다 작아질 수 있도록 */
+    }
+
+    /* sPost와 같은 행에 있는 다른 필드는 기본 크기 유지 */
+    .form-row .form-group:not(.spost-input-wrapper) {
+        flex: 1;
+    }
+
+    .action-buttons {
+        margin-top: 30px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        padding-top: 20px;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #0f9d58 0%, #0a6f3f 100%);
+        color: white;
+    }
+
+    .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(15, 157, 88, 0.4);
+    }
+
+    .btn-warning {
+        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+        color: #333;
+    }
+
+    .btn-warning:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .status-contract {
+        background: #bee3f8;
+        color: #2c5282;
+    }
+
+    .status-paid {
+        background: #c6f6d5;
+        color: #22543d;
+    }
+
+    .status-increase {
+        background: #fbb6ce;
+        color: #702459;
+    }
+
+    .status-decrease {
+        background: #fed7d7;
+        color: #742a2a;
+    }
+
+    .status-cancel {
+        background: #e2e8f0;
+        color: #2d3748;
+    }
+
+    .readonly-field {
+        background-color: #f7fafc !important;
+        cursor: not-allowed;
+    }
+
+    .required-field::after {
+        content: " *";
+        color: #f56565;
+    }
+
+    .info-text {
+        font-size: 0.85rem;
+        color: #718096;
+        margin-top: 5px;
+    }
+
+    .amount-positive {
+        color: #22543d;
+        font-weight: bold;
+    }
+
+    .amount-negative {
+        color: #742a2a;
+        font-weight: bold;
+    }
+
+    /* 업체 검색 드롭다운 스타일 */
+    .company-search-container {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+
+    .company-search-input {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        width: 100%;
+        background: #fff;
+        cursor: pointer;
+        box-sizing: border-box;
+    }
+
+    .company-search-input:focus {
+        outline: none;
+        border-color: #4CAF50;
+        box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+    }
+
+    .company-dropdown-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-top: none;
+        border-radius: 0 0 4px 4px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 9999;
+        display: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-top: -1px;
+    }
+
+    .company-dropdown-item {
+        padding: 10px 12px;
+        font-size: 14px;
+        cursor: pointer;
+        border-bottom: 1px solid #f5f5f5;
+        transition: background-color 0.15s;
+    }
+
+    .company-dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    .company-dropdown-item:hover {
+        background: #f0f0f0;
+    }
+
+    .company-dropdown-item.highlighted {
+        background: #4CAF50;
+        color: white;
+    }
+</style>
+
+<div class="detail-container">
+    <form id="reportForm" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- 주 타이틀 -->
+        <div class="main-title">계약 보고</div>
+
+        <!-- 기본 정보 섹션 -->
+        <div class="section-title">기본 정보</div>
+
+        <div class="form-row">
+                <div class="form-col">
+                    <label class="form-label">No</label>
+                    {% if mode == 'view' %}
+                        <div class="form-control-plaintext">#{{ report.no }}</div>
+                    {% else %}
+                        <input type="text" class="form-control" value="{{ report.no|default:'신규' }}" readonly>
+                    {% endif %}
+                </div>
+                <div class="form-col">
+                    <label class="form-label">이후보고 No</label>
+                    <div class="form-control-plaintext">
+                        {% if report.noNext %}
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span>#{{ report.noNext }}</span>
+                                <button type="button" class="btn btn-sm btn-secondary" onclick="goToNextReport({{ report.noNext }})"
+                                        style="white-space: nowrap;">
+                                    바로가기
+                                </button>
+                            </div>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="form-col">
+                    <label class="form-label">타임스탬프</label>
+                    <div class="form-control-plaintext">
+                        {% if report.timeStamp %}
+                            {{ report.timeStamp|date:"Y-m-d H:i:s" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-col">
+                    <label class="form-label">업체명(구글)</label>
+                    {% if mode == 'view' %}
+                        <div class="form-control-plaintext">{{ report.sCompanyName|default:"-" }}</div>
+                    {% else %}
+                        <input type="text" name="sCompanyName" class="form-control"
+                               value="{{ report.sCompanyName|default:'' }}"
+                               {% if action in 'increase,decrease,cancel' %}readonly{% endif %}>
+                    {% endif %}
+                </div>
+                <div class="form-col">
+                    <label class="form-label">업체 선택</label>
+                    {% if mode == 'view' %}
+                        <div class="form-control-plaintext">
+                            {% if report.company %}
+                                {{ report.company.sName2 }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <div class="company-search-container" data-report-id="{{ report.no }}">
+                            <input type="text"
+                                   class="company-search-input"
+                                   placeholder="업체명을 클릭하거나 입력하세요..."
+                                   value="{% if report.company %}{{ report.company.sName2 }}{% endif %}"
+                                   data-report-id="{{ report.no }}"
+                                   data-current-company-id="{% if report.company %}{{ report.company.no }}{% else %}0{% endif %}"
+                                   autocomplete="off">
+                            <input type="hidden" name="noCompany" id="noCompany"
+                                   value="{{ report.noCompany|default:'' }}">
+                            <div class="company-dropdown-list">
+                                {% for company in all_companies %}
+                                <div class="company-dropdown-item"
+                                     data-company-id="{{ company.no }}"
+                                     data-company-name="{{ company.sName2 }}">
+                                    {{ company.sName2 }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group spost-input-wrapper">
+                        <label class="required-field">게시글 링크</label>
+                        <input type="text" name="sPost" id="sPost" class="form-control"
+                               value="{{ report.sPost|default:'' }}"
+                               placeholder="네이버 카페 게시글 URL"
+                               {% if mode == 'view' %}readonly{% endif %}>
+                    </div>
+
+                    <div class="form-group">
+                        <label>의뢰 ID</label>
+                        <input type="text" id="noOrder" name="noOrder" class="form-control readonly-field"
+                               value="{{ report.noOrder|default:'' }}" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label>할당 ID</label>
+                        <input type="text" id="noAssign" name="noAssign" class="form-control readonly-field"
+                               value="{{ report.noAssign|default:'' }}" readonly>
+                    </div>
+                </div>
+
+        <!-- 공사 정보 섹션 -->
+        <div class="section-title">공사 정보</div>
+
+        <div class="form-row">
+                    <div class="form-group">
+                        <label>보고구분</label>
+                        <input type="text" class="form-control readonly-field"
+                               value="{{ report.get_nType_display }}" readonly>
+                        <input type="hidden" name="nType" id="nType" value="{{ report.nType|default:0 }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="required-field">공사 유형</label>
+                        <select name="nConType" id="nConType" class="form-control"
+                                {% if mode == 'view' %}disabled{% endif %}>
+                            {% for value, label in CONSTRUCTION_TYPE_CHOICES %}
+                            <option value="{{ value }}"
+                                    {% if value == report.nConType %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="required-field">고객 이름</label>
+                        <input type="text" name="sName" class="form-control"
+                               value="{{ report.sName|default:'' }}"
+                               {% if mode == 'view' %}readonly{% endif %}>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="required-field">고객 핸드폰</label>
+                        <input type="text" name="sPhone" class="form-control"
+                               value="{{ report.sPhone|default:'' }}"
+                               placeholder="010-0000-0000"
+                               {% if mode == 'view' %}readonly{% endif %}>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label class="required-field">공사 지역</label>
+                        <textarea name="sArea" class="form-control" rows="2"
+                                  {% if mode == 'view' %}readonly{% endif %}>{{ report.sArea|default:'' }}</textarea>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="required-field">공사 계약일</label>
+                        <input type="date" name="dateContract" class="form-control"
+                               value="{{ report.dateContract|date:'Y-m-d' }}"
+                               {% if mode == 'view' %}readonly{% endif %}>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="required-field">공사 완료예정일</label>
+                        <input type="date" name="dateSchedule" class="form-control"
+                               value="{{ report.dateSchedule|date:'Y-m-d' }}"
+                               {% if mode == 'view' %}readonly{% endif %}>
+                    </div>
+                </div>
+
+        <!-- 금액 정보 섹션 -->
+        <div class="section-title">금액 정보</div>
+
+        {% if action in 'increase,decrease,cancel' and report.nPreConMoney %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>이전 보고 공사금액</label>
+                        <div class="amount-display">
+                            {{ report.nPreConMoney|intcomma }} 원 (VAT 별도)
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>이전 보고 수수료</label>
+                        <div class="amount-display">
+                            {{ report.nPreFee|intcomma }} 원 (VAT 포함)
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>공사금액(구글)</label>
+                        <input type="text" name="sConMoney" class="form-control"
+                               value="{{ report.sConMoney|default:'' }}"
+                               placeholder="구글 시트 원본 텍스트"
+                               {% if mode == 'view' %}readonly{% endif %}>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="required-field">
+                            {% if action == 'increase' %}
+                                이번 보고 증액금액
+                            {% elif action == 'decrease' %}
+                                이번 보고 감액금액
+                            {% elif action == 'cancel' %}
+                                이번 보고 취소금액
+                            {% else %}
+                                공사금액
+                            {% endif %}
+                        </label>
+                        <div style="display: flex; align-items: center;">
+                            <input type="text" id="nConMoney_display" class="form-control money-input"
+                                   value="{{ report.nConMoney|default:0|floatformat:0 }}"
+                                   {% if mode == 'view' or action == 'cancel' %}readonly{% endif %}>
+                            <input type="hidden" name="nConMoney" id="nConMoney" value="{{ report.nConMoney|default:0 }}">
+                            <span style="margin-left: 10px;">원 (VAT 별도)</span>
+                            {% if mode != 'view' and action != 'cancel' %}
+                            <button type="button" class="btn-calculate" onclick="convertToVatExcluded()">
+                                부가세 별도 변환
+                            </button>
+                            {% endif %}
+                        </div>
+                        <div class="info-text">반드시 VAT 별도 금액으로 입력해주세요.</div>
+                    </div>
+                </div>
+
+                {% if action in 'increase,decrease' %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>최종 공사 금액</label>
+                        <div class="amount-display" id="totalConMoney">
+                            0 원 (VAT 별도)
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>최종 기준 (예상) 수수료</label>
+                        <div class="amount-display" id="totalFee">
+                            0 원 (VAT 포함)
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="required-field">(적용) 수수료</label>
+                        <div style="display: flex; align-items: center;">
+                            <input type="text" id="nFee_display" class="form-control money-input"
+                                   value="{{ report.nFee|default:0|floatformat:0 }}"
+                                   {% if mode == 'view' %}readonly{% endif %}>
+                            <input type="hidden" name="nFee" id="nFee" value="{{ report.nFee|default:0 }}">
+                            <span style="margin-left: 10px;">원 (VAT 포함)</span>
+                            {% if mode != 'view' %}
+                            <button type="button" class="btn-calculate" onclick="calculateFee()">
+                                수수료 자동계산
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+        <!-- 포인트 및 청구 섹션 -->
+        <div class="section-title">포인트 및 청구</div>
+
+        <div class="point-info">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>잔액 포인트</label>
+                    <div class="amount-display">
+                        <span id="remainPoint">{{ remain_point|default:0|intcomma }}</span> 포인트
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group" style="margin-top: 25px;">
+                        <input type="checkbox" id="useAllPoints" onclick="applyAllPoints()">
+                        <label for="useAllPoints">전부 사용</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>적용 포인트</label>
+                    <div style="display: flex; align-items: center;">
+                        <input type="text" id="nAppPoint_display" class="form-control money-input"
+                               value="{{ report.nAppPoint|default:0|floatformat:0 }}"
+                               {% if mode == 'view' %}readonly{% endif %}>
+                        <input type="hidden" name="nAppPoint" id="nAppPoint" value="{{ report.nAppPoint|default:0 }}">
+                        <span style="margin-left: 10px;">포인트</span>
+                        {% if mode != 'view' and report.nAppPoint > 0 %}
+                        <button type="button" class="btn-calculate" onclick="processPoint(0)">
+                            포인트 차감 적용
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row" style="margin-top: 20px;">
+            <div class="form-group">
+                <label>(적용) 청구액</label>
+                <div class="amount-display" id="demandAmount">
+                    {{ report.nDemand|default:0|intcomma }} 원 (VAT 포함)
+                </div>
+                <input type="hidden" name="nDemand" id="nDemand" value="{{ report.nDemand|default:0 }}">
+            </div>
+
+            <div class="form-group">
+                <div style="margin-top: 25px;">
+                    {% if mode != 'view' %}
+                    <button type="button" class="btn btn-warning" onclick="sendInvoiceSMS()">
+                        청구 문자 발송
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>세금계산서 발행을 위한 사업자</label>
+                <select name="sTaxCompany" class="form-control"
+                        {% if mode == 'view' %}disabled{% endif %}>
+                    <option value="">선택하세요</option>
+                    {% for tax_company in tax_companies %}
+                    <option value="{{ tax_company }}"
+                            {% if tax_company == report.sTaxCompany %}selected{% endif %}>
+                        {{ tax_company }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- 입금 정보 섹션 -->
+        <div class="section-title">입금 정보</div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>입금액</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="text" id="nDeposit_display" class="form-control money-input"
+                           value="{{ report.nDeposit|default:0|floatformat:0 }}"
+                           {% if mode == 'view' %}readonly{% endif %}>
+                    <input type="hidden" name="nDeposit" id="nDeposit" value="{{ report.nDeposit|default:0 }}">
+                    <span>원</span>
+                    {% if mode != 'view' %}
+                    <button type="button" class="btn-calculate" onclick="copyDemandToDeposit()" style="white-space: nowrap;">
+                        청구액으로 입금액 입력하기
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>입금일</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="date" name="dateDeposit" id="dateDeposit" class="form-control"
+                           value="{{ report.dateDeposit|date:'Y-m-d' }}"
+                           {% if mode == 'view' %}readonly{% endif %}>
+                    {% if mode != 'view' %}
+                    <button type="button" class="btn-calculate" onclick="completeDeposit()" style="white-space: nowrap;">
+                        입금일 오늘로 입력
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>과/미입금</label>
+                <div class="amount-display" id="excessAmount">
+                    <span class="{% if report.nExcess > 0 %}amount-positive{% elif report.nExcess < 0 %}amount-negative{% endif %}">
+                        {{ report.nExcess|default:0|intcomma }} 원
+                    </span>
+                </div>
+                <input type="hidden" name="nExcess" id="nExcess" value="{{ report.nExcess|default:0 }}">
+                <div class="info-text">+이면 과입금, -이면 미입금입니다.</div>
+            </div>
+
+            <div class="form-group">
+                {% if mode != 'view' %}
+                <div id="excessPointButton" style="margin-top: 25px; display: none;">
+                    <button type="button" class="btn btn-success" onclick="processPoint(2)">
+                        과입금 포인트 적립
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>과입금시 환불방식</label>
+                <select name="nRefund" id="nRefund" class="form-control"
+                        {% if mode == 'view' %}disabled{% endif %}>
+                    {% for value, label in REFUND_TYPE_CHOICES %}
+                    <option value="{{ value }}"
+                            {% if value == report.nRefund %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>환불계좌</label>
+                <select name="sAccount" class="form-control"
+                        {% if mode == 'view' %}disabled{% endif %}>
+                    <option value="">선택하세요</option>
+                    {% for account in accounts %}
+                    <option value="{{ account }}"
+                            {% if account == report.sAccount %}selected{% endif %}>
+                        {{ account }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- 첨부파일 및 메모 섹션 -->
+        <div class="section-title">첨부파일 및 메모</div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>계약서 사본(구글)</label>
+                <input type="text" name="sFile" class="form-control"
+                       value="{{ report.sFile|default:'' }}"
+                       placeholder="구글 드라이브 링크"
+                       {% if mode == 'view' %}readonly{% endif %}>
+            </div>
+
+            <div class="form-group">
+                <label>계약서 사본</label>
+
+                <!-- 기존 단일 파일 표시 (호환성) -->
+                {% if report.file %}
+                <div class="mb-2">
+                    <a href="{{ report.file.url }}" target="_blank" class="btn btn-sm btn-secondary">
+                        📎 기존 파일 보기
+                    </a>
+                </div>
+                {% endif %}
+
+                <!-- 다중 파일 목록 표시 -->
+                {% if report.pk and report.report_files.all %}
+                <div class="uploaded-files mb-3">
+                    <h6 class="text-muted">업로드된 파일:</h6>
+                    <div class="file-list">
+                        {% for file in report.report_files.all %}
+                        <div class="file-item d-flex align-items-center mb-2" data-file-id="{{ file.no }}">
+                            <a href="{{ file.file.url }}" target="_blank" class="flex-grow-1">
+                                📄 {{ file.original_name }}
+                                <small class="text-muted">({{ file.file_size|filesizeformat }})</small>
+                            </a>
+                            {% if mode != 'view' %}
+                            <button type="button" class="btn btn-sm btn-danger ml-2 delete-file-btn"
+                                    data-file-id="{{ file.no }}" data-file-name="{{ file.original_name }}">
+                                삭제
+                            </button>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- 다중 파일 업로드 입력 -->
+                {% if mode != 'view' %}
+                <div class="file-upload-area">
+                    <input type="file" name="files" class="form-control" multiple>
+                    <small class="form-text text-muted">여러 파일을 선택할 수 있습니다. (Ctrl/Cmd + 클릭)</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>업체에서 남긴 말씀</label>
+                <textarea name="sCompanyMemo" class="form-control" rows="3"
+                          {% if mode == 'view' %}readonly{% endif %}>{{ report.sCompanyMemo|default:'' }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>스텝 메모</label>
+                <textarea name="sStaffMemo" class="form-control" rows="3"
+                          {% if mode == 'view' %}readonly{% endif %}>{{ report.sStaffMemo|default:'' }}</textarea>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>보고자</label>
+                <input type="text" class="form-control readonly-field"
+                       value="{% if report.sWorker %}{{ report.sWorker }}{% elif current_staff %}{{ current_staff.sNick }}{% endif %}" readonly>
+            </div>
+        </div>
+
+        <!-- 액션 버튼 섹션 -->
+        <div class="action-buttons">
+                {% if mode == 'edit' %}
+                    <!-- 수정 모드: [저장][삭제][닫기] -->
+                    <button type="submit" class="btn btn-primary">저장</button>
+                    {% if has_write_permission and report.no and 'delete' in available_actions %}
+                    <button type="button" class="btn btn-danger" onclick="deleteReport()">삭제</button>
+                    {% endif %}
+                    <a href="{% url 'contract:companyreport_list' %}" class="btn btn-secondary">닫기</a>
+                {% else %}
+                    <!-- 보기 모드: [닫기] -->
+                    <a href="{% url 'contract:companyreport_list' %}" class="btn btn-secondary">닫기</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div id="deleteModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3>계약보고 삭제</h3>
+        </div>
+        <div class="modal-body">
+            <p>상기 계약보고를 삭제하시면, 기존 계약보고 데이터는 삭제됩니다.</p>
+            <p><strong>계약보고를 삭제하시겠습니까?</strong></p>
+        </div>
+        <div class="modal-footer">
+            <button onclick="confirmDelete()" class="btn btn-danger">예(삭제)</button>
+            <button onclick="closeDeleteModal()" class="btn btn-secondary">아니오</button>
+        </div>
+    </div>
+</div>
+
+<!-- 인라인 JavaScript 추가 (드롭박스 기능) -->
+<script>
+// 전역 변수
+let currentReportNo = {{ report.no|default:'null' }};
+let currentCompanyNo = {{ report.noCompany|default:'null' }};
+let currentWorker = '{% if current_staff %}{{ current_staff.sNick }}{% endif %}';  // 현재 로그인한 Staff.sNick
+
+// 이후 보고서로 바로가기
+function goToNextReport(noNext) {
+    if (!noNext) {
+        alert('이후보고 No가 없습니다.');
+        return;
+    }
+
+    console.log('이후 보고서로 이동:', noNext);
+
+    // API 호출하여 보고서 타입 확인
+    fetch(`/contract/api/companyreport/${noNext}/data/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.data) {
+            const reportData = data.data;
+
+            // nType에 따라 적절한 수정 화면으로 이동
+            if (reportData.nType !== undefined) {
+                const nType = reportData.nType;
+                let editUrl = '';
+
+                if (nType === 0 || nType === 1) {
+                    // 계약
+                    editUrl = `/contract/companyreport/${noNext}/edit/`;
+                } else if (nType === 2 || nType === 3) {
+                    // 증액
+                    editUrl = `/contract/companyreport/${noNext}/increase/`;
+                } else if (nType === 4 || nType === 5) {
+                    // 감액
+                    editUrl = `/contract/companyreport/${noNext}/decrease/`;
+                } else if (nType === 6 || nType === 7) {
+                    // 취소
+                    editUrl = `/contract/companyreport/${noNext}/cancel/`;
+                } else {
+                    // 기타 - 기본 편집 화면
+                    editUrl = `/contract/companyreport/${noNext}/edit/`;
+                }
+
+                // 새 창에서 열기 (현재 페이지 내용 보존)
+                window.open(editUrl, '_blank');
+            } else {
+                // nType 정보가 없으면 기본 상세 화면으로
+                window.open(`/contract/companyreport/${noNext}/detail/`, '_blank');
+            }
+        } else {
+            alert('이후 보고서 정보를 가져올 수 없습니다.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // 에러 발생시 기본 상세 화면으로 이동
+        window.open(`/contract/companyreport/${noNext}/detail/`, '_blank');
+    });
+}
+
+// 페이지 로드 시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    // noCompany나 sPost 변경 시 Order/Assign 자동 검색
+    const noCompanyField = document.getElementById('noCompany');
+    const sPostField = document.getElementById('sPost');
+
+    if (noCompanyField) {
+        noCompanyField.addEventListener('change', searchOrderAndAssign);
+    }
+
+    if (sPostField) {
+        sPostField.addEventListener('blur', searchOrderAndAssign);
+    }
+
+    // 금액 필드 변경 시 자동 계산
+    const nConMoneyField = document.getElementById('nConMoney');
+    if (nConMoneyField) {
+        nConMoneyField.addEventListener('change', function() {
+            {% if action in 'increase,decrease' %}
+            calculateTotalAmounts();
+            {% endif %}
+        });
+    }
+
+    // 업체 검색 드롭박스 초기화
+    const companyContainer = document.querySelector('.company-search-container');
+    if (companyContainer) {
+        new CompanySearchDropdown(companyContainer);
+    }
+
+    // 입금일 변경 시 nType 자동 업데이트
+    const dateDepositField = document.getElementById('dateDeposit');
+    if (dateDepositField) {
+        dateDepositField.addEventListener('change', updateTypeByDeposit);
+        dateDepositField.addEventListener('blur', updateTypeByDeposit);
+    }
+
+    // 환불방식(nRefund) 변경 시 과입금 포인트 적립 버튼 업데이트
+    const nRefundField = document.getElementById('nRefund');
+    if (nRefundField) {
+        nRefundField.addEventListener('change', updateExcessPointButton);
+    }
+
+    // 초기 계산 실행
+    calculateDemand();
+    calculateExcess();
+    updateTypeByDeposit();  // 초기 로드 시 nType 설정
+    updateExcessPointButton();  // 초기 로드 시 버튼 표시/숨김 설정
+    {% if action in 'increase,decrease' %}
+    calculateTotalAmounts();
+    {% endif %}
+});
+
+// 업체 배정 함수
+function assignCompany(reportNo, companyNo) {
+    if (!companyNo) {
+        return Promise.resolve(false);
+    }
+
+    const csrfToken = getCookie('csrftoken');
+
+    return fetch('/contract/assign-company/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({
+            report_no: reportNo,
+            company_no: companyNo
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('업체 배정 성공');
+            // 업체 선택 후 hidden 필드 업데이트
+            document.getElementById('noCompany').value = companyNo;
+            // Order와 Assign 자동 검색
+            searchOrderAndAssign();
+            return true;
+        } else {
+            console.error('업체 배정 실패:', data.error);
+            alert(data.error || '업체 배정에 실패했습니다.');
+            return false;
+        }
+    })
+    .catch(error => {
+        console.error('업체 배정 오류:', error);
+        alert('업체 배정 중 오류가 발생했습니다.');
+        return false;
+    });
+}
+
+// Order와 Assign 자동 검색
+function searchOrderAndAssign() {
+    const noCompany = document.getElementById('noCompany').value;
+    const sPost = document.getElementById('sPost').value;
+
+    if (!sPost) return;
+
+    // Order 검색
+    fetch('/contract/api/order-search/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            post: sPost,
+            company_no: noCompany
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('noOrder').value = data.order_no;
+
+            // Order를 찾았으면 Assign도 검색
+            if (noCompany && data.order_no) {
+                searchAssign(noCompany, data.order_no);
+            }
+        }
+    });
+}
+
+// Assign 검색
+function searchAssign(companyNo, orderNo) {
+    fetch('/contract/api/assign-search/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            company_no: companyNo,
+            order_no: orderNo
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('noAssign').value = data.assign_no;
+        }
+    });
+}
+
+// VAT 별도 변환
+function convertToVatExcluded() {
+    const nConMoney = document.getElementById('nConMoney');
+    const currentValue = parseFloat(nConMoney.value) || 0;
+    nConMoney.value = Math.floor(currentValue / 1.1);
+
+    {% if action in 'increase,decrease' %}
+    calculateTotalAmounts();
+    {% endif %}
+}
+
+// 수수료 자동 계산
+function calculateFee() {
+    const conType = parseInt(document.getElementById('nConType').value);
+    const conMoney = parseInt(document.getElementById('nConMoney').value) || 0;
+
+    let fee = 0;
+
+    // 공사유형별 수수료 계산
+    switch(conType) {
+        case 0: // 카페건 인테리어
+            if (conMoney <= 50000000) {
+                // 5천만원 이하: 5.5%
+                fee = Math.round(conMoney * 0.055);
+            } else {
+                // 5천만원 초과: 5천만원까지 5.5% + 초과분 3.3%
+                fee = Math.round(50000000 * 0.055 + (conMoney - 50000000) * 0.033);
+            }
+            break;
+
+        case 1: // 카테건 신축
+            // 일률 3.3%
+            fee = Math.round(conMoney * 0.033);
+            break;
+
+        case 2: // 소개건 인테리어
+            // 일률 3.3%
+            fee = Math.round(conMoney * 0.033);
+            break;
+
+        case 3: // 소개건 신축
+            // 일률 2.2%
+            fee = Math.round(conMoney * 0.022);
+            break;
+
+        default:
+            // 기본값 0
+            fee = 0;
+    }
+
+    // 계산된 수수료 입력 (hidden 필드와 display 필드 모두 업데이트)
+    document.getElementById('nFee').value = fee;
+    const feeDisplay = document.getElementById('nFee_display');
+    if (feeDisplay) {
+        feeDisplay.value = formatNumberWithCommas(fee.toString());
+    }
+
+    // 청구액 재계산
+    calculateDemand();
+}
+
+// 전체 포인트 적용
+function applyAllPoints() {
+    const useAll = document.getElementById('useAllPoints').checked;
+    if (useAll) {
+        const remainPoint = parseInt(document.getElementById('remainPoint').textContent.replace(/,/g, '')) || 0;
+        const nFee = parseInt(document.getElementById('nFee').value) || 0;
+        const applyPoint = Math.min(remainPoint, nFee);
+        document.getElementById('nAppPoint').value = applyPoint;
+        const appPointDisplay = document.getElementById('nAppPoint_display');
+        if (appPointDisplay) {
+            appPointDisplay.value = formatNumberWithCommas(applyPoint.toString());
+        }
+        calculateDemand();
+    } else {
+        document.getElementById('nAppPoint').value = 0;
+        const appPointDisplay = document.getElementById('nAppPoint_display');
+        if (appPointDisplay) {
+            appPointDisplay.value = '0';
+        }
+        calculateDemand();
+    }
+}
+
+// 청구액 계산
+function calculateDemand() {
+    const nFee = parseInt(document.getElementById('nFee').value) || 0;
+    const nAppPoint = parseInt(document.getElementById('nAppPoint').value) || 0;
+    const nDemand = nFee - nAppPoint;
+
+    document.getElementById('nDemand').value = nDemand;
+    document.getElementById('demandAmount').textContent = nDemand.toLocaleString() + ' 원 (VAT 포함)';
+}
+
+// 과/미입금 계산
+function calculateExcess() {
+    const nDeposit = parseInt(document.getElementById('nDeposit').value) || 0;
+    const nDemand = parseInt(document.getElementById('nDemand').value) || 0;
+    const nExcess = nDeposit - nDemand;
+
+    document.getElementById('nExcess').value = nExcess;
+
+    const excessSpan = document.getElementById('excessAmount').querySelector('span');
+    excessSpan.textContent = nExcess.toLocaleString() + ' 원';
+    excessSpan.className = nExcess > 0 ? 'amount-positive' : (nExcess < 0 ? 'amount-negative' : '');
+
+    // 과입금 포인트 적립 버튼 표시/숨김 업데이트
+    updateExcessPointButton();
+
+    // 과/미입금 계산 후 nType은 updateTypeByDeposit 함수로 처리
+}
+
+// 과입금 포인트 적립 버튼 표시/숨김 제어
+function updateExcessPointButton() {
+    const nExcess = parseInt(document.getElementById('nExcess').value) || 0;
+    const nRefund = parseInt(document.getElementById('nRefund').value) || 0;
+    const buttonDiv = document.getElementById('excessPointButton');
+
+    if (buttonDiv) {
+        // nRefund=1이고 nExcess>0인 경우에만 버튼 표시
+        if (nRefund === 1 && nExcess > 0) {
+            buttonDiv.style.display = 'block';
+        } else {
+            buttonDiv.style.display = 'none';
+        }
+    }
+}
+
+// dateDeposit 값에 따라 nType 자동 설정
+function updateTypeByDeposit() {
+    const dateDepositField = document.getElementById('dateDeposit');
+    const nTypeField = document.getElementById('nType');
+    const nTypeDisplay = document.querySelector('input[readonly][value*="계약"]');
+
+    if (dateDepositField && nTypeField) {
+        // 입금일이 있으면 입금O 타입, 없으면 입금X 타입
+        const hasDeposit = dateDepositField.value && dateDepositField.value.trim() !== '';
+
+        {% if action == 'create' or action == 'edit' %}
+        nTypeField.value = hasDeposit ? 1 : 0;  // 계약(입금O) : 계약(입금X)
+        if (nTypeDisplay) {
+            nTypeDisplay.value = hasDeposit ? '계약(입금O)' : '계약(입금X)';
+        }
+        {% elif action == 'increase' %}
+        nTypeField.value = hasDeposit ? 3 : 2;  // 증액(입금O) : 증액(입금X)
+        if (nTypeDisplay) {
+            nTypeDisplay.value = hasDeposit ? '증액(입금O)' : '증액(입금X)';
+        }
+        {% elif action == 'decrease' %}
+        nTypeField.value = hasDeposit ? 5 : 4;  // 감액(환불O) : 감액(환불X)
+        if (nTypeDisplay) {
+            nTypeDisplay.value = hasDeposit ? '감액(환불O)' : '감액(환불X)';
+        }
+        {% elif action == 'cancel' %}
+        nTypeField.value = hasDeposit ? 7 : 6;  // 취소(환불O) : 취소(환불X)
+        if (nTypeDisplay) {
+            nTypeDisplay.value = hasDeposit ? '취소(환불O)' : '취소(환불X)';
+        }
+        {% endif %}
+    }
+}
+
+// 청구액으로 입금액 입력하기
+function copyDemandToDeposit() {
+    const nDemand = parseInt(document.getElementById('nDemand').value) || 0;
+    const nDemandDisplay = document.getElementById('nDemand_display');
+
+    // 입금액 hidden 필드와 display 필드 모두 업데이트
+    document.getElementById('nDeposit').value = nDemand;
+    const nDepositDisplay = document.getElementById('nDeposit_display');
+    if (nDepositDisplay) {
+        // 청구액 display 필드에서 포맷된 값 가져오기
+        nDepositDisplay.value = nDemandDisplay ? nDemandDisplay.value : nDemand.toLocaleString('ko-KR');
+    }
+
+    // 과/미입금 재계산
+    calculateExcess();
+}
+
+// 입금일 오늘로 입력
+function completeDeposit() {
+    // 입금일을 오늘 날짜로 설정
+    document.getElementById('dateDeposit').value = new Date().toISOString().split('T')[0];
+    // nType 자동 업데이트
+    updateTypeByDeposit();
+}
+
+// 포인트 처리
+function processPoint(type) {
+    // 업체 번호 가져오기 - 전역 변수 우선 사용
+    let companyNo = currentCompanyNo;
+    if (!companyNo) {
+        const companyNoElement = document.getElementById('noCompany');
+        if (companyNoElement) {
+            companyNo = companyNoElement.value;
+        }
+    }
+
+    // 작업자 정보 가져오기 - 전역 변수 우선 사용
+    let worker = currentWorker;
+    if (!worker) {
+        const workerElement = document.getElementById('sWorker');
+        if (workerElement) {
+            worker = workerElement.value;
+        }
+    }
+
+    let usePoint = 0;
+
+    if (type === 0) {  // 사용 (포인트 차감)
+        // display 필드의 값을 먼저 확인 (사용자가 수정했을 수 있음)
+        const displayValue = document.getElementById('nAppPoint_display');
+        if (displayValue) {
+            usePoint = parseInt(displayValue.value.replace(/,/g, '')) || 0;
+        } else {
+            const hiddenValue = document.getElementById('nAppPoint');
+            if (hiddenValue) {
+                usePoint = parseInt(hiddenValue.value) || 0;
+            }
+        }
+    } else if (type === 2) {  // 과입금 적립
+        const excessElement = document.getElementById('nExcess');
+        if (excessElement) {
+            usePoint = parseInt(excessElement.value) || 0;
+        }
+    }
+
+    if (usePoint <= 0) {
+        alert('포인트 금액을 확인해주세요. (현재 값: ' + usePoint + ')');
+        return;
+    }
+
+    if (!companyNo) {
+        alert('업체 번호가 비어있습니다.');
+        return;
+    }
+
+    if (!worker) {
+        alert('작업자 정보가 비어있습니다.');
+        return;
+    }
+
+    console.log('포인트 처리 요청:', {
+        company_no: companyNo,
+        type: type,
+        use_point: usePoint,
+        report_no: currentReportNo,
+        worker: worker
+    });
+
+    fetch('/contract/api/point-process/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            company_no: companyNo,
+            type: type,
+            use_point: usePoint,
+            report_no: currentReportNo,
+            worker: worker  // Staff.sNick 전달
+        })
+    })
+    .then(response => {
+        console.log('응답 상태:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('응답 데이터:', data);
+        if (data.success) {
+            alert('포인트가 처리되었습니다.\n남은 포인트: ' + data.remain_point.toLocaleString() + '원');
+
+            // 포인트 잔액 UI 업데이트
+            const remainPointElement = document.getElementById('remainPoint');
+            if (remainPointElement) {
+                remainPointElement.textContent = data.remain_point.toLocaleString();
+            }
+
+            // 포인트 차감 완료 - 적용포인트 값은 그대로 유지
+            // (사용자가 계속 작업할 수 있도록 입력값 보존)
+
+            // 페이지 새로고침하지 않음 - 사용자가 입력한 값 유지
+        } else {
+            alert('포인트 처리 실패: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('포인트 처리 에러:', error);
+        alert('포인트 처리 중 오류가 발생했습니다: ' + error.message);
+    });
+}
+
+// 청구 문자 발송
+function sendInvoiceSMS() {
+    // TODO: SMS 발송 API 구현
+    alert('청구 문자 발송 기능은 추후 구현 예정입니다.');
+}
+
+{% if action in 'increase,decrease' %}
+// 증액/감액 시 총액 계산
+function calculateTotalAmounts() {
+    const preConMoney = {{ report.nPreConMoney|default:0 }};
+    const conMoney = parseInt(document.getElementById('nConMoney').value) || 0;
+    const conType = parseInt(document.getElementById('nConType').value);
+
+    const totalConMoney = preConMoney + conMoney;
+    document.getElementById('totalConMoney').textContent = totalConMoney.toLocaleString() + ' 원 (VAT 별도)';
+
+    // 총 수수료 계산
+    fetch('/contract/api/calculate-fee/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            con_type: conType,
+            con_money: totalConMoney
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const totalFee = data.fee;
+            document.getElementById('totalFee').textContent = totalFee.toLocaleString() + ' 원 (VAT 포함)';
+
+            // 이번 보고 수수료 계산
+            const preFee = {{ report.nPreFee|default:0 }};
+            const thisFee = totalFee - preFee;
+            document.getElementById('nFee').value = thisFee;
+            calculateDemand();
+        }
+    });
+}
+{% endif %}
+
+// 삭제 관련 함수들
+function deleteReport() {
+    document.getElementById('deleteModal').style.display = 'block';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+}
+
+function confirmDelete() {
+    if (!currentReportNo) return;
+
+    fetch(`/contract/companyreport/${currentReportNo}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = '{% url "contract:companyreport_list" %}';
+        } else {
+            alert('삭제 실패: ' + data.error);
+        }
+    });
+}
+
+// 업체 검색 드롭다운 클래스
+class CompanySearchDropdown {
+    constructor(container) {
+        this.container = container;
+        this.input = container.querySelector('.company-search-input');
+        this.dropdown = container.querySelector('.company-dropdown-list');
+        this.items = Array.from(container.querySelectorAll('.company-dropdown-item'));
+        this.filteredItems = [...this.items];
+        this.selectedIndex = -1;
+        this.reportId = container.dataset.reportId;
+
+        this.init();
+    }
+
+    init() {
+        // 입력 이벤트 바인딩
+        this.input.addEventListener('input', (e) => this.handleInput(e));
+        this.input.addEventListener('focus', () => this.showAllItems());
+        this.input.addEventListener('click', () => this.showAllItems());  // 클릭 시에도 드롭다운 표시
+        this.input.addEventListener('blur', (e) => this.handleBlur(e));
+        this.input.addEventListener('keydown', (e) => this.handleKeydown(e));
+
+        // 드롭박스 아이템 클릭 이벤트
+        this.items.forEach(item => {
+            item.addEventListener('mousedown', (e) => this.selectItem(item));
+        });
+    }
+
+    showAllItems() {
+        // 모든 아이템 표시
+        this.items.forEach(item => {
+            item.style.display = 'block';
+        });
+        this.filteredItems = [...this.items];
+        this.showDropdown();
+    }
+
+    handleInput(e) {
+        const query = e.target.value.toLowerCase();
+        this.filterItems(query);
+        this.showDropdown();
+        this.selectedIndex = -1;
+    }
+
+    filterItems(query) {
+        this.filteredItems = this.items.filter(item => {
+            const companyName = item.dataset.companyName.toLowerCase();
+            const isMatch = companyName.includes(query);
+            item.style.display = isMatch ? 'block' : 'none';
+            return isMatch;
+        });
+
+        // 하이라이트 제거
+        this.items.forEach(item => item.classList.remove('highlighted'));
+    }
+
+    showDropdown() {
+        this.dropdown.style.display = 'block';
+    }
+
+    hideDropdown() {
+        this.dropdown.style.display = 'none';
+        this.selectedIndex = -1;
+        this.items.forEach(item => item.classList.remove('highlighted'));
+    }
+
+    handleBlur(e) {
+        // 드롭박스 아이템 클릭하는 경우 blur 무시
+        setTimeout(() => {
+            this.hideDropdown();
+        }, 150);
+    }
+
+    handleKeydown(e) {
+        if (!this.dropdown.style.display || this.dropdown.style.display === 'none') {
+            return;
+        }
+
+        switch(e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                this.moveSelection(1);
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                this.moveSelection(-1);
+                break;
+            case 'Enter':
+                e.preventDefault();
+                if (this.selectedIndex >= 0 && this.selectedIndex < this.filteredItems.length) {
+                    this.selectItem(this.filteredItems[this.selectedIndex]);
+                }
+                break;
+            case 'Escape':
+                this.hideDropdown();
+                this.input.blur();
+                break;
+        }
+    }
+
+    moveSelection(direction) {
+        // 이전 하이라이트 제거
+        if (this.selectedIndex >= 0 && this.selectedIndex < this.filteredItems.length) {
+            this.filteredItems[this.selectedIndex].classList.remove('highlighted');
+        }
+
+        // 새 인덱스 계산
+        this.selectedIndex += direction;
+
+        if (this.selectedIndex < 0) {
+            this.selectedIndex = this.filteredItems.length - 1;
+        } else if (this.selectedIndex >= this.filteredItems.length) {
+            this.selectedIndex = 0;
+        }
+
+        // 새 하이라이트 적용
+        if (this.selectedIndex >= 0 && this.selectedIndex < this.filteredItems.length) {
+            this.filteredItems[this.selectedIndex].classList.add('highlighted');
+            this.filteredItems[this.selectedIndex].scrollIntoView({
+                block: 'nearest'
+            });
+        }
+    }
+
+    selectItem(item) {
+        const companyId = item.dataset.companyId;
+        const companyName = item.dataset.companyName;
+
+        // 입력값 설정
+        this.input.value = companyName;
+
+        // 데이터 속성 업데이트
+        this.input.dataset.currentCompanyId = companyId;
+
+        // hidden input 업데이트 (detail 화면에서는 form submit이 필요)
+        const hiddenInput = document.getElementById('noCompany');
+        if (hiddenInput) {
+            hiddenInput.value = companyId;
+        }
+
+        // 드롭박스 숨기기
+        this.hideDropdown();
+
+        // 시각적 피드백 추가
+        this.input.style.borderColor = '#28a745';
+        this.input.style.backgroundColor = '#f0fff4';
+        setTimeout(() => {
+            this.input.style.borderColor = '';
+            this.input.style.backgroundColor = '';
+        }, 2000);
+
+        // Order/Assign 검색 실행 (기존 기능 유지)
+        if (typeof searchOrderAndAssign === 'function') {
+            searchOrderAndAssign();
+        }
+    }
+}
+
+// 천 단위 콤마 포맷팅 함수
+function formatNumberWithCommas(value) {
+    // 숫자가 아닌 문자 제거
+    value = value.toString().replace(/[^0-9-]/g, '');
+
+    // 음수 기호 처리
+    const isNegative = value.startsWith('-');
+    value = value.replace(/-/g, '');
+
+    // 천 단위 콤마 추가
+    const number = parseInt(value) || 0;
+    const formatted = number.toLocaleString('ko-KR');
+
+    return isNegative ? '-' + formatted : formatted;
+}
+
+// 콤마 제거 함수
+function removeCommas(value) {
+    return value.toString().replace(/,/g, '');
+}
+
+// 금액 입력 필드 초기화 함수
+function initMoneyInputs() {
+    // 모든 money-input 클래스 요소 선택
+    const moneyInputs = document.querySelectorAll('.money-input');
+
+    moneyInputs.forEach(input => {
+        // 초기 값 포맷팅
+        if (input.value) {
+            input.value = formatNumberWithCommas(input.value);
+        }
+
+        // 입력 이벤트 리스너
+        input.addEventListener('input', function(e) {
+            const cursorPos = e.target.selectionStart;
+            const oldLength = e.target.value.length;
+
+            // 포맷된 값 설정
+            const formatted = formatNumberWithCommas(e.target.value);
+            e.target.value = formatted;
+
+            // hidden 필드 업데이트
+            const hiddenFieldId = e.target.id.replace('_display', '');
+            const hiddenField = document.getElementById(hiddenFieldId);
+            if (hiddenField) {
+                hiddenField.value = removeCommas(formatted);
+
+                // 관련 계산 함수 호출
+                if (hiddenFieldId === 'nConMoney') {
+                    {% if action in 'increase,decrease' %}
+                    calculateTotalAmounts();
+                    {% endif %}
+                } else if (hiddenFieldId === 'nFee') {
+                    calculateDemand();
+                } else if (hiddenFieldId === 'nAppPoint') {
+                    calculateDemand();
+                } else if (hiddenFieldId === 'nDeposit') {
+                    calculateExcess();
+                }
+            }
+
+            // 커서 위치 조정
+            const newLength = formatted.length;
+            const diff = newLength - oldLength;
+            e.target.setSelectionRange(cursorPos + diff, cursorPos + diff);
+        });
+
+        // 포커스 아웃 시 정리
+        input.addEventListener('blur', function(e) {
+            const formatted = formatNumberWithCommas(e.target.value);
+            e.target.value = formatted;
+
+            // hidden 필드 최종 업데이트
+            const hiddenFieldId = e.target.id.replace('_display', '');
+            const hiddenField = document.getElementById(hiddenFieldId);
+            if (hiddenField) {
+                hiddenField.value = removeCommas(formatted);
+            }
+        });
+    });
+}
+
+// 페이지 로드 시 업체 검색 드롭다운 및 금액 입력 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    // 금액 입력 필드 초기화
+    initMoneyInputs();
+
+    // company-search-container 찾기
+    const companySearchContainers = document.querySelectorAll('.company-search-container');
+
+    // 각 컨테이너에 대해 드롭다운 초기화
+    companySearchContainers.forEach(container => {
+        new CompanySearchDropdown(container);
+        console.log('CompanySearchDropdown initialized for:', container.dataset.reportId);
+    });
+
+    // 디버깅을 위한 로그
+    if (companySearchContainers.length === 0) {
+        console.warn('No company-search-container found in the page');
+    }
+
+    // 파일 삭제 버튼 이벤트 리스너
+    document.querySelectorAll('.delete-file-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const fileId = this.dataset.fileId;
+            const fileName = this.dataset.fileName;
+
+            if (confirm(`"${fileName}" 파일을 삭제하시겠습니까?`)) {
+                deleteReportFile(fileId);
+            }
+        });
+    });
+});
+
+// 파일 삭제 함수
+function deleteReportFile(fileId) {
+    const csrfToken = getCookie('csrftoken');
+
+    fetch(`/contract/api/report-file/${fileId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 파일 항목 제거
+            const fileItem = document.querySelector(`[data-file-id="${fileId}"]`);
+            if (fileItem) {
+                fileItem.remove();
+            }
+
+            // 파일 목록이 비었으면 전체 섹션 숨기기
+            const fileList = document.querySelector('.file-list');
+            if (fileList && fileList.children.length === 0) {
+                const uploadedFilesSection = document.querySelector('.uploaded-files');
+                if (uploadedFilesSection) {
+                    uploadedFilesSection.remove();
+                }
+            }
+
+            alert(data.message);
+        } else {
+            alert('파일 삭제 실패: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('파일 삭제 중 오류가 발생했습니다.');
+    });
+}
+
+// CSRF 토큰 가져오기
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

@@ -25,6 +25,11 @@ class StopIndexView(View):
     """Stop 앱 메인 페이지"""
 
     def get(self, request):
+        # 로그인 체크
+        if 'staff_user' not in request.session:
+            messages.warning(request, '로그인이 필요한 서비스입니다.')
+            return redirect('/auth/login/?next=/stop/')
+
         return HttpResponse("Stop 앱이 생성되었습니다!")
 
 

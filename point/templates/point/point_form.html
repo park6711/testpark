@@ -26,18 +26,18 @@
             <h3 class="section-title">기본 정보</h3>
 
             <div class="form-group">
-                <label for="{{ form.noCompany.id_for_label }}" class="required">업체</label>
+                <label for="{{ form.company.id_for_label }}" class="required">업체</label>
                 <div class="searchable-select-wrapper">
                     <input type="text"
                            id="company-search"
                            class="form-control search-input"
                            placeholder="업체명 입력..."
                            autocomplete="off">
-                    {{ form.noCompany }}
+                    {{ form.company }}
                     <div id="company-dropdown" class="search-dropdown"></div>
                 </div>
-                {% if form.noCompany.errors %}
-                <div class="error-message">{{ form.noCompany.errors }}</div>
+                {% if form.company.errors %}
+                <div class="error-message">{{ form.company.errors }}</div>
                 {% endif %}
             </div>
 
@@ -452,7 +452,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('company-search');
-    const companySelect = document.getElementById('id_noCompany');
+    const companySelect = document.getElementById('company-select');
     const dropdown = document.getElementById('company-dropdown');
 
     if (!searchInput || !companySelect) return;
@@ -555,8 +555,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // 이전 포인트 가져오기
         if (company.value) {
             fetchPreviousPoint(company.value);
+            // 계약보고 목록 가져오기
+            fetchCompanyReports(company.value);
         } else {
             updatePoints(0);
+            // 계약보고 드롭다운 초기화
+            resetCompanyReports();
         }
 
         // change 이벤트 트리거
@@ -579,6 +583,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // 검색어가 지워지면 업체 선택도 초기화
             companySelect.value = '';
             updatePoints(0);
+            resetCompanyReports();  // 계약보고 드롭다운도 초기화
             validateUsePoint();
         }
     });
@@ -648,6 +653,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error fetching previous point:', error);
                 updatePoints(0);
             });
+    }
+
+    // 계약보고 목록 가져오기 함수
+    function fetchCompanyReports(companyId) {
+        const reportSelect = document.getElementById('companyreport-select');
+        if (!reportSelect) return;
+
+        // 로딩 상태 표시
+        reportSelect.innerHTML = '<option value="">계약보고 목록을 불러오는 중...</option>';
+        reportSelect.disabled = true;
+
+        fetch(`/point/api/company-reports/${companyId}/`)
+            .then(response => response.json())
+            .then(data => {
+                reportSelect.innerHTML = '';
+                reportSelect.disabled = false;
+
+                // 빈 옵션 추가
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = data.reports.length > 0 ?
+                    '--- 계약보고를 선택하세요 (선택사항) ---' :
+                    '--- 해당 업체의 계약보고가 없습니다 ---';
+                reportSelect.appendChild(emptyOption);
+
+                // 계약보고 목록 추가
+                data.reports.forEach(report => {
+                    const option = document.createElement('option');
+                    option.value = report.id;
+                    option.textContent = report.text;
+                    reportSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching company reports:', error);
+                reportSelect.innerHTML = '<option value="">계약보고 목록을 불러올 수 없습니다</option>';
+                reportSelect.disabled = false;
+            });
+    }
+
+    // 계약보고 드롭다운 초기화 함수
+    function resetCompanyReports() {
+        const reportSelect = document.getElementById('companyreport-select');
+        if (reportSelect) {
+            reportSelect.innerHTML = '<option value="">--- 업체를 먼저 선택하세요 ---</option>';
+            reportSelect.disabled = false;
+        }
     }
 
     // 포인트 업데이트 함수
@@ -829,9 +881,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 초기 로드 시 선택된 업체가 있으면 이전 포인트 가져오기
+    // 초기 로드 시 선택된 업체가 있으면 이전 포인트와 계약보고 목록 가져오기
     if (companySelect && companySelect.value) {
         fetchPreviousPoint(companySelect.value);
+        fetchCompanyReports(companySelect.value);
     }
 
     // 초기 로드 시 버튼 상태 설정

@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+import uuid
 
 
 class CompanyReport(models.Model):
@@ -7,15 +8,14 @@ class CompanyReport(models.Model):
 
     # 보고구분 선택지
     TYPE_CHOICES = [
-        (0, '가계약'),
-        (1, '계약(입금X)'),
-        (2, '계약(입금O)'),
-        (3, '증액(입금X)'),
-        (4, '증액(입금O)'),
-        (5, '감액(환불X)'),
-        (6, '감액(환불O)'),
-        (7, '취소(환불X)'),
-        (8, '취소(환불O)'),
+        (0, '계약(입금X)'),
+        (1, '계약(입금O)'),
+        (2, '증액(입금X)'),
+        (3, '증액(입금O)'),
+        (4, '감액(환불X)'),
+        (5, '감액(환불O)'),
+        (6, '취소(환불X)'),
+        (7, '취소(환불O)'),
     ]
 
     # 공사유형 선택지
@@ -32,10 +32,19 @@ class CompanyReport(models.Model):
         (1, '포인트적립'),
     ]
 
-    # 기본 정보
+    # 기본 정보 - ID, UUID와 타임스탬프
     no = models.AutoField(primary_key=True, verbose_name='업체계약보고ID')
-    time = models.DateTimeField(auto_now_add=True, verbose_name='보고일시')
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, verbose_name='UUID')
+    sTimeStamp = models.CharField(max_length=50, blank=True, verbose_name='타임스탬프')
+    timeStamp = models.DateTimeField(null=True, blank=True, verbose_name='타임스탬프')
+
+    # 업체 정보
+    sCompanyName = models.CharField(max_length=200, blank=True, verbose_name='업체명')
     noCompany = models.IntegerField(verbose_name='업체ID')
+
+    # 고객 정보
+    sName = models.CharField(max_length=50, blank=True, verbose_name='고객이름')
+    sPhone = models.CharField(max_length=20, blank=True, verbose_name='고객핸드폰')
 
     # 보고 정보
     nType = models.IntegerField(
@@ -46,28 +55,29 @@ class CompanyReport(models.Model):
     noPre = models.IntegerField(null=True, blank=True, verbose_name='관련 이전보고 ID')
     noNext = models.IntegerField(null=True, blank=True, verbose_name='관련 이후보고 ID')
 
-    # 공사 정보
-    noConType = models.IntegerField(
+    # 공사 유형 및 링크
+    nConType = models.IntegerField(
         choices=CONSTRUCTION_TYPE_CHOICES,
         default=0,
         verbose_name='공사유형'
     )
-    sPost = models.CharField(max_length=200, blank=True, verbose_name='게시글 번호')
+    sPost = models.CharField(max_length=200, blank=True, verbose_name='게시글 링크')
+    noOrder = models.IntegerField(null=True, blank=True, verbose_name='의뢰ID')
     noAssign = models.IntegerField(null=True, blank=True, verbose_name='할당ID')
+    sArea = models.TextField(blank=True, verbose_name='공사지역')
 
-    # 고객 정보
-    sName = models.CharField(max_length=50, blank=True, verbose_name='고객 이름')
-    sPhone = models.CharField(max_length=20, blank=True, verbose_name='고객 핸드폰 번호')
-    sArea = models.TextField(blank=True, verbose_name='공사 주소')
-
-    # 계약 정보
-    dateContract = models.DateField(null=True, blank=True, verbose_name='공사 계약일')
+    # 계약 정보 (구글 원본 텍스트와 변환 필드)
+    sDateContract = models.CharField(max_length=50, blank=True, verbose_name='공사계약일(구글)')
+    dateContract = models.DateField(null=True, blank=True, verbose_name='공사계약일')
+    sDateSchedule = models.CharField(max_length=50, blank=True, verbose_name='공사 완료예정일(구글)')
     dateSchedule = models.DateField(null=True, blank=True, verbose_name='공사 완료예정일')
-    nConMoney = models.IntegerField(default=0, verbose_name='공사 금액(원)')
-    bVat = models.BooleanField(default=False, verbose_name='vat포함 여부')
+    sConMoney = models.CharField(max_length=50, blank=True, verbose_name='공사금액(구글)')
+    nConMoney = models.IntegerField(default=0, verbose_name='공사금액')
 
     # 수수료 및 정산 정보
     nFee = models.IntegerField(default=0, verbose_name='수수료(원)')
+    nPreConMoney = models.IntegerField(default=0, verbose_name='이전보고 공사금액')
+    nPreFee = models.IntegerField(default=0, verbose_name='이전보고 수수료(원)')
     nAppPoint = models.IntegerField(default=0, verbose_name='적용포인트')
     nDemand = models.IntegerField(default=0, verbose_name='청구액/환불액(원)')
 
@@ -81,11 +91,12 @@ class CompanyReport(models.Model):
         verbose_name='환불방식'
     )
 
-    # 업체 및 계좌 정보
-    sCompanyName = models.CharField(max_length=200, blank=True, verbose_name='전자세금계산서 발행 사업자')
+    # 세금계산서 및 계좌 정보
+    sTaxCompany = models.CharField(max_length=200, blank=True, verbose_name='전자세금계산서 발행 사업자')
     sAccount = models.CharField(max_length=100, blank=True, verbose_name='환불 통장계좌')
 
     # 파일 및 메모
+    sFile = models.TextField(blank=True, verbose_name='계약서 링크')
     file = models.FileField(upload_to='company_reports/', blank=True, null=True, verbose_name='증빙자료')
     sCompanyMemo = models.TextField(blank=True, verbose_name='남긴 말씀')
     sStaffMemo = models.TextField(blank=True, verbose_name='메모')
@@ -100,6 +111,12 @@ class CompanyReport(models.Model):
         verbose_name = '업체계약보고'
         verbose_name_plural = '업체계약보고'
         ordering = ['-no']  # 최신순 정렬
+
+    def save(self, *args, **kwargs):
+        """저장 시 수수료 자동 계산"""
+        if not self.nFee:  # 수수료가 설정되지 않았다면 자동 계산
+            self.nFee = self.calculate_fee()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"보고 {self.no} - {self.sName} ({self.get_nType_display()})"
@@ -124,18 +141,37 @@ class CompanyReport(models.Model):
         except:
             return None
 
+    def calculate_fee(self):
+        """공사유형에 따른 수수료 자동 계산"""
+        if self.nConMoney <= 0:
+            return 0
+
+        if self.nConType == 0:  # [카페건]인테리어/리모델링/기타 (5.5%)
+            if self.nConMoney < 50000000:
+                return int(self.nConMoney * 0.055)
+            else:
+                return int(50000000 * 0.055 + (self.nConMoney - 50000000) * 0.033)
+        elif self.nConType == 1:  # [카테건]신축/증축/개축 (3.3%)
+            return int(self.nConMoney * 0.033)
+        elif self.nConType == 2:  # [소개건]인테리어/리모델링/기타 (3.3%)
+            return int(self.nConMoney * 0.033)
+        elif self.nConType == 3:  # [소개건]신축/증축/개축 (2.2%)
+            return int(self.nConMoney * 0.022)
+        else:
+            return 0
+
     def get_type_display_with_color(self):
         """보고구분과 색상 정보 반환"""
         type_colors = {
-            0: ('가계약', 'warning'),       # 노란색
-            1: ('계약(입금X)', 'info'),      # 파란색
-            2: ('계약(입금O)', 'success'),   # 초록색
-            3: ('증액(입금X)', 'info'),      # 파란색
-            4: ('증액(입금O)', 'success'),   # 초록색
-            5: ('감액(환불X)', 'warning'),   # 노란색
-            6: ('감액(환불O)', 'secondary'), # 회색
-            7: ('취소(환불X)', 'danger'),    # 빨간색
-            8: ('취소(환불O)', 'dark'),      # 검은색
+            0: ('계약(입금X)', 'info'),      # 파란색
+            1: ('계약(입금O)', 'success'),   # 초록색
+            2: ('증액(입금X)', 'info'),      # 파란색
+            3: ('증액(입금O)', 'success'),   # 초록색
+            4: ('감액(환불X)', 'warning'),   # 노란색
+            5: ('감액(환불O)', 'secondary'), # 회색
+            6: ('취소(환불X)', 'danger'),    # 빨간색
+            7: ('취소(환불O)', 'dark'),      # 검은색
+            8: ('수수료조정', 'primary'),    # 주황색
         }
         type_name, color = type_colors.get(self.nType, ('알 수 없음', 'secondary'))
         return {'type': type_name, 'color': color}
@@ -145,7 +181,7 @@ class CompanyReport(models.Model):
         type_map = {
             0: '카페-인테리어', 1: '카테-신축', 2: '소개-인테리어', 3: '소개-신축'
         }
-        return type_map.get(self.noConType, '기타')
+        return type_map.get(self.nConType, '기타')
 
     def get_money_summary(self):
         """금액 요약 정보 반환"""
@@ -163,17 +199,60 @@ class CompanyReport(models.Model):
             return round((self.nFee / self.nConMoney) * 100, 2)
         return 0
 
+
+class CompanyReportFile(models.Model):
+    """업체계약보고 첨부파일 모델"""
+
+    no = models.AutoField(primary_key=True, verbose_name='파일ID')
+    report = models.ForeignKey(
+        CompanyReport,
+        on_delete=models.CASCADE,
+        related_name='report_files',
+        verbose_name='계약보고'
+    )
+    file = models.FileField(upload_to='company_report_files/%Y/%m/', verbose_name='파일')
+    original_name = models.CharField(max_length=255, verbose_name='원본 파일명')
+    file_size = models.IntegerField(verbose_name='파일 크기')
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name='업로드 시간')
+    uploaded_by = models.CharField(max_length=50, blank=True, verbose_name='업로드한 사람')
+
+    class Meta:
+        db_table = 'company_report_file'
+        verbose_name = '업체계약보고 첨부파일'
+        verbose_name_plural = '업체계약보고 첨부파일'
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"{self.report.no} - {self.original_name}"
+
+    def delete(self, *args, **kwargs):
+        """파일 삭제 시 실제 파일도 함께 삭제"""
+        if self.file:
+            self.file.delete()
+        super().delete(*args, **kwargs)
+
     def is_paid(self):
         """입금 완료 여부"""
-        return self.nType in [2, 4, 6, 8]  # 입금O 상태들
+        return self.nType in [1, 3, 5, 7]  # 입금O 상태들
 
     def is_contract_completed(self):
-        """계약 완료 여부 (가계약 제외)"""
-        return self.nType >= 1
+        """계약 완료 여부"""
+        return self.nType >= 0
 
     def is_cancelled(self):
         """취소 여부"""
-        return self.nType in [7, 8]
+        return self.nType in [6, 7]
+
+    def get_order_info(self):
+        """연결된 의뢰 정보 반환"""
+        if not self.noOrder:
+            return None
+        try:
+            from order.models import Order
+            order = Order.objects.get(no=self.noOrder)
+            return order
+        except:
+            return None
 
     def get_schedule_status(self):
         """공사 일정 상태 반환"""
@@ -213,9 +292,6 @@ class CompanyReport(models.Model):
                 pass
         return related
 
-    def get_vat_display(self):
-        """VAT 포함 여부 표시"""
-        return "VAT 포함" if self.bVat else "VAT 별도"
 
 
 class ClientReport(models.Model):

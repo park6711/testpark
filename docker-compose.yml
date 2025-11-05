@@ -16,7 +16,7 @@ services:
       - MYSQL_ROOT_PASSWORD=testpark-root
       - MYSQL_DATABASE=testpark
       - MYSQL_USER=testpark
-      - MYSQL_PASSWORD=testpark123
+      - MYSQL_PASSWORD=**jeje4211
       - MYSQL_CHARACTER_SET_SERVER=utf8mb4
       - MYSQL_COLLATION_SERVER=utf8mb4_unicode_ci
       - TZ=Asia/Seoul

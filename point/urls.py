@@ -15,4 +15,6 @@ urlpatterns = [
 
     # API
     path('api/previous-point/<int:company_id>/', views.get_previous_point, name='get_previous_point'),
+    path('api/company-reports/<int:company_id>/', views.get_company_reports, name='get_company_reports'),
+    path('api/company-points/<int:company_id>/', views.get_company_points, name='get_company_points'),
 ]

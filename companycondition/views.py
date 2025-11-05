@@ -1,13 +1,19 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from company.models import Company
 from staff.views import get_current_staff
 import json
 
 def company_condition_list(request):
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        messages.warning(request, '로그인이 필요한 서비스입니다.')
+        return redirect('/auth/login/?next=/companycondition/')
+
     # 현재 스텝 정보 가져오기
     current_staff = get_current_staff(request)
 
@@ -33,6 +39,10 @@ def company_condition_list(request):
 
 def search_companies(request):
     """AJAX로 업체 검색"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        return JsonResponse({'error': '로그인이 필요합니다.'}, status=401)
+
     search_query = request.GET.get('q', '').strip()
 
     # 필터링된 업체에서 검색
@@ -63,6 +73,10 @@ def search_companies(request):
 
 def get_company_detail(request, company_id):
     """AJAX로 업체 상세 정보 조회"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        return JsonResponse({'error': '로그인이 필요합니다.'}, status=401)
+
     company = get_object_or_404(Company, no=company_id)
 
     # 필터 조건 확인
@@ -93,6 +107,10 @@ def get_company_detail(request, company_id):
 @csrf_exempt
 def update_apply_grade(request, company_id):
     """적용등급 변경"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        return JsonResponse({'error': '로그인이 필요합니다.'}, status=401)
+
     try:
         company = get_object_or_404(Company, no=company_id)
 

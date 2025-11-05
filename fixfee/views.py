@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.db import models
 from django.core.paginator import Paginator
@@ -14,6 +15,10 @@ import json
 
 def fixfee_list(request):
     """월고정비 납부 현황 리스트"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        messages.warning(request, '로그인이 필요한 서비스입니다.')
+        return redirect('/auth/login/?next=/fixfee/')
 
     # 현재 스텝 정보 가져오기
     current_staff = None
@@ -115,6 +120,10 @@ def fixfee_list(request):
 
 def fixfee_detail(request, pk):
     """월고정비 상세 보기/수정"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        messages.warning(request, '로그인이 필요한 서비스입니다.')
+        return redirect(f'/auth/login/?next=/fixfee/{pk}/')
 
     fixfee = get_object_or_404(FixFee, pk=pk)
 
@@ -184,6 +193,10 @@ def fixfee_detail(request, pk):
 
 def fixfee_add(request):
     """월고정비 추가"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        messages.warning(request, '로그인이 필요한 서비스입니다.')
+        return redirect('/auth/login/?next=/fixfee/add/')
 
     # 현재 스텝 정보 가져오기
     current_staff = None
@@ -285,6 +298,9 @@ def fixfee_add(request):
 @require_POST
 def fixfee_delete(request, pk):
     """월고정비 삭제"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        return JsonResponse({'success': False, 'error': '로그인이 필요합니다.'}, status=401)
 
     try:
         fixfee = get_object_or_404(FixFee, pk=pk)
@@ -335,6 +351,9 @@ def fixfee_delete(request, pk):
 
 def check_duplicate(request):
     """중복 체크 (AJAX)"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        return JsonResponse({'error': '로그인이 필요합니다.'}, status=401)
 
     company_id = request.GET.get('company_id')
     fee_date_id = request.GET.get('fee_date_id')
@@ -355,6 +374,10 @@ def check_duplicate(request):
 
 def fixfee_status(request):
     """월고정비 현황 - 행렬 형태"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        messages.warning(request, '로그인이 필요한 서비스입니다.')
+        return redirect('/auth/login/?next=/fixfee/status/')
 
     # 현재 스텝 정보 가져오기
     current_staff = None
@@ -449,6 +472,9 @@ def fixfee_status(request):
 
 def get_company_info(request):
     """업체 정보 조회 (AJAX)"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        return JsonResponse({'error': '로그인이 필요합니다.'}, status=401)
 
     company_id = request.GET.get('company_id')
     if not company_id:

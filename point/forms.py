@@ -7,17 +7,24 @@ from contract.models import CompanyReport
 class PointForm(forms.ModelForm):
     """포인트 폼"""
 
+    # Company 선택을 위한 커스텀 필드 추가
+    company = forms.ModelChoiceField(
+        queryset=Company.objects.none(),
+        label='업체',
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'form-select company-select',
+            'id': 'company-select',
+        })
+    )
+
     class Meta:
         model = Point
         fields = [
-            'noCompany', 'nType', 'noCompanyReport',
+            'nType', 'noCompanyReport',
             'nUsePoint', 'sMemo', 'sWorker'
         ]
         widgets = {
-            'noCompany': forms.Select(attrs={
-                'class': 'form-select',
-                'required': True,
-            }),
             'nType': forms.Select(attrs={
                 'class': 'form-select',
             }),
@@ -43,20 +50,26 @@ class PointForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         # 업체 목록 필터링 (활성 업체만)
-        self.fields['noCompany'].queryset = Company.objects.filter(
+        self.fields['company'].queryset = Company.objects.filter(
             dateWithdraw__isnull=True
         ).order_by('sName2')
 
-        # 업체 선택 시 label 변경
-        self.fields['noCompany'].label_from_instance = lambda obj: f"{obj.sName2} ({obj.sName1})"
+        # 업체 선택 시 label 변경 (sName2를 메인으로 표시)
+        self.fields['company'].label_from_instance = lambda obj: f"{obj.sName2}"
 
-        # 계약보고 필터링
-        self.fields['noCompanyReport'].queryset = CompanyReport.objects.all().order_by('-no')
-        self.fields['noCompanyReport'].required = False
-        self.fields['noCompanyReport'].empty_label = "--- 선택하지 않음 ---"
+        # 빈 선택지 추가
+        self.fields['company'].empty_label = "--- 업체를 선택하세요 ---"
 
-        # 계약보고 label 변경
-        self.fields['noCompanyReport'].label_from_instance = lambda obj: f"#{obj.no} - {obj.get_nType_display()}"
+        # 계약보고 필드를 ChoiceField로 변경
+        self.fields['noCompanyReport'] = forms.ChoiceField(
+            choices=[('', '--- 업체를 먼저 선택하세요 ---')],
+            label='계약보고',
+            required=False,
+            widget=forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'companyreport-select',
+            })
+        )
 
     def clean_nUsePoint(self):
         """적용 포인트 검증"""
@@ -71,3 +84,12 @@ class PointForm(forms.ModelForm):
         cleaned_data = super().clean()
         # 잔액이 마이너스가 되는 것도 허용 (실제 비즈니스 요구사항에 따름)
         return cleaned_data
+
+    def save(self, commit=True):
+        """저장 시 company 필드 값을 noCompany에 매핑"""
+        point = super().save(commit=False)
+        if self.cleaned_data.get('company'):
+            point.noCompany = self.cleaned_data['company'].no
+        if commit:
+            point.save()
+        return point

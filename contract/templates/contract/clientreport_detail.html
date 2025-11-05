@@ -34,6 +34,16 @@
         margin-right: auto;
     }
 
+    .main-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #2d3748;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 3px solid #667eea;
+        text-align: center;
+    }
+
     .section-title {
         font-size: 18px;
         font-weight: bold;
@@ -345,6 +355,9 @@
 <div class="detail-container">
     <form method="post" action="">
         {% csrf_token %}
+
+        <!-- 주 타이틀 -->
+        <div class="main-title">고객 계약보고</div>
 
         <!-- 기본 정보 (읽기 전용) -->
         <div class="section-title">기본 정보</div>

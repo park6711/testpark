@@ -86,9 +86,9 @@
             <tr class="data-row" onclick="window.location.href='{% url 'point:point_detail' point.no %}'">
                 <td>{{ point.no }}</td>
                 <td class="company-name">
-                    {% if point.noCompany %}
-                        <strong>{{ point.noCompany.sName2 }}</strong>
-                        <div class="sub-text">{{ point.noCompany.sName1 }}</div>
+                    {% if point.company_info %}
+                        <strong>{{ point.company_info.sName2 }}</strong>
+                        <div class="sub-text">{{ point.company_info.sName1 }}</div>
                     {% else %}
                         <strong style="color: #dc3545;">삭제된 업체</strong>
                         <div class="sub-text" style="color: #999;">업체 정보 없음</div>
@@ -100,22 +100,20 @@
                 </td>
                 <td>
                     {% if point.nType == 0 %}
-                        <span class="badge badge-secondary">기타</span>
+                        <span class="badge badge-danger">수수료납부</span>
                     {% elif point.nType == 1 %}
-                        <span class="badge badge-success">취소환불</span>
+                        <span class="badge badge-success">수수료환불</span>
                     {% elif point.nType == 2 %}
                         <span class="badge badge-warning">과/미입금</span>
                     {% elif point.nType == 3 %}
                         <span class="badge badge-info">페이백적립</span>
                     {% elif point.nType == 4 %}
                         <span class="badge badge-primary">닷컴전환</span>
-                    {% elif point.nType == 5 %}
-                        <span class="badge badge-danger">포인트소멸</span>
                     {% endif %}
                 </td>
                 <td>
                     {% if point.noCompanyReport %}
-                        <span class="link-text">#{{ point.noCompanyReport.no }}</span>
+                        <span class="link-text">#{{ point.noCompanyReport }}</span>
                     {% else %}
                         -
                     {% endif %}

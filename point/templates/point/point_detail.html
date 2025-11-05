@@ -34,8 +34,12 @@
                 <tr>
                     <th>업체명</th>
                     <td>
-                        <strong>{{ point.noCompany.sName2 }}</strong>
-                        <span class="sub-text">({{ point.noCompany.sName1 }})</span>
+                        {% if point.company_info %}
+                            <strong>{{ point.company_info.sName2 }}</strong>
+                            <span class="sub-text">({{ point.company_info.sName1 }})</span>
+                        {% else %}
+                            <strong style="color: #dc3545;">삭제된 업체</strong>
+                        {% endif %}
                     </td>
                 </tr>
                 <tr>
@@ -47,34 +51,33 @@
                     <td>
                         <span id="type-display">
                             {% if point.nType == 0 %}
-                                <span class="badge badge-secondary">기타</span>
+                                <span class="badge badge-danger">수수료납부</span>
                             {% elif point.nType == 1 %}
-                                <span class="badge badge-success">취소환불</span>
+                                <span class="badge badge-success">수수료환불</span>
                             {% elif point.nType == 2 %}
                                 <span class="badge badge-warning">과/미입금</span>
                             {% elif point.nType == 3 %}
                                 <span class="badge badge-info">페이백적립</span>
                             {% elif point.nType == 4 %}
                                 <span class="badge badge-primary">닷컴전환</span>
-                            {% elif point.nType == 5 %}
-                                <span class="badge badge-danger">포인트소멸</span>
                             {% endif %}
                         </span>
                         <select id="type-edit" class="form-select" style="display: none;" data-original="{{ point.nType }}">
-                            <option value="0" {% if point.nType == 0 %}selected{% endif %}>기타</option>
-                            <option value="1" {% if point.nType == 1 %}selected{% endif %}>취소환불액</option>
+                            <option value="0" {% if point.nType == 0 %}selected{% endif %}>수수료 납부</option>
+                            <option value="1" {% if point.nType == 1 %}selected{% endif %}>수수료 환불</option>
                             <option value="2" {% if point.nType == 2 %}selected{% endif %}>과/미입금</option>
                             <option value="3" {% if point.nType == 3 %}selected{% endif %}>페이백 적립</option>
                             <option value="4" {% if point.nType == 4 %}selected{% endif %}>닷컴포인트 전환</option>
-                            <option value="5" {% if point.nType == 5 %}selected{% endif %}>포인트 소멸</option>
                         </select>
                     </td>
                 </tr>
                 <tr>
                     <th>계약보고</th>
                     <td>
-                        {% if point.noCompanyReport %}
-                            #{{ point.noCompanyReport.no }} - {{ point.noCompanyReport.get_nType_display }}
+                        {% if point.report_info %}
+                            #{{ point.report_info.no }} - {{ point.report_info.type_display }}
+                        {% elif point.noCompanyReport %}
+                            계약보고 ID {{ point.noCompanyReport }}
                         {% else %}
                             -
                         {% endif %}
@@ -143,7 +146,7 @@
 
     <!-- 최근 포인트 내역 -->
     <div class="detail-section">
-        <h3 class="section-title">{{ point.noCompany.sName2 }}의 최근 내역</h3>
+        <h3 class="section-title">{% if point.company_info %}{{ point.company_info.sName2 }}{% else %}삭제된 업체{% endif %}의 최근 내역</h3>
         {% if recent_points %}
         <table class="data-table">
             <thead>
@@ -164,17 +167,15 @@
                     <td>{{ recent.time|date:"m/d H:i" }}</td>
                     <td>
                         {% if recent.nType == 0 %}
-                            <span class="badge badge-secondary">기타</span>
+                            <span class="badge badge-danger">수수료납부</span>
                         {% elif recent.nType == 1 %}
-                            <span class="badge badge-success">취소환불</span>
+                            <span class="badge badge-success">수수료환불</span>
                         {% elif recent.nType == 2 %}
                             <span class="badge badge-warning">과/미입금</span>
                         {% elif recent.nType == 3 %}
                             <span class="badge badge-info">페이백적립</span>
                         {% elif recent.nType == 4 %}
                             <span class="badge badge-primary">닷컴전환</span>
-                        {% elif recent.nType == 5 %}
-                            <span class="badge badge-danger">포인트소멸</span>
                         {% endif %}
                     </td>
                     <td class="number-cell">{{ recent.nPrePoint|intcomma }}</td>
@@ -885,7 +886,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="modal-info">
             <strong>삭제할 포인트 정보:</strong><br>
             - 포인트 번호: #{{ point.no }}<br>
-            - 업체명: {{ point.noCompany.sName2|default:"삭제된 업체" }}<br>
+            - 업체명: {% if point.company_info %}{{ point.company_info.sName2 }}{% else %}삭제된 업체{% endif %}<br>
             - 적용 포인트: {{ point.nUsePoint|floatformat:0 }}<br>
             - 잔액 포인트: {{ point.nRemainPoint|floatformat:0 }}
         </div>

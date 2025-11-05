@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
@@ -15,6 +16,11 @@ from staff.models import Staff
 
 def evaluation_list(request):
     """평가 목록 페이지"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        messages.warning(request, '로그인이 필요한 서비스입니다.')
+        return redirect('/auth/login/?next=/evaluation/')
+
     return HttpResponse("Evaluation List - 평가 관리 페이지입니다.")
 
 
@@ -33,6 +39,11 @@ def get_current_evaluation_no():
 
 def evaluation_no_list(request):
     """업체평가 회차 리스트"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        messages.warning(request, '로그인이 필요한 서비스입니다.')
+        return redirect('/auth/login/?next=/evaluation/evaluation-no/')
+
     current_no = get_current_evaluation_no()
 
     # 현재 로그인한 스태프 정보 가져오기
@@ -59,6 +70,11 @@ def evaluation_no_list(request):
 
 def evaluation_no_detail(request, pk):
     """업체평가 회차 상세보기"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        messages.warning(request, '로그인이 필요한 서비스입니다.')
+        return redirect(f'/auth/login/?next=/evaluation/evaluation-no/{pk}/')
+
     evaluation = get_object_or_404(EvaluationNo, pk=pk)
     current_no = get_current_evaluation_no()
 
@@ -82,6 +98,11 @@ def evaluation_no_detail(request, pk):
 
 def evaluation_no_edit(request, pk):
     """업체평가 회차 수정"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        messages.warning(request, '로그인이 필요한 서비스입니다.')
+        return redirect(f'/auth/login/?next=/evaluation/evaluation-no/{pk}/edit/')
+
     evaluation = get_object_or_404(EvaluationNo, pk=pk)
     current_no = get_current_evaluation_no()
 
@@ -156,6 +177,10 @@ def evaluation_no_edit(request, pk):
 @require_http_methods(["POST"])
 def evaluation_no_update_field(request):
     """개별 필드 업데이트 (AJAX)"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        return JsonResponse({'success': False, 'error': '로그인이 필요합니다.'}, status=401)
+
     try:
         data = json.loads(request.body)
         pk = data.get('pk')
@@ -187,6 +212,11 @@ def evaluation_no_update_field(request):
 
 def complain_list(request):
     """고객불만 이력 리스트"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        messages.warning(request, '로그인이 필요한 서비스입니다.')
+        return redirect('/auth/login/?next=/evaluation/complain/')
+
     # 현재 로그인한 스태프 정보 가져오기
     current_staff = None
     if 'staff_user' in request.session:
@@ -347,6 +377,10 @@ def complain_list(request):
 @require_http_methods(["POST"])
 def complain_update_score(request):
     """불만점수 개별 업데이트 (AJAX)"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        return JsonResponse({'success': False, 'error': '로그인이 필요합니다.'}, status=401)
+
     try:
         data = json.loads(request.body)
         pk = data.get('pk')
@@ -366,6 +400,10 @@ def complain_update_score(request):
 @require_http_methods(["POST"])
 def complain_update_check(request):
     """계약확인 개별 업데이트 (AJAX)"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        return JsonResponse({'success': False, 'error': '로그인이 필요합니다.'}, status=401)
+
     try:
         data = json.loads(request.body)
         pk = data.get('pk')
@@ -385,6 +423,10 @@ def complain_update_check(request):
 @require_http_methods(["POST"])
 def complain_delete(request, pk):
     """고객불만 삭제"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        return JsonResponse({'success': False, 'error': '로그인이 필요합니다.'}, status=401)
+
     try:
         complain = get_object_or_404(Complain, pk=pk)
         complain.delete()
@@ -405,6 +447,11 @@ def complain_delete(request, pk):
 
 def satisfy_list(request):
     """고객만족도 이력 리스트"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        messages.warning(request, '로그인이 필요한 서비스입니다.')
+        return redirect('/auth/login/?next=/evaluation/satisfy/')
+
     # 현재 로그인한 스태프 정보
     current_staff = None
     if 'staff_user' in request.session:
@@ -571,6 +618,10 @@ def satisfy_list(request):
 @require_http_methods(["POST"])
 def satisfy_update_company(request):
     """고객만족도 업체 업데이트 (AJAX)"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        return JsonResponse({'success': False, 'error': '로그인이 필요합니다.'}, status=401)
+
     try:
         data = json.loads(request.body)
         satisfy_id = data.get('satisfy_id')
@@ -605,6 +656,10 @@ def satisfy_update_company(request):
 @require_http_methods(["POST"])
 def satisfy_delete(request, pk):
     """Satisfy 데이터 삭제 (AJAX)"""
+    # 로그인 체크
+    if 'staff_user' not in request.session:
+        return JsonResponse({'success': False, 'error': '로그인이 필요합니다.'}, status=401)
+
     try:
         satisfy = Satisfy.objects.get(no=pk)
         satisfy.delete()
